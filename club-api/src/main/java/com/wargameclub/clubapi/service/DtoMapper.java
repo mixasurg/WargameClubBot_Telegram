@@ -1,0 +1,115 @@
+package com.wargameclub.clubapi.service;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wargameclub.clubapi.dto.ArmyDto;
+import com.wargameclub.clubapi.dto.BookingDto;
+import com.wargameclub.clubapi.dto.BookingTableAllocationDto;
+import com.wargameclub.clubapi.dto.EventDto;
+import com.wargameclub.clubapi.dto.TableDto;
+import com.wargameclub.clubapi.dto.UserDto;
+import com.wargameclub.clubapi.dto.UserGameStatsDto;
+import com.wargameclub.clubapi.entity.Army;
+import com.wargameclub.clubapi.entity.Booking;
+import com.wargameclub.clubapi.entity.ClubEvent;
+import com.wargameclub.clubapi.entity.ClubTable;
+import com.wargameclub.clubapi.entity.UserGameStats;
+import com.wargameclub.clubapi.entity.User;
+
+public final class DtoMapper {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private DtoMapper() {
+    }
+
+    public static UserDto toUserDto(User user) {
+        return new UserDto(user.getId(), user.getName(), user.getTelegramId(), user.getCreatedAt());
+    }
+
+    public static UserGameStatsDto toUserGameStatsDto(UserGameStats stats) {
+        return new UserGameStatsDto(
+                stats.getUserId(),
+                stats.getWins(),
+                stats.getLosses(),
+                stats.getDraws(),
+                stats.getUpdatedAt()
+        );
+    }
+
+    public static TableDto toTableDto(ClubTable table) {
+        return new TableDto(table.getId(), table.getName(), table.isActive(), table.getNotes());
+    }
+
+    public static BookingDto toBookingDto(Booking booking) {
+        var assignments = parseAssignments(booking.getTableAssignments());
+        return new BookingDto(
+                booking.getId(),
+                booking.getTable() != null ? booking.getTable().getId() : null,
+                booking.getTable() != null ? booking.getTable().getName() : null,
+                assignments,
+                booking.getUser().getId(),
+                booking.getUser().getName(),
+                booking.getStartAt(),
+                booking.getEndAt(),
+                booking.getGame(),
+                booking.getTableUnits(),
+                booking.getOpponent() != null ? booking.getOpponent().getId() : null,
+                booking.getOpponent() != null ? booking.getOpponent().getName() : null,
+                booking.getArmy() != null ? booking.getArmy().getId() : null,
+                booking.getArmy() != null ? booking.getArmy().getGame() + " / " + booking.getArmy().getFaction() : null,
+                booking.getNotes(),
+                booking.getStatus(),
+                booking.getCreatedAt()
+        );
+    }
+
+    public static EventDto toEventDto(ClubEvent event) {
+        return new EventDto(
+                event.getId(),
+                event.getTitle(),
+                event.getType(),
+                event.getDescription(),
+                event.getStartAt(),
+                event.getEndAt(),
+                event.getOrganizer().getId(),
+                event.getOrganizer().getName(),
+                event.getCapacity(),
+                event.getStatus(),
+                event.getCreatedAt(),
+                event.getUpdatedAt()
+        );
+    }
+
+    public static ArmyDto toArmyDto(Army army) {
+        return new ArmyDto(
+                army.getId(),
+                army.getOwner().getId(),
+                army.getOwner().getName(),
+                army.getGame(),
+                army.getFaction(),
+                army.isClubShared(),
+                army.isActive(),
+                army.getCreatedAt()
+        );
+    }
+
+    private static java.util.List<BookingTableAllocationDto> parseAssignments(String json) {
+        if (json == null || json.isBlank()) {
+            return java.util.List.of();
+        }
+        try {
+            java.util.List<TableAssignment> assignments = OBJECT_MAPPER.readValue(
+                    json, new TypeReference<java.util.List<TableAssignment>>() {
+                    });
+            return assignments.stream()
+                    .map(item -> new BookingTableAllocationDto(item.tableId(), item.units()))
+                    .toList();
+        } catch (Exception ex) {
+            return java.util.List.of();
+        }
+    }
+
+    private record TableAssignment(Long tableId, int units) {
+    }
+}
+

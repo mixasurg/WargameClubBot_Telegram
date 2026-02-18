@@ -1,0 +1,16 @@
+bot:
+  token: ${TELEGRAM_BOT_TOKEN:}
+  username: ${TELEGRAM_BOT_USERNAME:wargameclub_bot}
+  poll-interval-seconds: ${BOT_POLL_INTERVAL_SECONDS:10}
+
+api:
+  base-url: ${API_BASE_URL:http://localhost:8080}
+
+spring:
+  main:
+    web-application-type: none
+
+logging:
+  level:
+    com.wargameclub.clubbot: INFO
+

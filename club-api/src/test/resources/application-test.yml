@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:clubtest;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: sa
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-startup: false
+    admin:
+      enabled: false
+
+app:
+  timezone: Europe/Moscow
+  loyalty:
+    points-army-used: 10
+    points-army-shared: 5
+  notifications:
+    max-attempts: 5
+    backoff-seconds: 1
+

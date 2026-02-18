@@ -1,0 +1,131 @@
+package com.wargameclub.clubapi;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import com.wargameclub.clubapi.dto.EventUpdateRequest;
+import com.wargameclub.clubapi.entity.ClubEvent;
+import com.wargameclub.clubapi.entity.User;
+import com.wargameclub.clubapi.enums.EventStatus;
+import com.wargameclub.clubapi.enums.EventType;
+import com.wargameclub.clubapi.messaging.EventUpdatedEvent;
+import com.wargameclub.clubapi.messaging.KafkaEventPublisher;
+import com.wargameclub.clubapi.messaging.TicketCancelledEvent;
+import com.wargameclub.clubapi.messaging.TicketPurchasedEvent;
+import com.wargameclub.clubapi.repository.ClubEventRepository;
+import com.wargameclub.clubapi.repository.UserRepository;
+import com.wargameclub.clubapi.service.EventPublisher;
+import com.wargameclub.clubapi.service.EventService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
+
+@SpringBootTest
+@ActiveProfiles("test")
+public class EventServiceKafkaPublishTest {
+    @Autowired
+    private EventService eventService;
+
+    @Autowired
+    private ClubEventRepository eventRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @MockBean
+    private KafkaEventPublisher kafkaEventPublisher;
+
+    @MockBean
+    private EventPublisher eventPublisher;
+
+    @BeforeEach
+    void resetMocks() {
+        Mockito.reset(kafkaEventPublisher, eventPublisher);
+    }
+
+    @Test
+    void registerPublishesTicketPurchased() {
+        ClubEvent event = createEvent();
+        User user = userRepository.save(new User("Buyer"));
+
+        eventService.register(event.getId(), user.getId(), 2, new BigDecimal("1000"));
+
+        ArgumentCaptor<TicketPurchasedEvent> captor = ArgumentCaptor.forClass(TicketPurchasedEvent.class);
+        verify(kafkaEventPublisher).publishTicketPurchased(captor.capture());
+        TicketPurchasedEvent payload = captor.getValue();
+        assertEquals(event.getId(), payload.eventId());
+        assertEquals(user.getId(), payload.userId());
+        assertEquals(2, payload.count());
+        assertEquals(new BigDecimal("1000"), payload.amount());
+    }
+
+    @Test
+    void unregisterPublishesTicketCancelled() {
+        ClubEvent event = createEvent();
+        User user = userRepository.save(new User("Buyer"));
+
+        eventService.register(event.getId(), user.getId(), 1, new BigDecimal("500"));
+        Mockito.reset(kafkaEventPublisher, eventPublisher);
+
+        eventService.unregister(event.getId(), user.getId(), 1, new BigDecimal("500"));
+
+        ArgumentCaptor<TicketCancelledEvent> captor = ArgumentCaptor.forClass(TicketCancelledEvent.class);
+        verify(kafkaEventPublisher).publishTicketCancelled(captor.capture());
+        TicketCancelledEvent payload = captor.getValue();
+        assertEquals(event.getId(), payload.eventId());
+        assertEquals(user.getId(), payload.userId());
+        assertEquals(1, payload.count());
+        assertEquals(new BigDecimal("500"), payload.amount());
+    }
+
+    @Test
+    void updatePublishesEventUpdated() {
+        ClubEvent event = createEvent();
+        OffsetDateTime start = event.getStartAt().plusDays(1);
+        OffsetDateTime end = start.plusHours(2);
+
+        EventUpdateRequest request = new EventUpdateRequest(
+                "New title",
+                EventType.OTHER,
+                "Updated",
+                start,
+                end,
+                event.getOrganizer().getId(),
+                10,
+                EventStatus.SCHEDULED
+        );
+
+        eventService.update(event.getId(), request);
+
+        ArgumentCaptor<EventUpdatedEvent> captor = ArgumentCaptor.forClass(EventUpdatedEvent.class);
+        verify(kafkaEventPublisher).publishEventUpdated(captor.capture());
+        EventUpdatedEvent payload = captor.getValue();
+        assertEquals(event.getId(), payload.eventId());
+        assertEquals("New title", payload.title());
+        assertNotNull(payload.updatedAt());
+    }
+
+    private ClubEvent createEvent() {
+        User organizer = userRepository.save(new User("Organizer"));
+        OffsetDateTime start = OffsetDateTime.now().plusDays(1);
+        OffsetDateTime end = start.plusHours(2);
+
+        ClubEvent event = new ClubEvent();
+        event.setTitle("Test event");
+        event.setType(EventType.OTHER);
+        event.setDescription("Desc");
+        event.setStartAt(start);
+        event.setEndAt(end);
+        event.setOrganizer(organizer);
+        event.setStatus(EventStatus.SCHEDULED);
+        return eventRepository.save(event);
+    }
+}

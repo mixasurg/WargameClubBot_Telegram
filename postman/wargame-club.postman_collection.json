@@ -1,0 +1,225 @@
+﻿{
+  "info": {
+    "name": "wargame-club",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register user",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Alice\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/register"
+      }
+    },
+    {
+      "name": "Upsert telegram user",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telegramId\": 123456789,\n  \"name\": \"Alice\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/telegram"
+      }
+    },
+    {
+      "name": "Search users",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users?query=ali"
+      }
+    },
+    {
+      "name": "Get user",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users/1"
+      }
+    },
+    {
+      "name": "List games",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/games?active=true"
+      }
+    },
+    {
+      "name": "List tables",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tables"
+      }
+    },
+    {
+      "name": "Create booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1,\n  \"startAt\": \"2026-02-17T18:00:00+02:00\",\n  \"endAt\": \"2026-02-17T20:00:00+02:00\",\n  \"game\": \"Warhammer 40K\",\n  \"tableUnits\": 2,\n  \"notes\": \"Opponent: Bob\"\n}"
+        },
+        "url": "{{baseUrl}}/api/bookings"
+      }
+    },
+    {
+      "name": "List bookings",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/bookings?from=2026-02-17T00:00:00+02:00&to=2026-02-24T00:00:00+02:00"
+      }
+    },
+    {
+      "name": "Cancel booking",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/bookings/1/cancel"
+      }
+    },
+    {
+      "name": "Create event",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Tournament\",\n  \"type\": \"TOURNAMENT\",\n  \"description\": \"Weekend event\",\n  \"startAt\": \"2026-02-20T10:00:00+02:00\",\n  \"endAt\": \"2026-02-20T18:00:00+02:00\",\n  \"organizerUserId\": 1,\n  \"capacity\": 16\n}"
+        },
+        "url": "{{baseUrl}}/api/events"
+      }
+    },
+    {
+      "name": "Update event",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Updated description\"\n}"
+        },
+        "url": "{{baseUrl}}/api/events/1"
+      }
+    },
+    {
+      "name": "Register to event",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1\n}"
+        },
+        "url": "{{baseUrl}}/api/events/1/register"
+      }
+    },
+    {
+      "name": "Unregister from event",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1\n}"
+        },
+        "url": "{{baseUrl}}/api/events/1/unregister"
+      }
+    },
+    {
+      "name": "Create army",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ownerUserId\": 1,\n  \"game\": \"Warhammer\",\n  \"faction\": \"Ultramarines\",\n  \"isClubShared\": true\n}"
+        },
+        "url": "{{baseUrl}}/api/armies"
+      }
+    },
+    {
+      "name": "Use army",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usedByUserId\": 1,\n  \"usedAt\": \"2026-02-17T18:00:00+02:00\",\n  \"notes\": \"Practice\"\n}"
+        },
+        "url": "{{baseUrl}}/api/armies/1/use"
+      }
+    },
+    {
+      "name": "Get loyalty",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/loyalty/1"
+      }
+    },
+    {
+      "name": "Week digest",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/digest/week?offset=0"
+      }
+    },
+    {
+      "name": "Update telegram settings",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"chatId\": 123456789,\n  \"scheduleThreadId\": 11,\n  \"eventsThreadId\": 22,\n  \"timezone\": \"Europe/Helsinki\"\n}"
+        },
+        "url": "{{baseUrl}}/api/telegram/settings"
+      }
+    },
+    {
+      "name": "Pending notifications",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/notifications/pending?target=TELEGRAM&limit=20"
+      }
+    },
+    {
+      "name": "Ack notification",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/notifications/00000000-0000-0000-0000-000000000000/ack"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
+
