@@ -1,4 +1,4 @@
-﻿{
+{
   "info": {
     "name": "wargame-club",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -9,7 +9,10 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -23,7 +26,10 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -47,10 +53,34 @@
       }
     },
     {
+      "name": "Get user stats",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users/1/stats"
+      }
+    },
+    {
       "name": "List games",
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/games?active=true"
+      }
+    },
+    {
+      "name": "Create game",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Warmachine\",\n  \"defaultDurationMinutes\": 150,\n  \"tableUnits\": 2\n}"
+        },
+        "url": "{{baseUrl}}/api/games"
       }
     },
     {
@@ -65,7 +95,10 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -89,11 +122,31 @@
       }
     },
     {
+      "name": "Record booking result",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reporterUserId\": 1,\n  \"outcome\": \"WIN\"\n}"
+        },
+        "url": "{{baseUrl}}/api/bookings/1/result"
+      }
+    },
+    {
       "name": "Create event",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -107,7 +160,10 @@
       "request": {
         "method": "PUT",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -117,11 +173,28 @@
       }
     },
     {
+      "name": "List events",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/events?from=2026-02-20T00:00:00+02:00&to=2026-02-27T00:00:00+02:00&type=TOURNAMENT"
+      }
+    },
+    {
+      "name": "Event titles",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/events/titles?limit=20"
+      }
+    },
+    {
       "name": "Register to event",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -135,7 +208,10 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -149,7 +225,10 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -159,17 +238,34 @@
       }
     },
     {
+      "name": "List armies",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/armies?game=Warhammer&faction=Ultramarines&clubShared=true&active=true"
+      }
+    },
+    {
       "name": "Use army",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"usedByUserId\": 1,\n  \"usedAt\": \"2026-02-17T18:00:00+02:00\",\n  \"notes\": \"Practice\"\n}"
         },
         "url": "{{baseUrl}}/api/armies/1/use"
+      }
+    },
+    {
+      "name": "Deactivate army",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/armies/1/deactivate"
       }
     },
     {
@@ -187,11 +283,21 @@
       }
     },
     {
+      "name": "Get telegram settings",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/telegram/settings"
+      }
+    },
+    {
       "name": "Update telegram settings",
       "request": {
         "method": "PUT",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "body": {
           "mode": "raw",
@@ -213,6 +319,23 @@
         "method": "POST",
         "url": "{{baseUrl}}/api/notifications/00000000-0000-0000-0000-000000000000/ack"
       }
+    },
+    {
+      "name": "Fail notification",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"error\": \"Timeout\"\n}"
+        },
+        "url": "{{baseUrl}}/api/notifications/00000000-0000-0000-0000-000000000000/fail"
+      }
     }
   ],
   "variable": [
@@ -222,4 +345,3 @@
     }
   ]
 }
-
