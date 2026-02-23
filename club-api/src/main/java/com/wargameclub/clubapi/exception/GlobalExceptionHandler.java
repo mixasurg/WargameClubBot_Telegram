@@ -15,25 +15,43 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Класс модуля club-api.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    /**
+     * Логгер.
+     */
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /**
+     * Обрабатывает NotFound.
+     */
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException ex, HttpServletRequest request) {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
     }
 
+    /**
+     * Обрабатывает Conflict.
+     */
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiError> handleConflict(ConflictException ex, HttpServletRequest request) {
         return buildError(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    /**
+     * Обрабатывает BadRequest.
+     */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
     }
 
+    /**
+     * Обрабатывает Validation.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<String> details = ex.getBindingResult().getFieldErrors().stream()
@@ -42,6 +60,9 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, "Ошибка валидации", request, details);
     }
 
+    /**
+     * Обрабатывает Constraint.
+     */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiError> handleConstraint(ConstraintViolationException ex, HttpServletRequest request) {
         List<String> details = ex.getConstraintViolations().stream()
@@ -50,6 +71,9 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, "Ошибка валидации", request, details);
     }
 
+    /**
+     * Обрабатывает TypeMismatch.
+     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
         String message = "Некорректный формат параметра: " + ex.getName();
@@ -61,13 +85,23 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, message, request, details);
     }
 
+    /**
+     * Обрабатывает Unexpected.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
         log.error("Необработанная ошибка", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Непредвиденная ошибка", request, null);
     }
 
+    /**
+     * Формирует Error.
+     */
     private ResponseEntity<ApiError> buildError(HttpStatus status, String message, HttpServletRequest request, List<String> details) {
+
+        /**
+         * Выполняет операцию.
+         */
         ApiError error = new ApiError(
                 OffsetDateTime.now(),
                 status.value(),
@@ -79,6 +113,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, status);
     }
 
+    /**
+     * Определяет StatusMessage.
+     */
     private String resolveStatusMessage(HttpStatus status) {
         return switch (status) {
             case BAD_REQUEST -> "Неверный запрос";
@@ -89,6 +126,9 @@ public class GlobalExceptionHandler {
         };
     }
 
+    /**
+     * Форматирует FieldError.
+     */
     private String formatFieldError(FieldError fieldError) {
         return fieldError.getField() + ": " + fieldError.getDefaultMessage();
     }

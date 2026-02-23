@@ -17,13 +17,35 @@ import com.wargameclub.clubapi.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с сущностью GameResult.
+ */
 @Service
 public class GameResultService {
+
+    /**
+     * Репозиторий бронирования.
+     */
     private final BookingRepository bookingRepository;
+
+    /**
+     * Репозиторий результата игры.
+     */
     private final BookingResultRepository resultRepository;
+
+    /**
+     * Репозиторий пользователя.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Репозиторий статистики игрока.
+     */
     private final UserGameStatsRepository statsRepository;
 
+    /**
+     * Выполняет операцию.
+     */
     public GameResultService(
             BookingRepository bookingRepository,
             BookingResultRepository resultRepository,
@@ -36,6 +58,9 @@ public class GameResultService {
         this.statsRepository = statsRepository;
     }
 
+    /**
+     * Фиксирует результат.
+     */
     @Transactional
     public void recordResult(Long bookingId, Long reporterUserId, GameOutcome outcome) {
         if (bookingId == null || reporterUserId == null) {
@@ -62,9 +87,16 @@ public class GameResultService {
         }
         BookingResult result = new BookingResult(booking, reporter, outcome);
         resultRepository.save(result);
+
+        /**
+         * Обновляет статистику.
+         */
         updateStats(booking, reporter, outcome);
     }
 
+    /**
+     * Возвращает статистику.
+     */
     @Transactional(readOnly = true)
     public UserGameStats getStats(Long userId) {
         User user = userRepository.findById(userId)
@@ -72,6 +104,9 @@ public class GameResultService {
         return statsRepository.findById(userId).orElseGet(() -> new UserGameStats(user));
     }
 
+    /**
+     * Проверяет Participant.
+     */
     private boolean isParticipant(Booking booking, User user) {
         if (booking == null || user == null) {
             return false;
@@ -82,6 +117,9 @@ public class GameResultService {
         return booking.getOpponent() != null && booking.getOpponent().getId().equals(user.getId());
     }
 
+    /**
+     * Обновляет статистику.
+     */
     private void updateStats(Booking booking, User reporter, GameOutcome outcome) {
         User opponent = booking.getUser().getId().equals(reporter.getId())
                 ? booking.getOpponent()
@@ -110,6 +148,9 @@ public class GameResultService {
         opponentStats.setUpdatedAt(now);
     }
 
+    /**
+     * Возвращает OrCreateStats.
+     */
     private UserGameStats getOrCreateStats(User user) {
         return statsRepository.findById(user.getId()).orElseGet(() -> statsRepository.save(new UserGameStats(user)));
     }

@@ -10,17 +10,30 @@ import com.wargameclub.clubbot.dto.DigestTableBookingsDto;
 import com.wargameclub.clubbot.dto.WeekDigestDto;
 import org.springframework.stereotype.Component;
 
+/**
+ * Сервис для работы с дайджестами.
+ */
 @Component
 public class DigestFormatter {
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DAY_FORMAT =
             DateTimeFormatter.ofPattern("EEE", new Locale("ru", "RU"));
 
+    /**
+     * Форматирует дайджест.
+     */
     public String format(WeekDigestDto digest) {
         StringBuilder sb = new StringBuilder();
-        String weekStart = digest.weekStart().toLocalDate().format(DATE_FORMAT);
-        String weekEnd = digest.weekEnd().toLocalDate().minusDays(1).format(DATE_FORMAT);
+        ZoneId zoneId = resolveDigestZone(digest);
+        String weekStart = digest.weekStart().atZoneSameInstant(zoneId).toLocalDate().format(DATE_FORMAT);
+        String weekEnd = digest.weekEnd().atZoneSameInstant(zoneId).toLocalDate().minusDays(1).format(DATE_FORMAT);
         sb.append("Расписание ").append(weekStart).append(" - ").append(weekEnd)
                 .append(" (").append(digest.timezone()).append(")\n");
         sb.append("========================================\n");
@@ -86,6 +99,23 @@ public class DigestFormatter {
         return sb.toString().trim();
     }
 
+    /**
+     * Определяет DigestZone.
+     */
+    private ZoneId resolveDigestZone(WeekDigestDto digest) {
+        if (digest != null && digest.timezone() != null && !digest.timezone().isBlank()) {
+            try {
+                return ZoneId.of(digest.timezone());
+            } catch (Exception ex) {
+                return ZoneId.of("Europe/Moscow");
+            }
+        }
+        return ZoneId.of("Europe/Moscow");
+    }
+
+    /**
+     * Форматирует количество столов.
+     */
     private String formatTableUnits(int units) {
         return switch (units) {
             case 1 -> "0.5";
@@ -97,6 +127,9 @@ public class DigestFormatter {
         };
     }
 
+    /**
+     * Форматирует Player.
+     */
     private String formatPlayer(String name, String faction) {
         if (name == null || name.isBlank()) {
             return "-";
@@ -108,6 +141,9 @@ public class DigestFormatter {
         return displayName + " (" + faction + ")";
     }
 
+    /**
+     * Форматирует DisplayName.
+     */
     private String formatDisplayName(String name) {
         String trimmed = name.trim();
         if (trimmed.startsWith("@")) {
@@ -119,6 +155,9 @@ public class DigestFormatter {
         return trimmed;
     }
 
+    /**
+     * Форматирует EventTypeLabel.
+     */
     private String formatEventTypeLabel(String type) {
         if (type == null) {
             return "-";
@@ -132,6 +171,9 @@ public class DigestFormatter {
         };
     }
 
+    /**
+     * Форматирует EventStatus.
+     */
     private String formatEventStatus(String status) {
         if (status == null) {
             return "-";

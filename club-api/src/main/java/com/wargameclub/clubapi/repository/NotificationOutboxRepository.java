@@ -9,7 +9,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * JPA-репозиторий для NotificationOutbox.
+ */
 public interface NotificationOutboxRepository extends JpaRepository<NotificationOutbox, UUID> {
+
+    /**
+     * Возвращает NotificationOutbox.
+     */
     Page<NotificationOutbox> findByTargetAndStatusAndNextAttemptAtLessThanEqual(
             NotificationTarget target,
             NotificationStatus status,
@@ -17,6 +24,9 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
             Pageable pageable
     );
 
+    /**
+     * Удаляет NotificationOutbox.
+     */
     void deleteByReferenceTypeAndReferenceIdAndStatus(
             String referenceType,
             Long referenceId,

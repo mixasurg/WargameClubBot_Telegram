@@ -7,8 +7,15 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import com.wargameclub.clubbot.service.TelegramClubBot;
 
+/**
+ * Конфигурация для TelegramBot.
+ */
 @Configuration
 public class TelegramBotConfig {
+
+    /**
+     * Выполняет операцию.
+     */
     @Bean
     public TelegramBotsApi telegramBotsApi(TelegramClubBot bot) throws TelegramApiException {
         TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);

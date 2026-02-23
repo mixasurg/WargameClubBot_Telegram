@@ -1,5 +1,7 @@
 package com.wargameclub.clubapi.controller;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import com.wargameclub.clubapi.dto.ArmyCreateRequest;
 import com.wargameclub.clubapi.dto.ArmyDto;
@@ -15,15 +17,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления армиями.
+ */
 @RestController
 @RequestMapping("/api/armies")
 public class ArmyController {
+
+    /**
+     * Сервис армии.
+     */
     private final ArmyService armyService;
 
+    /**
+     * Конструктор ArmyController.
+     */
     public ArmyController(ArmyService armyService) {
         this.armyService = armyService;
     }
 
+    /**
+     * Создает армию.
+     */
     @PostMapping
     public ArmyDto create(@Valid @RequestBody ArmyCreateRequest request) {
         return DtoMapper.toArmyDto(armyService.create(
@@ -34,23 +49,49 @@ public class ArmyController {
         ));
     }
 
+    /**
+     * Возвращает список армий.
+     */
     @GetMapping
     public List<ArmyDto> list(
             @RequestParam(name = "game", required = false) String game,
             @RequestParam(name = "faction", required = false) String faction,
             @RequestParam(name = "clubShared", required = false) Boolean clubShared,
+            @RequestParam(name = "ownerUserId", required = false) Long ownerUserId,
             @RequestParam(name = "active", required = false) Boolean active
     ) {
-        return armyService.find(game, faction, clubShared, active).stream()
+        String normalizedGame = decodeQueryValue(game);
+        String normalizedFaction = decodeQueryValue(faction);
+        return armyService.find(normalizedGame, normalizedFaction, clubShared, ownerUserId, active).stream()
                 .map(DtoMapper::toArmyDto)
                 .toList();
     }
 
+    /**
+     * Декодирует значение параметра запроса.
+     */
+    private String decodeQueryValue(String value) {
+        if (value == null || !value.contains("%")) {
+            return value;
+        }
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ex) {
+            return value;
+        }
+    }
+
+    /**
+     * Деактивирует армию.
+     */
     @PostMapping("/{id}/deactivate")
     public ArmyDto deactivate(@PathVariable Long id) {
         return DtoMapper.toArmyDto(armyService.deactivate(id));
     }
 
+    /**
+     * Фиксирует использование армии.
+     */
     @PostMapping("/{id}/use")
     public void use(@PathVariable Long id, @Valid @RequestBody ArmyUsageRequest request) {
         armyService.useArmy(id, request.usedByUserId(), request.usedAt(), request.notes());

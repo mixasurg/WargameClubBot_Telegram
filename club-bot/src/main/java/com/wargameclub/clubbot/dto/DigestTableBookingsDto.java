@@ -2,6 +2,9 @@ package com.wargameclub.clubbot.dto;
 
 import java.util.List;
 
+/**
+ * DTO для DigestTableBookings.
+ */
 public record DigestTableBookingsDto(
         Long tableId,
         String tableName,

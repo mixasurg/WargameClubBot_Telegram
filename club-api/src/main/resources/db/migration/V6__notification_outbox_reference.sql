@@ -1,3 +1,5 @@
+-- Миграция БД: ссылки для outbox-сообщений.
+
 alter table notification_outbox add column if not exists reference_type varchar(50);
 alter table notification_outbox add column if not exists reference_id bigint;
 

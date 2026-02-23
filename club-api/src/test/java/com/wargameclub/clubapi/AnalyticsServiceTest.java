@@ -17,13 +17,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Класс модуля club-api.
+ */
 public class AnalyticsServiceTest {
+
+    /**
+     * Выполняет операцию.
+     */
     @Test
     void writesSnapshotToFile() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         Path file = Files.createTempFile("analytics", ".json");
         AnalyticsService service = new AnalyticsService(mapper, file.toString());
 
+        /**
+         * Выполняет операцию.
+         */
         TicketPurchasedEvent purchase = new TicketPurchasedEvent(
                 1L,
                 "Event",
@@ -36,6 +46,9 @@ public class AnalyticsServiceTest {
         );
         service.recordPurchase(purchase);
 
+        /**
+         * Выполняет операцию.
+         */
         EventUpdatedEvent updated = new EventUpdatedEvent(
                 1L,
                 "Event",
@@ -48,9 +61,21 @@ public class AnalyticsServiceTest {
         service.recordEventUpdated(updated);
 
         AnalyticsSnapshot snapshot = mapper.readValue(file.toFile(), AnalyticsSnapshot.class);
+
+        /**
+         * Выполняет операцию.
+         */
         assertEquals(new BigDecimal("1500"), snapshot.revenue());
+
+        /**
+         * Выполняет операцию.
+         */
         assertEquals(2, snapshot.purchasesByCategory().get("OTHER"));
         assertTrue(snapshot.topEvents().stream().anyMatch(event -> event.eventId().equals(1L)));
+
+        /**
+         * Выполняет операцию.
+         */
         assertNotNull(snapshot.lastUpdated());
     }
 }

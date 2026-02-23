@@ -4,6 +4,9 @@ import java.time.OffsetDateTime;
 import com.wargameclub.clubapi.enums.EventStatus;
 import com.wargameclub.clubapi.enums.EventType;
 
+/**
+ * DTO для мероприятия.
+ */
 public record EventDto(
         Long id,
         String title,

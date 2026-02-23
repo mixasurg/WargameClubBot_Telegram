@@ -1,3 +1,5 @@
+-- Миграция БД: бронирования, игры и пользователи.
+
 alter table app_user add column if not exists telegram_id bigint;
 create unique index if not exists idx_app_user_telegram_id on app_user(telegram_id);
 

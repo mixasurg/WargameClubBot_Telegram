@@ -1,5 +1,8 @@
 package com.wargameclub.clubapi.dto;
 
+/**
+ * DTO для стола.
+ */
 public record TableDto(
         Long id,
         String name,

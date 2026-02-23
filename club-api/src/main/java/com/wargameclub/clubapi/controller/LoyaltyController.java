@@ -7,15 +7,28 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления лояльностью.
+ */
 @RestController
 @RequestMapping("/api/loyalty")
 public class LoyaltyController {
+
+    /**
+     * Сервис лояльности.
+     */
     private final LoyaltyService loyaltyService;
 
+    /**
+     * Конструктор LoyaltyController.
+     */
     public LoyaltyController(LoyaltyService loyaltyService) {
         this.loyaltyService = loyaltyService;
     }
 
+    /**
+     * Возвращает лояльность.
+     */
     @GetMapping("/{userId}")
     public LoyaltyDto get(@PathVariable Long userId) {
         return new LoyaltyDto(userId, loyaltyService.getPoints(userId));

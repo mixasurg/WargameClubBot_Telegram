@@ -9,14 +9,34 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Сервис для работы с сущностью OutboxPolling.
+ */
 @Component
 public class OutboxPollingService {
+    /**
+     * Логгер.
+     */
     private static final Logger log = LoggerFactory.getLogger(OutboxPollingService.class);
 
+    /**
+     * Клиент ClubApi.
+     */
     private final ClubApiClient apiClient;
+
+    /**
+     * Поле состояния.
+     */
     private final NotificationDispatcher dispatcher;
+
+    /**
+     * Сериализатор JSON.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * Выполняет операцию.
+     */
     public OutboxPollingService(
             ClubApiClient apiClient,
             NotificationDispatcher dispatcher,
@@ -27,6 +47,9 @@ public class OutboxPollingService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Scheduled(fixedDelayString = "#{${bot.poll-interval-seconds:10} * 1000}")
     public void pollOutbox() {
         List<NotificationOutboxDto> pending = apiClient.getPendingNotifications(20);

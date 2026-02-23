@@ -13,15 +13,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления играми.
+ */
 @RestController
 @RequestMapping("/api/games")
 public class GameController {
+
+    /**
+     * Сервис каталога игр.
+     */
     private final GameCatalogService gameCatalogService;
 
+    /**
+     * Конструктор GameController.
+     */
     public GameController(GameCatalogService gameCatalogService) {
         this.gameCatalogService = gameCatalogService;
     }
 
+    /**
+     * Возвращает список игр.
+     */
     @GetMapping
     public List<GameDto> list(@RequestParam(name = "active", required = false) Boolean active) {
         return gameCatalogService.list(active).stream()
@@ -29,6 +42,9 @@ public class GameController {
                 .toList();
     }
 
+    /**
+     * Создает игру.
+     */
     @PostMapping
     public GameDto create(@Valid @RequestBody GameCreateRequest request) {
         GameCatalog game = gameCatalogService.createOrGet(
@@ -39,6 +55,9 @@ public class GameController {
         return toDto(game);
     }
 
+    /**
+     * Преобразует в DTO.
+     */
     private GameDto toDto(GameCatalog game) {
         return new GameDto(
                 game.getId(),

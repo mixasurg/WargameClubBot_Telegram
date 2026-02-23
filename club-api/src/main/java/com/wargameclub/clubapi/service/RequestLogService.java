@@ -8,21 +8,56 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с сущностью RequestLog.
+ */
 @Service
 public class RequestLogService {
+    /**
+     * Логгер.
+     */
     private static final Logger log = LoggerFactory.getLogger(RequestLogService.class);
+
+    /**
+     * Поле состояния.
+     */
     private static final int METHOD_MAX = 10;
+
+    /**
+     * Поле состояния.
+     */
     private static final int PATH_MAX = 300;
+
+    /**
+     * Поле состояния.
+     */
     private static final int QUERY_MAX = 500;
+
+    /**
+     * Поле состояния.
+     */
     private static final int REMOTE_ADDR_MAX = 100;
+
+    /**
+     * Поле состояния.
+     */
     private static final int USER_AGENT_MAX = 300;
 
+    /**
+     * Репозиторий RequestLog.
+     */
     private final RequestLogRepository repository;
 
+    /**
+     * Конструктор RequestLogService.
+     */
     public RequestLogService(RequestLogRepository repository) {
         this.repository = repository;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logRequest(
             String method,
@@ -34,6 +69,10 @@ public class RequestLogService {
             String userAgent
     ) {
         try {
+
+            /**
+             * Выполняет операцию.
+             */
             RequestLog entry = new RequestLog(
                     truncate(method, METHOD_MAX),
                     truncate(path, PATH_MAX),
@@ -49,6 +88,9 @@ public class RequestLogService {
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private String truncate(String value, int max) {
         if (value == null) {
             return null;

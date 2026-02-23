@@ -24,17 +24,49 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с мероприятиями.
+ */
 @Service
 public class EventService {
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter MESSAGE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm XXX");
 
+    /**
+     * Репозиторий мероприятия клуба.
+     */
     private final ClubEventRepository eventRepository;
+
+    /**
+     * Репозиторий пользователя.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Репозиторий EventRegistration.
+     */
     private final EventRegistrationRepository registrationRepository;
+
+    /**
+     * Поле состояния.
+     */
     private final EventPublisher eventPublisher;
+
+    /**
+     * Поле состояния.
+     */
     private final KafkaEventPublisher kafkaEventPublisher;
+
+    /**
+     * Сервис TelegramAutoRefresh.
+     */
     private final TelegramAutoRefreshService autoRefreshService;
 
+    /**
+     * Выполняет операцию.
+     */
     public EventService(
             ClubEventRepository eventRepository,
             UserRepository userRepository,
@@ -51,15 +83,29 @@ public class EventService {
         this.autoRefreshService = autoRefreshService;
     }
 
+    /**
+     * Создает мероприятие.
+     */
     @Transactional
     public ClubEvent create(ClubEvent event) {
+
+        /**
+         * Проверяет Range.
+         */
         validateRange(event.getStartAt(), event.getEndAt());
         ClubEvent saved = eventRepository.save(event);
+
+        /**
+         * Публикует уведомление.
+         */
         publishNotification(saved, "создано");
         autoRefreshService.refreshEventsIfWithinRange(saved.getStartAt());
         return saved;
     }
 
+    /**
+     * Обновляет мероприятие.
+     */
     @Transactional
     public ClubEvent update(Long eventId, EventUpdateRequest request) {
         ClubEvent event = eventRepository.findById(eventId)
@@ -90,8 +136,16 @@ public class EventService {
         if (request.status() != null) {
             event.setStatus(request.status());
         }
+
+        /**
+         * Проверяет Range.
+         */
         validateRange(event.getStartAt(), event.getEndAt());
         event.setUpdatedAt(OffsetDateTime.now());
+
+        /**
+         * Публикует уведомление.
+         */
         publishNotification(event, "обновлено");
         kafkaEventPublisher.publishEventUpdated(new EventUpdatedEvent(
                 event.getId(),
@@ -106,18 +160,31 @@ public class EventService {
         return event;
     }
 
+    /**
+     * Возвращает Overlapping.
+     */
     @Transactional(readOnly = true)
     public List<ClubEvent> findOverlapping(OffsetDateTime from, OffsetDateTime to, EventType type) {
+
+        /**
+         * Проверяет Range.
+         */
         validateRange(from, to);
         return eventRepository.findOverlappingWithOrganizer(from, to, type);
     }
 
+    /**
+     * Возвращает список Titles.
+     */
     @Transactional(readOnly = true)
     public List<String> listTitles(int limit) {
         int size = limit > 0 ? limit : 20;
         return eventRepository.findDistinctTitles(PageRequest.of(0, size));
     }
 
+    /**
+     * Регистрирует мероприятие.
+     */
     @Transactional
     public void register(Long eventId, Long userId, Integer count, BigDecimal amount) {
         ClubEvent event = eventRepository.findById(eventId)
@@ -149,6 +216,9 @@ public class EventService {
         ));
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Transactional
     public void unregister(Long eventId, Long userId, Integer count, BigDecimal amount) {
         com.wargameclub.clubapi.entity.EventRegistration registration = registrationRepository
@@ -167,12 +237,18 @@ public class EventService {
         ));
     }
 
+    /**
+     * Проверяет Range.
+     */
     private void validateRange(OffsetDateTime startAt, OffsetDateTime endAt) {
         if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
             throw new BadRequestException("Некорректный диапазон времени");
         }
     }
 
+    /**
+     * Публикует уведомление.
+     */
     private void publishNotification(ClubEvent event, String action) {
         String message = "Мероприятие " + action + ": " + event.getTitle()
                 + " (" + formatEventType(event.getType()) + ")\n"
@@ -182,6 +258,9 @@ public class EventService {
         eventPublisher.publishEventNotification(message);
     }
 
+    /**
+     * Форматирует EventType.
+     */
     private String formatEventType(EventType type) {
         if (type == null) {
             return "-";
@@ -194,6 +273,9 @@ public class EventService {
         };
     }
 
+    /**
+     * Форматирует EventStatus.
+     */
     private String formatEventStatus(EventStatus status) {
         if (status == null) {
             return "-";

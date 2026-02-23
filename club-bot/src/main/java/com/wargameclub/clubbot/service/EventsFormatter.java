@@ -6,10 +6,19 @@ import java.util.List;
 import com.wargameclub.clubbot.dto.EventDto;
 import org.springframework.stereotype.Component;
 
+/**
+ * Сервис для работы с сущностью Events.
+ */
 @Component
 public class EventsFormatter {
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    /**
+     * Форматирует Upcoming.
+     */
     public String formatUpcoming(List<EventDto> events, String timezone) {
         StringBuilder sb = new StringBuilder();
         sb.append("Ближайшие мероприятия (14 дней)");
@@ -40,6 +49,9 @@ public class EventsFormatter {
         return sb.toString().trim();
     }
 
+    /**
+     * Форматирует EventTypeLabel.
+     */
     private String formatEventTypeLabel(String type) {
         if (type == null) {
             return "-";
@@ -53,6 +65,9 @@ public class EventsFormatter {
         };
     }
 
+    /**
+     * Форматирует EventStatus.
+     */
     private String formatEventStatus(String status) {
         if (status == null) {
             return "-";

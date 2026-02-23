@@ -10,16 +10,33 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с пользователями.
+ */
 @Service
 public class UserService {
+
+    /**
+     * Репозиторий пользователя.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Поле состояния.
+     */
     private final KafkaEventPublisher kafkaEventPublisher;
 
+    /**
+     * Конструктор UserService.
+     */
     public UserService(UserRepository userRepository, KafkaEventPublisher kafkaEventPublisher) {
         this.userRepository = userRepository;
         this.kafkaEventPublisher = kafkaEventPublisher;
     }
 
+    /**
+     * Регистрирует пользователя.
+     */
     @Transactional
     public User register(String name) {
         User user = new User(name);
@@ -32,6 +49,9 @@ public class UserService {
         return saved;
     }
 
+    /**
+     * Создает или обновляет TelegramUser.
+     */
     @Transactional
     public User upsertTelegramUser(Long telegramId, String name) {
         return userRepository.findByTelegramId(telegramId)
@@ -44,6 +64,9 @@ public class UserService {
                 .orElseGet(() -> userRepository.save(new User(name, telegramId)));
     }
 
+    /**
+     * Возвращает список пользователей.
+     */
     @Transactional(readOnly = true)
     public List<User> searchByName(String query) {
         if (query == null || query.isBlank()) {
@@ -52,6 +75,9 @@ public class UserService {
         return userRepository.findByNameContainingIgnoreCase(query);
     }
 
+    /**
+     * Возвращает пользователя.
+     */
     @Transactional(readOnly = true)
     public User getById(Long id) {
         return userRepository.findById(id)

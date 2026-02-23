@@ -16,18 +16,54 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Обработчик сообщений для BookingReminder.
+ */
 @Service
 public class BookingReminderConsumer {
+
+    /**
+     * Поле состояния.
+     */
     private static final String REMINDER_REFERENCE = "BOOKING_REMINDER";
+
+    /**
+     * Поле состояния.
+     */
     private static final String RESULT_REFERENCE = "BOOKING_RESULT_PROMPT";
+
+    /**
+     * Поле состояния.
+     */
     private static final String RESULT_PROMPT_COMMAND = "__cmd:result_prompt__";
+
+    /**
+     * Поле состояния.
+     */
     private static final int RESULT_DELAY_MINUTES = 90;
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter REMINDER_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    /**
+     * Репозиторий бронирования.
+     */
     private final BookingRepository bookingRepository;
+
+    /**
+     * Сервис NotificationOutbox.
+     */
     private final NotificationOutboxService outboxService;
+
+    /**
+     * Параметры конфигурации App.
+     */
     private final AppProperties appProperties;
 
+    /**
+     * Выполняет операцию.
+     */
     public BookingReminderConsumer(
             BookingRepository bookingRepository,
             NotificationOutboxService outboxService,
@@ -43,6 +79,10 @@ public class BookingReminderConsumer {
             groupId = "booking-reminder",
             containerFactory = "kafkaListenerContainerFactory"
     )
+
+    /**
+     * Выполняет операцию.
+     */
     @Transactional
     public void onBookingCreated(BookingCreatedEvent event, Acknowledgment acknowledgment) {
         if (event == null || event.bookingId() == null) {
@@ -71,8 +111,16 @@ public class BookingReminderConsumer {
         outboxService.deletePendingByReference(RESULT_REFERENCE, booking.getId());
         ZoneId zoneId = appProperties.getTimezone();
         String message = buildReminderMessage(booking, zoneId);
+
+        /**
+         * Ставит в очередь напоминание.
+         */
         enqueueReminder(booking.getUser(), message, reminderAt, booking.getId());
         if (booking.getOpponent() != null) {
+
+            /**
+             * Ставит в очередь напоминание.
+             */
             enqueueReminder(booking.getOpponent(), message, reminderAt, booking.getId());
         }
         if (booking.getOpponent() != null && booking.getEndAt() != null) {
@@ -81,7 +129,15 @@ public class BookingReminderConsumer {
                 resultAt = now;
             }
             String command = RESULT_PROMPT_COMMAND + ":" + booking.getId();
+
+            /**
+             * Ставит в очередь ResultPrompt.
+             */
             enqueueResultPrompt(booking.getUser(), command, resultAt, booking.getId());
+
+            /**
+             * Ставит в очередь ResultPrompt.
+             */
             enqueueResultPrompt(booking.getOpponent(), command, resultAt, booking.getId());
         }
         acknowledgment.acknowledge();
@@ -92,6 +148,10 @@ public class BookingReminderConsumer {
             groupId = "booking-reminder",
             containerFactory = "kafkaListenerContainerFactory"
     )
+
+    /**
+     * Выполняет операцию.
+     */
     @Transactional
     public void onBookingCancelled(BookingCancelledEvent event, Acknowledgment acknowledgment) {
         if (event == null || event.bookingId() == null) {
@@ -102,6 +162,9 @@ public class BookingReminderConsumer {
         acknowledgment.acknowledge();
     }
 
+    /**
+     * Ставит в очередь напоминание.
+     */
     private void enqueueReminder(User user, String text, OffsetDateTime reminderAt, Long bookingId) {
         if (user == null || user.getTelegramId() == null) {
             return;
@@ -117,6 +180,9 @@ public class BookingReminderConsumer {
         );
     }
 
+    /**
+     * Ставит в очередь ResultPrompt.
+     */
     private void enqueueResultPrompt(User user, String text, OffsetDateTime resultAt, Long bookingId) {
         if (user == null || user.getTelegramId() == null) {
             return;
@@ -132,6 +198,9 @@ public class BookingReminderConsumer {
         );
     }
 
+    /**
+     * Формирует ReminderMessage.
+     */
     private String buildReminderMessage(Booking booking, ZoneId zoneId) {
         String game = booking.getGame() != null ? booking.getGame() : "-";
         String opponent = booking.getOpponent() != null ? booking.getOpponent().getName() : null;

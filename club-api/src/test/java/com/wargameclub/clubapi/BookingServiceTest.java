@@ -17,21 +17,40 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Класс модуля club-api.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 public class BookingServiceTest {
+
+    /**
+     * Сервис бронирования.
+     */
     @Autowired
     private BookingService bookingService;
 
+    /**
+     * Репозиторий стола клуба.
+     */
     @Autowired
     private ClubTableRepository tableRepository;
 
+    /**
+     * Репозиторий пользователя.
+     */
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Поле состояния.
+     */
     @MockBean
     private KafkaEventPublisher kafkaEventPublisher;
 
+    /**
+     * Выполняет операцию.
+     */
     @Test
     void bookingOverlapIsRejected() {
         ClubTable table = tableRepository.save(new ClubTable("Table-1", true, null));
@@ -40,6 +59,9 @@ public class BookingServiceTest {
         OffsetDateTime start = OffsetDateTime.now().plusDays(1);
         OffsetDateTime end = start.plusHours(2);
 
+        /**
+         * Выполняет операцию.
+         */
         BookingCreateRequest request = new BookingCreateRequest(
                 table.getId(),
                 user.getId(),
@@ -53,6 +75,9 @@ public class BookingServiceTest {
         );
         bookingService.create(request);
 
+        /**
+         * Выполняет операцию.
+         */
         BookingCreateRequest overlap = new BookingCreateRequest(
                 table.getId(),
                 user.getId(),

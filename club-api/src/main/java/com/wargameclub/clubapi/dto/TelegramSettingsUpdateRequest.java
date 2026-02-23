@@ -2,6 +2,9 @@ package com.wargameclub.clubapi.dto;
 
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * DTO запроса на обновление настроек Telegram.
+ */
 public record TelegramSettingsUpdateRequest(
         @NotNull Long chatId,
         Integer scheduleThreadId,

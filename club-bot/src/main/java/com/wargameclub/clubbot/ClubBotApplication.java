@@ -7,11 +7,18 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.scheduling.annotation.EnableScheduling;
 import com.wargameclub.clubbot.config.BotProperties;
 
+/**
+ * Точка входа приложения club-bot.
+ */
 @SpringBootApplication
 @EnableScheduling
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties(BotProperties.class)
 public class ClubBotApplication {
+
+    /**
+     * Выполняет операцию.
+     */
     public static void main(String[] args) {
         SpringApplication.run(ClubBotApplication.class, args);
     }

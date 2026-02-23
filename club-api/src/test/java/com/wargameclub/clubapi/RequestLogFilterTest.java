@@ -17,16 +17,29 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Класс модуля club-api.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 public class RequestLogFilterTest {
+
+    /**
+     * Поле состояния.
+     */
     @Autowired
     private MockMvc mockMvc;
 
+    /**
+     * Репозиторий RequestLog.
+     */
     @Autowired
     private RequestLogRepository requestLogRepository;
 
+    /**
+     * Выполняет операцию.
+     */
     @Test
     void logsRequestToDatabase() throws Exception {
         int before = requestLogRepository.findAll().size();
@@ -35,12 +48,32 @@ public class RequestLogFilterTest {
                 .andExpect(status().isOk());
 
         List<RequestLog> logs = requestLogRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+
+        /**
+         * Выполняет операцию.
+         */
         assertFalse(logs.isEmpty());
+
+        /**
+         * Выполняет операцию.
+         */
         assertTrue(logs.size() >= before + 1);
 
         RequestLog last = logs.get(0);
+
+        /**
+         * Выполняет операцию.
+         */
         assertEquals("GET", last.getMethod());
+
+        /**
+         * Выполняет операцию.
+         */
         assertEquals("/actuator/health", last.getPath());
+
+        /**
+         * Выполняет операцию.
+         */
         assertEquals(200, last.getStatus());
     }
 }

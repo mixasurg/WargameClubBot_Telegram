@@ -2,6 +2,9 @@ package com.wargameclub.clubbot.dto;
 
 import java.time.OffsetDateTime;
 
+/**
+ * DTO для DigestBooking.
+ */
 public record DigestBookingDto(
         OffsetDateTime startAt,
         OffsetDateTime endAt,

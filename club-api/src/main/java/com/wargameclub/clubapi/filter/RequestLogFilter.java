@@ -10,14 +10,27 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Класс модуля club-api.
+ */
 @Component
 public class RequestLogFilter extends OncePerRequestFilter {
+
+    /**
+     * Сервис RequestLog.
+     */
     private final RequestLogService requestLogService;
 
+    /**
+     * Конструктор RequestLogFilter.
+     */
     public RequestLogFilter(RequestLogService requestLogService) {
         this.requestLogService = requestLogService;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -45,30 +58,57 @@ public class RequestLogFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Класс модуля club-api.
+     */
     private static class StatusCaptureResponseWrapper extends HttpServletResponseWrapper {
+
+        /**
+         * Поле состояния.
+         */
         private int status = SC_OK;
 
+        /**
+         * Конструктор StatusCaptureResponseWrapper.
+         */
         StatusCaptureResponseWrapper(HttpServletResponse response) {
+
+            /**
+             * Выполняет операцию.
+             */
             super(response);
         }
 
+        /**
+         * Устанавливает Status.
+         */
         @Override
         public void setStatus(int sc) {
             this.status = sc;
             super.setStatus(sc);
         }
 
+        /**
+         * Отправляет Error.
+         */
         @Override
         public void sendError(int sc) throws IOException {
             this.status = sc;
             super.sendError(sc);
         }
 
+        /**
+         * Отправляет Error.
+         */
         @Override
         public void sendError(int sc, String msg) throws IOException {
             this.status = sc;
             super.sendError(sc, msg);
         }
+
+        /**
+         * Возвращает Status.
+         */
         @Override
         public int getStatus() {
             return status;

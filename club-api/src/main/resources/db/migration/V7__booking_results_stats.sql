@@ -1,3 +1,5 @@
+-- Миграция БД: результаты игр и статистика.
+
 create table if not exists booking_result (
     booking_id bigint primary key references booking(id) on delete cascade,
     reporter_user_id bigint not null references app_user(id),

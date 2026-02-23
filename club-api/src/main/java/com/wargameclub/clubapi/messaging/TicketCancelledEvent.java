@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import com.wargameclub.clubapi.enums.EventType;
 
+/**
+ * Событие для TicketCancelled.
+ */
 public record TicketCancelledEvent(
         Long eventId,
         String eventTitle,

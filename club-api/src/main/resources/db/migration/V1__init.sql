@@ -1,3 +1,5 @@
+-- Миграция БД: базовая схема.
+
 create table app_user (
     id bigserial primary key,
     name varchar(100) not null,

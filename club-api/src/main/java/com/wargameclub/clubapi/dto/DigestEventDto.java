@@ -4,6 +4,9 @@ import java.time.OffsetDateTime;
 import com.wargameclub.clubapi.enums.EventStatus;
 import com.wargameclub.clubapi.enums.EventType;
 
+/**
+ * DTO для DigestEvent.
+ */
 public record DigestEventDto(
         Long id,
         String title,

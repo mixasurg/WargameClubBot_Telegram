@@ -1,5 +1,8 @@
 package com.wargameclub.clubbot.dto;
 
+/**
+ * DTO для настроек Telegram.
+ */
 public record TelegramSettingsDto(
         Long chatId,
         Integer scheduleThreadId,

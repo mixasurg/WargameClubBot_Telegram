@@ -5,6 +5,9 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * DTO запроса для EventRegistration.
+ */
 public record EventRegistrationRequest(
         @NotNull @Positive Long userId,
         @Positive Integer count,

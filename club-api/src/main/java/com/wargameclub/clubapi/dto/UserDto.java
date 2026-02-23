@@ -2,6 +2,9 @@ package com.wargameclub.clubapi.dto;
 
 import java.time.OffsetDateTime;
 
+/**
+ * DTO для пользователя.
+ */
 public record UserDto(
         Long id,
         String name,

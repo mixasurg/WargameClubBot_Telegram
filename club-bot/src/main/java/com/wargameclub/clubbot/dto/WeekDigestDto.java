@@ -3,6 +3,9 @@ package com.wargameclub.clubbot.dto;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+/**
+ * DTO для WeekDigest.
+ */
 public record WeekDigestDto(
         OffsetDateTime weekStart,
         OffsetDateTime weekEnd,

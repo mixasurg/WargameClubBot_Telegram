@@ -2,6 +2,9 @@ package com.wargameclub.clubbot.dto;
 
 import java.time.OffsetDateTime;
 
+/**
+ * DTO запроса на создание бронирования.
+ */
 public record BookingCreateRequest(
         Long tableId,
         Long userId,

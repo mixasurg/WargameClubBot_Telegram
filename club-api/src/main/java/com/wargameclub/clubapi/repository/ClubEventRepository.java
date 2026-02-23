@@ -9,9 +9,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * JPA-репозиторий для мероприятия клуба.
+ */
 public interface ClubEventRepository extends JpaRepository<ClubEvent, Long> {
     @Query("select e from ClubEvent e join fetch e.organizer o " +
             "where (:type is null or e.type = :type) and e.startAt < :to and e.endAt > :from")
+
+    /**
+     * Возвращает OverlappingWithOrganizer.
+     */
     List<ClubEvent> findOverlappingWithOrganizer(
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to,
@@ -21,6 +28,10 @@ public interface ClubEventRepository extends JpaRepository<ClubEvent, Long> {
     @Query("select distinct e.title from ClubEvent e " +
             "where e.title is not null and trim(e.title) <> '' " +
             "order by e.title")
+
+    /**
+     * Возвращает DistinctTitles.
+     */
     List<String> findDistinctTitles(Pageable pageable);
 }
 

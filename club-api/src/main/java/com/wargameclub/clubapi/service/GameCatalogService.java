@@ -7,14 +7,27 @@ import com.wargameclub.clubapi.repository.GameCatalogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с каталогом игр.
+ */
 @Service
 public class GameCatalogService {
+
+    /**
+     * Репозиторий каталога игр.
+     */
     private final GameCatalogRepository repository;
 
+    /**
+     * Конструктор GameCatalogService.
+     */
     public GameCatalogService(GameCatalogRepository repository) {
         this.repository = repository;
     }
 
+    /**
+     * Возвращает список каталогов игр.
+     */
     @Transactional(readOnly = true)
     public List<GameCatalog> list(Boolean active) {
         if (active == null) {
@@ -23,6 +36,9 @@ public class GameCatalogService {
         return repository.findByIsActive(active);
     }
 
+    /**
+     * Создает OrGet.
+     */
     @Transactional
     public GameCatalog createOrGet(String name, int defaultDurationMinutes, int tableUnits) {
         String normalized = name == null ? "" : name.trim();

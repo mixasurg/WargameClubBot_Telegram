@@ -18,16 +18,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления уведомлениями.
+ */
 @RestController
 @Validated
 @RequestMapping("/api/notifications")
 public class NotificationController {
+
+    /**
+     * Сервис NotificationOutbox.
+     */
     private final NotificationOutboxService notificationService;
 
+    /**
+     * Конструктор NotificationController.
+     */
     public NotificationController(NotificationOutboxService notificationService) {
         this.notificationService = notificationService;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @GetMapping("/pending")
     public List<NotificationOutboxDto> pending(
             @RequestParam(name = "target") NotificationTarget target,
@@ -36,11 +49,17 @@ public class NotificationController {
         return notificationService.getPending(target, limit);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @PostMapping("/{id}/ack")
     public void ack(@PathVariable("id") UUID id) {
         notificationService.markSent(id);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @PostMapping("/{id}/fail")
     public void fail(@PathVariable("id") UUID id, @Valid @RequestBody NotificationFailRequest request) {
         notificationService.markFailed(id, request.error());

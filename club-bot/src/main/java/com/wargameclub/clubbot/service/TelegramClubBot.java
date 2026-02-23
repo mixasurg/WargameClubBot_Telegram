@@ -1,5 +1,7 @@
 package com.wargameclub.clubbot.service;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -8,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -52,34 +55,128 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
+/**
+ * Сервис для работы с сущностью TelegramClubBot.
+ */
 @Component
 public class TelegramClubBot extends TelegramLongPollingBot implements NotificationDispatcher {
+    /**
+     * Логгер.
+     */
     private static final Logger log = LoggerFactory.getLogger(TelegramClubBot.class);
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter MONTH_FORMAT =
             DateTimeFormatter.ofPattern("LLLL yyyy", new Locale("ru", "RU"));
+
+    /**
+     * Поле состояния.
+     */
     private static final String CALLBACK_NOOP = "noop";
+
+    /**
+     * Поле состояния.
+     */
     private static final String DATE_TARGET_BOOKING = "b";
+
+    /**
+     * Поле состояния.
+     */
     private static final String DATE_TARGET_EVENT = "e";
+
+    /**
+     * Поле состояния.
+     */
     private static final String TIME_TARGET_BOOKING_START = "bs";
+
+    /**
+     * Поле состояния.
+     */
     private static final String TIME_TARGET_EVENT_START = "es";
+
+    /**
+     * Поле состояния.
+     */
     private static final String TIME_TARGET_EVENT_END = "ee";
+
+    /**
+     * Поле состояния.
+     */
     private static final String EVENT_TITLE_PREFIX = "etitle";
+
+    /**
+     * Поле состояния.
+     */
     private static final String BTN_BOOK = "Записаться на игру";
+
+    /**
+     * Поле состояния.
+     */
     private static final String BTN_EVENT = "Создать мероприятие";
+
+    /**
+     * Поле состояния.
+     */
     private static final String BTN_CANCEL = "Отменить";
+
+    /**
+     * Поле состояния.
+     */
     private static final String BTN_HELP = "Помощь";
+
+    /**
+     * Поле состояния.
+     */
     private static final String CMD_REFRESH_TWOWEEKS = "__cmd:refresh_twoweeks__";
+
+    /**
+     * Поле состояния.
+     */
     private static final String CMD_REFRESH_EVENTS = "__cmd:refresh_events__";
+
+    /**
+     * Поле состояния.
+     */
     private static final String CMD_RESULT_PROMPT_PREFIX = "__cmd:result_prompt__";
 
+    /**
+     * Поле состояния.
+     */
+    private static final int MAX_OPPONENT_BUTTONS = 20;
+
+    /**
+     * Параметры конфигурации бота.
+     */
     private final BotProperties botProperties;
+
+    /**
+     * Клиент ClubApi.
+     */
     private final ClubApiClient apiClient;
+
+    /**
+     * Поле состояния.
+     */
     private final DigestFormatter digestFormatter;
+
+    /**
+     * Поле состояния.
+     */
     private final EventsFormatter eventsFormatter;
+    /**
+     * Поле состояния.
+     */
     private final Map<Long, ConversationState> conversations = new ConcurrentHashMap<>();
 
+    /**
+     * Выполняет операцию.
+     */
     public TelegramClubBot(
             BotProperties botProperties,
             ClubApiClient apiClient,
@@ -92,22 +189,35 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         this.eventsFormatter = eventsFormatter;
     }
 
+    /**
+     * Возвращает BotToken.
+     */
     @Override
     public String getBotToken() {
         return botProperties.getToken();
     }
 
+    /**
+     * Возвращает BotUsername.
+     */
     @Override
     public String getBotUsername() {
         return botProperties.getUsername();
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Override
     public void onUpdateReceived(Update update) {
         if (update == null) {
             return;
         }
         if (update.hasCallbackQuery()) {
+
+            /**
+             * Обрабатывает CallbackQuery.
+             */
             handleCallbackQuery(update.getCallbackQuery());
             return;
         }
@@ -116,26 +226,49 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         Message message = update.getMessage();
         if (message.getChat() != null && message.getChat().isUserChat()) {
+
+            /**
+             * Обрабатывает PrivateMessage.
+             */
             handlePrivateMessage(message);
             return;
         }
+
+        /**
+         * Обрабатывает GroupMessage.
+         */
         handleGroupMessage(message);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Override
     public void dispatch(NotificationMessage message) throws TelegramApiException {
         if (message == null || message.text() == null) {
             return;
         }
         if (CMD_REFRESH_TWOWEEKS.equals(message.text())) {
+
+            /**
+             * Обновляет TwoWeeksFromOutbox.
+             */
             refreshTwoWeeksFromOutbox(message);
             return;
         }
         if (CMD_REFRESH_EVENTS.equals(message.text())) {
+
+            /**
+             * Обновляет EventsFromOutbox.
+             */
             refreshEventsFromOutbox(message);
             return;
         }
         if (message.text().startsWith(CMD_RESULT_PROMPT_PREFIX)) {
+
+            /**
+             * Отправляет ResultPrompt.
+             */
             sendResultPrompt(message);
             return;
         }
@@ -146,13 +279,25 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             send.setMessageThreadId(message.threadId());
         }
         try {
+
+            /**
+             * Выполняет операцию.
+             */
             execute(send);
         } catch (TelegramApiRequestException ex) {
             if (message.threadId() != null && isThreadNotFound(ex)) {
                 SendMessage fallback = new SendMessage();
                 fallback.setChatId(message.chatId().toString());
                 fallback.setText(message.text());
+
+                /**
+                 * Выполняет операцию.
+                 */
                 execute(fallback);
+
+                /**
+                 * Выполняет операцию.
+                 */
                 clearScheduleThreadIfMatches(message.chatId(), message.threadId());
                 return;
             }
@@ -160,6 +305,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает GroupMessage.
+     */
     private void handleGroupMessage(Message message) {
         String text = message.getText().trim();
         if (!text.startsWith("/")) {
@@ -177,29 +325,51 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает PrivateMessage.
+     */
     private void handlePrivateMessage(Message message) {
         String text = message.getText().trim();
         if (handlePrivateButton(message, text)) {
             return;
         }
         if (text.startsWith("/")) {
+
+            /**
+             * Обрабатывает PrivateCommand.
+             */
             handlePrivateCommand(message, text);
             return;
         }
 
         ConversationState state = conversations.get(message.getFrom().getId());
         if (state == null) {
+
+            /**
+             * Отправляет PrivateHelp.
+             */
             sendPrivateHelp(message);
             return;
         }
 
         if (state.getFlow() == ConversationState.Flow.BOOKING) {
+
+            /**
+             * Обрабатывает BookingStep.
+             */
             handleBookingStep(state, message, text);
             return;
         }
+
+        /**
+         * Обрабатывает EventStep.
+         */
         handleEventStep(state, message, text);
     }
 
+    /**
+     * Обрабатывает PrivateCommand.
+     */
     private void handlePrivateCommand(Message message, String text) {
         String command = normalizeCommand(text);
         switch (command) {
@@ -208,12 +378,19 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             case "/event" -> startEvent(message);
             case "/cancel" -> {
                 conversations.remove(message.getFrom().getId());
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Диалог отменен.", buildPrivateMenuKeyboard());
             }
             default -> sendText(message.getChatId(), null, "Команда не распознана. Используйте кнопки ниже.");
         }
     }
 
+    /**
+     * Запускает бронирование.
+     */
     private void startBooking(Message message) {
         ConversationState state = new ConversationState();
         state.setFlow(ConversationState.Flow.BOOKING);
@@ -223,9 +400,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setUserName(user.name());
         conversations.put(message.getFrom().getId(), state);
         YearMonth month = YearMonth.now(resolveTimezone());
+
+        /**
+         * Отправляет DatePicker.
+         */
         sendDatePicker(message.getChatId(), null, "Выберите дату игры", DATE_TARGET_BOOKING, month);
     }
 
+    /**
+     * Запускает мероприятие.
+     */
     private void startEvent(Message message) {
         ConversationState state = new ConversationState();
         state.setFlow(ConversationState.Flow.EVENT);
@@ -238,15 +422,31 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             List<String> titles = apiClient.getEventTitles(20);
             state.setAvailableEventTitles(titles);
             if (titles == null || titles.isEmpty()) {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите название мероприятия.");
                 return;
             }
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите название мероприятия:", buildEventTitleKeyboard(titles));
         } catch (HttpClientErrorException ex) {
             log.warn("Не удалось получить список мероприятий: {}", ex.getStatusCode());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название мероприятия.");
         }
     }
+
+    /**
+     * Обрабатывает BookingStep.
+     */
     private void handleBookingStep(ConversationState state, Message message, String text) {
         switch (state.getStep()) {
             case PICK_DATE -> handleBookingDate(state, message, text);
@@ -266,57 +466,104 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает EventStep.
+     */
     private void handleEventStep(ConversationState state, Message message, String text) {
         switch (state.getStep()) {
             case EVENT_TITLE -> {
                 state.setEventTitle(text);
                 state.setCustomEventTitle(isCustomEventTitle(state, text));
                 state.setStep(ConversationState.Step.EVENT_TYPE);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Выберите тип мероприятия:", buildEventTypeKeyboard());
             }
             case EVENT_TITLE_CUSTOM -> {
                 state.setEventTitle(text);
                 state.setCustomEventTitle(true);
                 state.setStep(ConversationState.Step.EVENT_TYPE);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Выберите тип мероприятия:", buildEventTypeKeyboard());
             }
             case EVENT_TYPE -> {
                 String type = parseEventType(text);
                 if (type == null) {
+
+                    /**
+                     * Отправляет Text.
+                     */
                     sendText(message.getChatId(), null, "Укажите тип мероприятия:", buildEventTypeKeyboard());
                     return;
                 }
                 state.setEventType(type);
                 state.setStep(ConversationState.Step.EVENT_DATE);
                 YearMonth month = YearMonth.now(resolveTimezone());
+
+                /**
+                 * Отправляет DatePicker.
+                 */
                 sendDatePicker(message.getChatId(), null, "Выберите дату мероприятия", DATE_TARGET_EVENT, month);
             }
             case EVENT_DATE -> {
                 LocalDate date = parseDate(text, resolveTimezone());
                 if (date == null) {
+
+                    /**
+                     * Отправляет Text.
+                     */
                     sendText(message.getChatId(), null, "Неверная дата. Формат ДД.ММ или ДД.ММ.ГГГГ.");
                     YearMonth month = YearMonth.now(resolveTimezone());
+
+                    /**
+                     * Отправляет DatePicker.
+                     */
                     sendDatePicker(message.getChatId(), null, "Выберите дату мероприятия", DATE_TARGET_EVENT, month);
                     return;
                 }
                 state.setDate(date);
                 state.setStep(ConversationState.Step.EVENT_TIME);
+
+                /**
+                 * Отправляет TimePicker.
+                 */
                 sendTimePicker(message.getChatId(), null, "Выберите время начала", TIME_TARGET_EVENT_START);
             }
             case EVENT_TIME -> {
                 LocalTime time = parseTime(text);
                 if (time == null) {
+
+                    /**
+                     * Отправляет Text.
+                     */
                     sendText(message.getChatId(), null, "Неверное время. Формат ЧЧ:ММ.");
                     return;
                 }
+
+                /**
+                 * Обрабатывает EventStartTimeSelected.
+                 */
                 handleEventStartTimeSelected(state, message, time);
             }
             case EVENT_END_TIME -> {
                 LocalTime time = parseTime(text);
                 if (time == null) {
+
+                    /**
+                     * Отправляет Text.
+                     */
                     sendText(message.getChatId(), null, "Неверное время. Формат ЧЧ:ММ.");
                     return;
                 }
+
+                /**
+                 * Обрабатывает EventEndTimeSelected.
+                 */
                 handleEventEndTimeSelected(state, message, time);
             }
             case EVENT_DESCRIPTION -> {
@@ -324,6 +571,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                     state.setEventDescription(text);
                 }
                 state.setStep(ConversationState.Step.EVENT_CONFIRM);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, buildEventSummary(state), buildConfirmKeyboard());
             }
             case EVENT_CONFIRM -> handleEventConfirm(state, message, text);
@@ -331,33 +582,66 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает BookingDate.
+     */
     private void handleBookingDate(ConversationState state, Message message, String text) {
         LocalDate date = parseDate(text, resolveTimezone());
         if (date == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Неверная дата. Формат ДД.ММ или ДД.ММ.ГГГГ.");
             YearMonth month = YearMonth.now(resolveTimezone());
+
+            /**
+             * Отправляет DatePicker.
+             */
             sendDatePicker(message.getChatId(), null, "Выберите дату игры", DATE_TARGET_BOOKING, month);
             return;
         }
         state.setDate(date);
         state.setStep(ConversationState.Step.PICK_TIME);
+
+        /**
+         * Отправляет TimePicker.
+         */
         sendTimePicker(message.getChatId(), null, "Выберите время начала", TIME_TARGET_BOOKING_START);
     }
 
+    /**
+     * Обрабатывает BookingTime.
+     */
     private void handleBookingTime(ConversationState state, Message message, String text) {
         LocalTime time = parseTime(text);
         if (time == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Неверное время. Формат ЧЧ:ММ.");
             return;
         }
+
+        /**
+         * Обрабатывает BookingTimeSelected.
+         */
         handleBookingTimeSelected(state, message, time);
     }
 
+    /**
+     * Обрабатывает BookingGame.
+     */
     private void handleBookingGame(ConversationState state, Message message, String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         if (normalized.contains("другая")) {
             state.setStep(ConversationState.Step.PICK_CUSTOM_GAME);
             state.setCustomGame(true);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название игры.");
             return;
         }
@@ -365,21 +649,33 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (index == 0) {
             state.setStep(ConversationState.Step.PICK_CUSTOM_GAME);
             state.setCustomGame(true);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название игры.");
             return;
         }
         List<GameDto> games = state.getAvailableGames();
         if (games == null || index < 1 || index > games.size()) {
             if (games != null && !games.isEmpty()) {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Выберите игру:", buildGameKeyboard(games));
             } else {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите название игры.");
                 state.setStep(ConversationState.Step.PICK_CUSTOM_GAME);
             }
             return;
         }
         GameDto game = games.get(index - 1);
-        state.setGame(game.name());
+        state.setGame(normalizeGameName(game.name()));
         state.setDurationMinutes(game.defaultDurationMinutes());
         state.setTableUnits(game.tableUnits());
         state.setCustomGame(false);
@@ -388,18 +684,32 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 "Обычно " + game.defaultDurationMinutes() + " минут. Отправьте число минут или 'по умолчанию'.");
     }
 
+    /**
+     * Обрабатывает CustomGame.
+     */
     private void handleCustomGame(ConversationState state, Message message, String text) {
-        state.setGame(text);
+        state.setGame(normalizeGameName(text));
         state.setDurationMinutes(null);
         state.setTableUnits(null);
         state.setCustomGame(true);
         state.setStep(ConversationState.Step.PICK_DURATION);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Сколько минут будет игра?");
     }
 
+    /**
+     * Обрабатывает Duration.
+     */
     private void handleDuration(ConversationState state, Message message, String text) {
         Integer duration = parseDuration(text, state.getDurationMinutes());
         if (duration == null || duration <= 0) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите число минут или 'по умолчанию'.");
             return;
         }
@@ -410,18 +720,32 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 "Сколько столов нужно?" + hint, buildTableUnitsKeyboard(state.getTableUnits()));
     }
 
+    /**
+     * Обрабатывает количество столов.
+     */
     private void handleTableUnits(ConversationState state, Message message, String text) {
         Integer units = parseTableUnits(text, state.getTableUnits());
         if (units == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите количество столов:", buildTableUnitsKeyboard(state.getTableUnits()));
             return;
         }
         state.setTableUnits(units);
         state.setEndAt(state.getStartAt().plusMinutes(state.getDurationMinutes()));
         state.setStep(ConversationState.Step.PICK_OPPONENT);
-        sendText(message.getChatId(), null, "С кем будете играть? @username или имя, '-' если один.");
+
+        /**
+         * Отправляет OpponentPrompt.
+         */
+        sendOpponentPrompt(state, message.getChatId());
     }
 
+    /**
+     * Обрабатывает соперника.
+     */
     private void handleOpponent(ConversationState state, Message message, String text) {
         if (state.getFoundUsers() != null && parseIndex(text) > 0) {
             int index = parseIndex(text);
@@ -431,9 +755,17 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 state.setOpponentUserId(user.id());
                 state.setOpponentName(user.name());
                 state.setFoundUsers(null);
+
+                /**
+                 * Запускает OpponentFactionSelection.
+                 */
                 startOpponentFactionSelection(state, message);
                 return;
             }
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите номер из списка.");
             return;
         }
@@ -443,12 +775,20 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             state.setOpponentUserId(null);
             state.setOpponentFaction(null);
             state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
             return;
         }
 
         String query = normalizeUserQuery(text);
         if (query.isBlank()) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Укажите имя соперника или '-' если играете один.");
             return;
         }
@@ -458,6 +798,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             state.setOpponentUserId(null);
             state.setOpponentFaction(null);
             state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
             return;
         }
@@ -465,29 +809,100 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             UserDto user = users.get(0);
             state.setOpponentUserId(user.id());
             state.setOpponentName(user.name());
+
+            /**
+             * Запускает OpponentFactionSelection.
+             */
             startOpponentFactionSelection(state, message);
             return;
         }
         state.setFoundUsers(users);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Несколько совпадений, выберите игрока:", buildOpponentKeyboard(users));
     }
 
+    /**
+     * Отправляет OpponentPrompt.
+     */
+    private void sendOpponentPrompt(ConversationState state, Long chatId) {
+        List<UserDto> users = loadOpponentCandidates(state);
+        state.setFoundUsers(users);
+        InlineKeyboardMarkup keyboard = users != null && !users.isEmpty()
+                ? buildOpponentKeyboard(users)
+                : null;
+
+        /**
+         * Отправляет Text.
+         */
+        sendText(chatId, null, "С кем будете играть? @username или имя, '-' если один.", keyboard);
+    }
+
+    /**
+     * Возвращает OpponentCandidates.
+     */
+    private List<UserDto> loadOpponentCandidates(ConversationState state) {
+        List<UserDto> users = null;
+        try {
+            users = apiClient.searchUsers("");
+        } catch (RestClientException ex) {
+            log.warn("Не удалось получить список пользователей: {}", ex.getMessage());
+        }
+        if (users == null || users.isEmpty()) {
+            return null;
+        }
+        Long currentUserId = state.getUserId();
+        return users.stream()
+                .filter(user -> user != null && user.id() != null)
+                .filter(user -> currentUserId == null || !currentUserId.equals(user.id()))
+                .sorted(Comparator.comparing(user -> {
+                    String name = user.name();
+                    return name == null ? "" : name.toLowerCase(Locale.ROOT);
+                }))
+                .limit(MAX_OPPONENT_BUTTONS)
+                .toList();
+    }
+
+    /**
+     * Обрабатывает ArmyType.
+     */
     private void handleArmyType(ConversationState state, Message message, String text) {
         String normalized = text.toLowerCase(Locale.ROOT);
         if ("1".equals(normalized) || normalized.contains("своя") || normalized.contains("own")) {
+
+            /**
+             * Запускает OwnFactionSelection.
+             */
             startOwnFactionSelection(state, message);
             return;
         }
         if ("2".equals(normalized) || normalized.contains("клуб") || normalized.contains("club")) {
+
+            /**
+             * Запускает ClubArmySelection.
+             */
             startClubArmySelection(state, message);
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
     }
 
+    /**
+     * Обрабатывает ArmySelection.
+     */
     private void handleArmySelection(ConversationState state, Message message, String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         if ("0".equals(normalized) || normalized.contains("добав")) {
+
+            /**
+             * Запускает ClubFactionInput.
+             */
             startClubFactionInput(state, message);
             return;
         }
@@ -495,8 +910,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         List<ArmyDto> armies = state.getAvailableArmies();
         if (armies == null || index < 1 || index > armies.size()) {
             if (armies != null && !armies.isEmpty()) {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Выберите клубную армию:", buildArmyKeyboard(armies));
             } else {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Нет доступных клубных армий.");
             }
             return;
@@ -505,14 +928,25 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setArmyId(army.id());
         state.setArmyLabel(army.game() + " / " + army.faction());
         state.setStep(ConversationState.Step.CONFIRM);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, buildBookingSummary(state), buildConfirmKeyboard());
     }
 
+    /**
+     * Обрабатывает фракцию соперника.
+     */
     private void handleOpponentFaction(ConversationState state, Message message, String text) {
         String normalized = text != null ? text.trim().toLowerCase(Locale.ROOT) : "";
         if (text != null && (text.equalsIgnoreCase("-") || text.equalsIgnoreCase("нет"))) {
             state.setOpponentFaction(null);
             state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
             return;
         }
@@ -520,103 +954,185 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (factions != null && !factions.isEmpty()) {
             if (normalized.contains("друг")) {
                 state.setAvailableFactions(null);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите фракцию соперника (или '-' чтобы пропустить).");
                 return;
             }
             if (!normalized.matches("\\d+")) {
+
+                /**
+                 * Выполняет операцию.
+                 */
                 promptOpponentFaction(state, message);
                 return;
             }
         }
         String faction = resolveFactionSelection(state, text);
         if (faction == null) {
+
+            /**
+             * Выполняет операцию.
+             */
             promptOpponentFaction(state, message);
             return;
         }
         state.setOpponentFaction(faction);
         state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
     }
 
+    /**
+     * Обрабатывает OwnFaction.
+     */
     private void handleOwnFaction(ConversationState state, Message message, String text) {
         String normalized = text != null ? text.trim().toLowerCase(Locale.ROOT) : "";
         List<String> factions = state.getAvailableFactions();
         if (factions != null && !factions.isEmpty()) {
             if (normalized.contains("друг")) {
                 state.setAvailableFactions(null);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите название фракции.");
                 return;
             }
             if (!normalized.matches("\\d+")) {
+
+                /**
+                 * Выполняет операцию.
+                 */
                 promptOwnFaction(state, message);
                 return;
             }
         }
         String faction = resolveFactionSelection(state, text);
         if (faction == null) {
+
+            /**
+             * Выполняет операцию.
+             */
             promptOwnFaction(state, message);
             return;
         }
+
+        /**
+         * Применяет OwnFactionSelection.
+         */
         applyOwnFactionSelection(state, faction);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, buildBookingSummary(state), buildConfirmKeyboard());
     }
 
+    /**
+     * Обрабатывает ClubFaction.
+     */
     private void handleClubFaction(ConversationState state, Message message, String text) {
         String faction = text != null ? text.trim() : "";
         if (faction.isBlank()) {
+
+            /**
+             * Выполняет операцию.
+             */
             promptClubFaction(state, message);
             return;
         }
+
+        /**
+         * Применяет ClubFactionSelection.
+         */
         applyClubFactionSelection(state, faction);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, buildBookingSummary(state), buildConfirmKeyboard());
     }
 
+    /**
+     * Запускает OwnFactionSelection.
+     */
     private void startOwnFactionSelection(ConversationState state, Message message) {
         state.setClubArmy(false);
         state.setArmyId(null);
         state.setArmyLabel(null);
         state.setFaction(null);
         state.setAvailableFactions(null);
-
         List<ArmyDto> armies = null;
         if (state.getGame() != null && !state.getGame().isBlank()) {
-            armies = apiClient.getArmies(state.getGame(), null, true);
+            armies = apiClient.getArmies(state.getGame(), false, state.getUserId(), true);
         }
         state.setAvailableGameArmies(armies);
         List<String> factions = extractFactions(armies);
         if (factions.isEmpty()) {
             state.setStep(ConversationState.Step.PICK_OWN_FACTION);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите фракцию вашей армии.");
             return;
         }
         state.setAvailableFactions(factions);
         state.setStep(ConversationState.Step.PICK_OWN_FACTION);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите фракцию или введите свою:", buildFactionKeyboard(factions));
     }
 
+    /**
+     * Запускает OpponentFactionSelection.
+     */
     private void startOpponentFactionSelection(ConversationState state, Message message) {
         if (state.getOpponentUserId() == null) {
             state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
             return;
         }
         state.setOpponentFaction(null);
         List<ArmyDto> armies = null;
         if (state.getGame() != null && !state.getGame().isBlank()) {
-            armies = apiClient.getArmies(state.getGame(), null, true);
+            armies = apiClient.getArmies(state.getGame(), null, null, true);
         }
         List<String> factions = extractFactions(armies);
         state.setAvailableFactions(factions.isEmpty() ? null : factions);
         state.setStep(ConversationState.Step.PICK_OPPONENT_FACTION);
         if (factions.isEmpty()) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Укажите фракцию соперника (или '-' чтобы пропустить).");
             return;
         }
         sendText(message.getChatId(), null,
                 "Укажите фракцию соперника (или '-' чтобы пропустить):",
+
+                /**
+                 * Формирует FactionKeyboard.
+                 */
                 buildFactionKeyboard(factions));
     }
 
+    /**
+     * Запускает ClubArmySelection.
+     */
     private void startClubArmySelection(ConversationState state, Message message) {
         state.setClubArmy(true);
         state.setArmyId(null);
@@ -627,13 +1143,24 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setAvailableArmies(armies);
         if (armies == null || armies.isEmpty()) {
             state.setStep(ConversationState.Step.PICK_CLUB_FACTION);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Нет доступных клубных армий. Введите фракцию, чтобы добавить.");
             return;
         }
         state.setStep(ConversationState.Step.PICK_ARMY);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите клубную армию или добавьте новую:", buildArmyKeyboard(armies));
     }
 
+    /**
+     * Запускает ClubFactionInput.
+     */
     private void startClubFactionInput(ConversationState state, Message message) {
         state.setClubArmy(true);
         state.setArmyId(null);
@@ -641,40 +1168,84 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setFaction(null);
         state.setStep(ConversationState.Step.PICK_CLUB_FACTION);
         if (state.getGame() != null && !state.getGame().isBlank()) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите фракцию клубной армии для игры " + state.getGame() + ".");
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Введите фракцию клубной армии.");
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void promptOwnFaction(ConversationState state, Message message) {
         List<String> factions = state.getAvailableFactions();
         if (factions != null && !factions.isEmpty()) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите фракцию или введите свою:", buildFactionKeyboard(factions));
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Введите фракцию вашей армии.");
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void promptOpponentFaction(ConversationState state, Message message) {
         List<String> factions = state.getAvailableFactions();
         if (factions != null && !factions.isEmpty()) {
             sendText(message.getChatId(), null,
                     "Укажите фракцию соперника (или '-' чтобы пропустить):",
+
+                    /**
+                     * Формирует FactionKeyboard.
+                     */
                     buildFactionKeyboard(factions));
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Укажите фракцию соперника (или '-' чтобы пропустить).");
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void promptClubFaction(ConversationState state, Message message) {
         if (state.getGame() != null && !state.getGame().isBlank()) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите фракцию клубной армии для игры " + state.getGame() + ".");
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Введите фракцию клубной армии.");
     }
 
+    /**
+     * Определяет FactionSelection.
+     */
     private String resolveFactionSelection(ConversationState state, String text) {
         if (text == null) {
             return null;
@@ -694,6 +1265,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return trimmed;
     }
 
+    /**
+     * Применяет OwnFactionSelection.
+     */
     private void applyOwnFactionSelection(ConversationState state, String faction) {
         state.setClubArmy(false);
         state.setFaction(faction);
@@ -705,6 +1279,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setStep(ConversationState.Step.CONFIRM);
     }
 
+    /**
+     * Применяет ClubFactionSelection.
+     */
     private void applyClubFactionSelection(ConversationState state, String faction) {
         state.setClubArmy(true);
         state.setFaction(faction);
@@ -716,6 +1293,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setStep(ConversationState.Step.CONFIRM);
     }
 
+    /**
+     * Возвращает ExistingPersonalArmy.
+     */
     private ArmyDto findExistingPersonalArmy(ConversationState state, String faction) {
         List<ArmyDto> armies = state.getAvailableGameArmies();
         if (armies == null || faction == null) {
@@ -738,6 +1318,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return null;
     }
 
+    /**
+     * Возвращает ExistingClubArmy.
+     */
     private ArmyDto findExistingClubArmy(ConversationState state, String faction) {
         List<ArmyDto> armies = state.getAvailableArmies();
         if (armies == null || faction == null) {
@@ -757,6 +1340,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return null;
     }
 
+    /**
+     * Извлекает Factions.
+     */
     private List<String> extractFactions(List<ArmyDto> armies) {
         if (armies == null || armies.isEmpty()) {
             return List.of();
@@ -776,6 +1362,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return new ArrayList<>(unique.values());
     }
 
+    /**
+     * Обрабатывает BookingConfirm.
+     */
     private void handleBookingConfirm(ConversationState state, Message message, String text) {
         if (isYes(text)) {
             if (!ensureArmyForBooking(state, message)) {
@@ -787,6 +1376,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 return;
             }
             String notes = buildNotes(state);
+
+            /**
+             * Выполняет операцию.
+             */
             BookingCreateRequest request = new BookingCreateRequest(
                     null,
                     state.getUserId(),
@@ -799,7 +1392,12 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                     notes
             );
             try {
+                log.debug("Booking request: {}", request);
                 apiClient.createBooking(request);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Бронирование создано.");
                 if (state.isCustomGame() && state.getGame() != null
                         && state.getDurationMinutes() != null && state.getTableUnits() != null) {
@@ -815,9 +1413,21 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 }
             } catch (RestClientResponseException ex) {
                 log.warn("Ошибка бронирования: {} {}", ex.getRawStatusCode(), ex.getStatusText());
+                String responseBody = ex.getResponseBodyAsString();
+                if (responseBody != null && !responseBody.isBlank()) {
+                    log.warn("Ответ API: {}", responseBody);
+                }
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Ошибка бронирования: " + ex.getRawStatusCode());
             } catch (RestClientException ex) {
                 log.warn("Ошибка бронирования: {}", ex.getMessage());
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Ошибка бронирования: не удалось связаться с API.");
             }
             conversations.remove(message.getFrom().getId());
@@ -825,22 +1435,45 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         if (isNo(text)) {
             conversations.remove(message.getFrom().getId());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Бронирование отменено.");
             return;
         }
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Подтвердите действие:", buildConfirmKeyboard());
     }
 
+    /**
+     * Обрабатывает EventConfirm.
+     */
     private void handleEventConfirm(ConversationState state, Message message, String text) {
         if (!isYes(text) && !isNo(text)) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Подтвердите действие:", buildConfirmKeyboard());
             return;
         }
         if (isNo(text)) {
             conversations.remove(message.getFrom().getId());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Мероприятие отменено.");
             return;
         }
+
+        /**
+         * Выполняет операцию.
+         */
         EventCreateRequest request = new EventCreateRequest(
                 state.getEventTitle(),
                 state.getEventType(),
@@ -852,6 +1485,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         );
         try {
             EventDto created = apiClient.createEvent(request);
+
+            /**
+             * Выполняет операцию.
+             */
             BookingCreateRequest bookingRequest = new BookingCreateRequest(
                     null,
                     state.getUserId(),
@@ -865,22 +1502,46 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             );
             try {
                 apiClient.createBooking(bookingRequest);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Мероприятие создано и столы зарезервированы.");
             } catch (HttpClientErrorException ex) {
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Мероприятие создано, но столы не зарезервированы: " + ex.getStatusCode());
             }
         } catch (RestClientResponseException ex) {
             log.warn("Ошибка создания мероприятия: {} {}", ex.getRawStatusCode(), ex.getStatusText());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка создания мероприятия: " + ex.getRawStatusCode());
         } catch (RestClientException ex) {
             log.warn("Ошибка создания мероприятия: {}", ex.getMessage());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка создания мероприятия: не удалось связаться с API.");
         }
         conversations.remove(message.getFrom().getId());
     }
+
+    /**
+     * Обрабатывает SetScheduleTopic.
+     */
     private void handleSetScheduleTopic(Message message) {
         Integer threadId = message.getMessageThreadId();
         if (threadId == null) {
+
+            /**
+             * Выполняет операцию.
+             */
             TelegramSettingsUpdateRequest request = new TelegramSettingsUpdateRequest(
                     message.getChatId(),
                     0,
@@ -891,9 +1552,17 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                     null
             );
             apiClient.updateTelegramSettings(request);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Топик расписания сброшен, сообщения будут в чате.");
             return;
         }
+
+        /**
+         * Выполняет операцию.
+         */
         TelegramSettingsUpdateRequest request = new TelegramSettingsUpdateRequest(
                 message.getChatId(),
                 threadId,
@@ -904,9 +1573,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 null
         );
         apiClient.updateTelegramSettings(request);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), threadId, "Топик расписания сохранен.");
     }
 
+    /**
+     * Обрабатывает Week.
+     */
     private void handleWeek(Message message, int offset) {
         WeekDigestDto digest = apiClient.getWeekDigest(offset);
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
@@ -914,9 +1590,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 ? settings.scheduleThreadId()
                 : message.getMessageThreadId();
         String text = digestFormatter.format(digest);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), threadId, text);
     }
 
+    /**
+     * Обрабатывает TwoWeeks.
+     */
     private void handleTwoWeeks(Message message) {
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
         Long chatId = message.getChatId();
@@ -924,13 +1607,24 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 ? settings.scheduleThreadId()
                 : message.getMessageThreadId();
         try {
+
+            /**
+             * Обновляет TwoWeeks.
+             */
             refreshTwoWeeks(chatId, threadId, sameChatSettings(settings, chatId));
         } catch (Exception ex) {
             log.warn("Не удалось отправить дайджест на две недели", ex);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), message.getMessageThreadId(), "Не удалось отправить дайджест на две недели.");
         }
     }
 
+    /**
+     * Обрабатывает Events.
+     */
     private void handleEvents(Message message) {
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
         Long chatId = message.getChatId();
@@ -938,31 +1632,56 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 ? settings.scheduleThreadId()
                 : message.getMessageThreadId();
         try {
+
+            /**
+             * Обновляет Events.
+             */
             refreshEvents(chatId, threadId, sameChatSettings(settings, chatId));
         } catch (Exception ex) {
             log.warn("Не удалось отправить список мероприятий", ex);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), message.getMessageThreadId(), "Не удалось отправить список мероприятий.");
         }
     }
 
+    /**
+     * Обновляет TwoWeeksFromOutbox.
+     */
     private void refreshTwoWeeksFromOutbox(NotificationMessage message) throws TelegramApiException {
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
         if (settings == null || settings.chatId() == null) {
             throw new IllegalStateException("Настройки Telegram не заданы");
         }
         Integer threadId = settings.scheduleThreadId() != null ? settings.scheduleThreadId() : message.threadId();
+
+        /**
+         * Обновляет TwoWeeks.
+         */
         refreshTwoWeeks(settings.chatId(), threadId, settings);
     }
 
+    /**
+     * Обновляет EventsFromOutbox.
+     */
     private void refreshEventsFromOutbox(NotificationMessage message) throws TelegramApiException {
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
         if (settings == null || settings.chatId() == null) {
             throw new IllegalStateException("Настройки Telegram не заданы");
         }
         Integer threadId = settings.scheduleThreadId() != null ? settings.scheduleThreadId() : message.threadId();
+
+        /**
+         * Обновляет Events.
+         */
         refreshEvents(settings.chatId(), threadId, settings);
     }
 
+    /**
+     * Отправляет ResultPrompt.
+     */
     private void sendResultPrompt(NotificationMessage message) throws TelegramApiException {
         Long bookingId = parseResultBookingId(message.text());
         if (bookingId == null || message.chatId() == null) {
@@ -972,9 +1691,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         send.setChatId(message.chatId().toString());
         send.setText("Игра завершена. Кто победил?");
         send.setReplyMarkup(buildResultKeyboard(bookingId));
+
+        /**
+         * Выполняет операцию.
+         */
         execute(send);
     }
 
+    /**
+     * Разбирает идентификатор ResultBooking.
+     */
     private Long parseResultBookingId(String text) {
         if (text == null || !text.startsWith(CMD_RESULT_PROMPT_PREFIX)) {
             return null;
@@ -990,12 +1716,23 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обновляет TwoWeeks.
+     */
     private void refreshTwoWeeks(Long chatId, Integer threadId, TelegramSettingsDto settings) throws TelegramApiException {
         if (chatId == null) {
             return;
         }
         if (settings != null) {
+
+            /**
+             * Удаляет MessageSafe.
+             */
             deleteMessageSafe(chatId, settings.scheduleTwoweeksMessageId());
+
+            /**
+             * Удаляет MessageSafe.
+             */
             deleteMessageSafe(chatId, settings.scheduleTwoweeksNextMessageId());
         }
         WeekDigestDto current = apiClient.getWeekDigest(0);
@@ -1003,6 +1740,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         Integer currentMessageId = sendTextAndGetMessageId(chatId, threadId, digestFormatter.format(current));
         Integer nextMessageId = sendTextAndGetMessageId(chatId, threadId, digestFormatter.format(next));
         if (settings != null) {
+
+            /**
+             * Выполняет операцию.
+             */
             TelegramSettingsUpdateRequest request = new TelegramSettingsUpdateRequest(
                     chatId,
                     null,
@@ -1016,11 +1757,18 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обновляет Events.
+     */
     private void refreshEvents(Long chatId, Integer threadId, TelegramSettingsDto settings) throws TelegramApiException {
         if (chatId == null) {
             return;
         }
         if (settings != null) {
+
+            /**
+             * Удаляет MessageSafe.
+             */
             deleteMessageSafe(chatId, settings.eventsMessageId());
         }
         ZoneId zoneId = resolveTimezone(settings);
@@ -1030,6 +1778,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         String timezone = settings != null && settings.timezone() != null ? settings.timezone() : "Europe/Moscow";
         Integer messageId = sendTextAndGetMessageId(chatId, threadId, eventsFormatter.formatUpcoming(events, timezone));
         if (settings != null) {
+
+            /**
+             * Выполняет операцию.
+             */
             TelegramSettingsUpdateRequest request = new TelegramSettingsUpdateRequest(
                     chatId,
                     null,
@@ -1043,6 +1795,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает Help.
+     */
     private void handleHelp(Message message) {
         String text = "Команды:\n"
                 + "/set_schedule_topic - привязать текущий топик к расписанию\n"
@@ -1051,9 +1806,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 + "/twoweeks - отправить расписание на две недели\n"
                 + "/events - отправить ближайшие мероприятия\n"
                 + "/help - показать это сообщение";
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), message.getMessageThreadId(), text);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private String privateHelp() {
         return "Личные действия:\n"
                 + BTN_BOOK + " - записаться на игру\n"
@@ -1062,26 +1824,52 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 + BTN_HELP + " - показать это сообщение";
     }
 
+    /**
+     * Отправляет PrivateHelp.
+     */
     private void sendPrivateHelp(Message message) {
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, privateHelp(), buildPrivateMenuKeyboard());
     }
 
+    /**
+     * Обрабатывает PrivateButton.
+     */
     private boolean handlePrivateButton(Message message, String text) {
         return switch (text) {
             case BTN_BOOK -> {
+
+                /**
+                 * Запускает бронирование.
+                 */
                 startBooking(message);
                 yield true;
             }
             case BTN_EVENT -> {
+
+                /**
+                 * Запускает мероприятие.
+                 */
                 startEvent(message);
                 yield true;
             }
             case BTN_CANCEL -> {
                 conversations.remove(message.getFrom().getId());
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Диалог отменен.", buildPrivateMenuKeyboard());
                 yield true;
             }
             case BTN_HELP -> {
+
+                /**
+                 * Отправляет PrivateHelp.
+                 */
                 sendPrivateHelp(message);
                 yield true;
             }
@@ -1089,6 +1877,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         };
     }
 
+    /**
+     * Формирует PrivateMenuKeyboard.
+     */
     private ReplyKeyboardMarkup buildPrivateMenuKeyboard() {
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         keyboard.setResizeKeyboard(true);
@@ -1110,6 +1901,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return keyboard;
     }
 
+    /**
+     * Отправляет Text.
+     */
     private void sendText(Long chatId, Integer threadId, String text) {
         try {
             SendMessage send = new SendMessage();
@@ -1119,12 +1913,19 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             if (threadId != null) {
                 send.setMessageThreadId(threadId);
             }
+
+            /**
+             * Выполняет операцию.
+             */
             execute(send);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось отправить сообщение", ex);
         }
     }
 
+    /**
+     * Отправляет Text.
+     */
     private void sendText(Long chatId, Integer threadId, String text, InlineKeyboardMarkup markup) {
         try {
             SendMessage send = new SendMessage();
@@ -1134,12 +1935,19 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             if (threadId != null) {
                 send.setMessageThreadId(threadId);
             }
+
+            /**
+             * Выполняет операцию.
+             */
             execute(send);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось отправить сообщение", ex);
         }
     }
 
+    /**
+     * Отправляет Text.
+     */
     private void sendText(Long chatId, Integer threadId, String text, ReplyKeyboard markup) {
         try {
             SendMessage send = new SendMessage();
@@ -1149,12 +1957,19 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             if (threadId != null) {
                 send.setMessageThreadId(threadId);
             }
+
+            /**
+             * Выполняет операцию.
+             */
             execute(send);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось отправить сообщение", ex);
         }
     }
 
+    /**
+     * Отправляет идентификатор TextAndGetMessage.
+     */
     private Integer sendTextAndGetMessageId(Long chatId, Integer threadId, String text) throws TelegramApiException {
         SendMessage send = new SendMessage();
         send.setChatId(chatId.toString());
@@ -1166,6 +1981,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return sent != null ? sent.getMessageId() : null;
     }
 
+    /**
+     * Удаляет MessageSafe.
+     */
     private void deleteMessageSafe(Long chatId, Integer messageId) {
         if (chatId == null || messageId == null) {
             return;
@@ -1174,12 +1992,19 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             DeleteMessage delete = new DeleteMessage();
             delete.setChatId(chatId.toString());
             delete.setMessageId(messageId);
+
+            /**
+             * Выполняет операцию.
+             */
             execute(delete);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось удалить сообщение {}", messageId, ex);
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void editMessage(Long chatId, Integer messageId, String text, InlineKeyboardMarkup markup) {
         try {
             EditMessageText edit = new EditMessageText();
@@ -1187,31 +2012,59 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             edit.setMessageId(messageId);
             edit.setText(text);
             edit.setReplyMarkup(markup);
+
+            /**
+             * Выполняет операцию.
+             */
             execute(edit);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось обновить сообщение", ex);
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void answerCallback(String callbackId) {
         try {
             AnswerCallbackQuery answer = new AnswerCallbackQuery();
             answer.setCallbackQueryId(callbackId);
+
+            /**
+             * Выполняет операцию.
+             */
             execute(answer);
         } catch (TelegramApiException ex) {
             log.warn("Не удалось ответить на callback", ex);
         }
     }
 
+    /**
+     * Отправляет DatePicker.
+     */
     private void sendDatePicker(Long chatId, Integer threadId, String text, String target, YearMonth month) {
         String title = text + " (" + month.atDay(1).format(MONTH_FORMAT) + ")";
+
+        /**
+         * Отправляет Text.
+         */
         sendText(chatId, threadId, title, buildCalendarKeyboard(month, target));
     }
 
+    /**
+     * Отправляет TimePicker.
+     */
     private void sendTimePicker(Long chatId, Integer threadId, String text, String target) {
+
+        /**
+         * Отправляет Text.
+         */
         sendText(chatId, threadId, text, buildTimePeriodKeyboard(target));
     }
 
+    /**
+     * Нормализует команду.
+     */
     private String normalizeCommand(String text) {
         String command = text.split("\\s+")[0];
         int atIndex = command.indexOf('@');
@@ -1221,6 +2074,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return command.toLowerCase();
     }
 
+    /**
+     * Нормализует UserQuery.
+     */
     private String normalizeUserQuery(String text) {
         if (text == null) {
             return "";
@@ -1232,6 +2088,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return trimmed.trim();
     }
 
+    /**
+     * Определяет UserName.
+     */
     private String resolveUserName(User user) {
         if (user.getUserName() != null && !user.getUserName().isBlank()) {
             return user.getUserName();
@@ -1249,6 +2108,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return name.isEmpty() ? String.valueOf(user.getId()) : name.toString();
     }
 
+    /**
+     * Разбирает Date.
+     */
     private LocalDate parseDate(String text, ZoneId zoneId) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         LocalDate today = LocalDate.now(zoneId);
@@ -1292,6 +2154,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Разбирает Time.
+     */
     private LocalTime parseTime(String text) {
         String normalized = text.trim();
         Matcher matcher = Pattern.compile("\\d+").matcher(normalized);
@@ -1326,6 +2191,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return LocalTime.of(hour, minute);
     }
 
+    /**
+     * Разбирает Duration.
+     */
     private Integer parseDuration(String text, Integer defaultValue) {
         if (isDefaultKeyword(text)) {
             return defaultValue;
@@ -1337,6 +2205,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Разбирает количество столов.
+     */
     private Integer parseTableUnits(String text, Integer defaultValue) {
         if (isDefaultKeyword(text)) {
             return defaultValue;
@@ -1352,6 +2223,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return null;
     }
 
+    /**
+     * Разбирает Index.
+     */
     private int parseIndex(String text) {
         try {
             return Integer.parseInt(text.trim());
@@ -1360,6 +2234,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Формирует список игр.
+     */
     private String buildGameList(List<GameDto> games) {
         StringBuilder sb = new StringBuilder("Выберите игру:\n");
         for (int i = 0; i < games.size(); i++) {
@@ -1377,6 +2254,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return sb.toString();
     }
 
+    /**
+     * Формирует список армий.
+     */
     private String buildArmyList(List<ArmyDto> armies) {
         StringBuilder sb = new StringBuilder("Выберите клубную армию:\n");
         for (int i = 0; i < armies.size(); i++) {
@@ -1393,6 +2273,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return sb.toString();
     }
 
+    /**
+     * Формирует список пользователей.
+     */
     private String buildUserList(List<UserDto> users) {
         StringBuilder sb = new StringBuilder("Несколько совпадений, выберите номер:\n");
         for (int i = 0; i < users.size(); i++) {
@@ -1405,6 +2288,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return sb.toString();
     }
 
+    /**
+     * Формирует BookingSummary.
+     */
     private String buildBookingSummary(ConversationState state) {
         return "Подтвердите бронирование:\n"
                 + "Дата: " + formatDate(state.getDate()) + "\n"
@@ -1421,6 +2307,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 + "Отправьте 'да' или 'нет'.";
     }
 
+    /**
+     * Формирует EventSummary.
+     */
     private String buildEventSummary(ConversationState state) {
         return "Подтвердите мероприятие:\n"
                 + "Название: " + state.getEventTitle() + "\n"
@@ -1431,6 +2320,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 + "Отправьте 'да' или 'нет'.";
     }
 
+    /**
+     * Формирует Notes.
+     */
     private String buildNotes(ConversationState state) {
         StringBuilder notes = new StringBuilder();
         if (state.getOpponentName() != null && state.getOpponentUserId() == null) {
@@ -1445,6 +2337,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return notes.toString().trim();
     }
 
+    /**
+     * Форматирует PlayerLabel.
+     */
     private String formatPlayerLabel(String name, String faction) {
         if (name == null || name.isBlank()) {
             return "-";
@@ -1455,6 +2350,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return name + " (" + faction + ")";
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private boolean ensureArmyForBooking(ConversationState state, Message message) {
         if (state.getArmyId() != null || state.getFaction() == null || state.getFaction().isBlank()) {
             return true;
@@ -1473,15 +2371,26 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return true;
         } catch (RestClientResponseException ex) {
             log.warn("Ошибка сохранения армии: {} {}", ex.getRawStatusCode(), ex.getStatusText());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка сохранения армии: " + ex.getRawStatusCode());
             return false;
         } catch (RestClientException ex) {
             log.warn("Ошибка сохранения армии: {}", ex.getMessage());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка сохранения армии: не удалось связаться с API.");
             return false;
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private boolean ensureOpponentArmyForBooking(ConversationState state, Message message) {
         if (state.getOpponentUserId() == null) {
             return true;
@@ -1492,7 +2401,7 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         List<ArmyDto> armies = null;
         if (state.getGame() != null && !state.getGame().isBlank()) {
-            armies = apiClient.getArmies(state.getGame(), null, true);
+            armies = apiClient.getArmies(state.getGame(), false, state.getOpponentUserId(), true);
         }
         if (armies != null) {
             for (ArmyDto army : armies) {
@@ -1517,15 +2426,26 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return true;
         } catch (RestClientResponseException ex) {
             log.warn("Ошибка сохранения армии соперника: {} {}", ex.getRawStatusCode(), ex.getStatusText());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка сохранения армии соперника: " + ex.getRawStatusCode());
             return false;
         } catch (RestClientException ex) {
             log.warn("Ошибка сохранения армии соперника: {}", ex.getMessage());
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Ошибка сохранения армии соперника: не удалось связаться с API.");
             return false;
         }
     }
 
+    /**
+     * Разбирает EventType.
+     */
     private String parseEventType(String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
@@ -1537,6 +2457,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         };
     }
 
+    /**
+     * Форматирует количество столов.
+     */
     private String formatTableUnits(int units) {
         return switch (units) {
             case 1 -> "0.5";
@@ -1548,6 +2471,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         };
     }
 
+    /**
+     * Форматирует EventTypeLabel.
+     */
     private String formatEventTypeLabel(String type) {
         if (type == null) {
             return "-";
@@ -1561,6 +2487,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         };
     }
 
+    /**
+     * Проверяет DefaultKeyword.
+     */
     private boolean isDefaultKeyword(String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         return normalized.equals("default")
@@ -1570,16 +2499,25 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 || normalized.equals("умолч");
     }
 
+    /**
+     * Проверяет Yes.
+     */
     private boolean isYes(String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         return normalized.equals("да") || normalized.equals("yes") || normalized.equals("y");
     }
 
+    /**
+     * Проверяет No.
+     */
     private boolean isNo(String text) {
         String normalized = text.trim().toLowerCase(Locale.ROOT);
         return normalized.equals("нет") || normalized.equals("no") || normalized.equals("n");
     }
 
+    /**
+     * Проверяет CustomEventTitle.
+     */
     private boolean isCustomEventTitle(ConversationState state, String title) {
         List<String> titles = state.getAvailableEventTitles();
         if (titles == null || titles.isEmpty() || title == null) {
@@ -1594,6 +2532,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return true;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private TelegramSettingsDto sameChatSettings(TelegramSettingsDto settings, Long chatId) {
         if (settings == null || chatId == null) {
             return null;
@@ -1601,6 +2542,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return chatId.equals(settings.chatId()) ? settings : null;
     }
 
+    /**
+     * Проверяет ThreadNotFound.
+     */
     private boolean isThreadNotFound(TelegramApiRequestException ex) {
         String response = ex.getApiResponse();
         if (response == null) {
@@ -1609,6 +2553,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return response.toLowerCase(Locale.ROOT).contains("message thread not found");
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void clearScheduleThreadIfMatches(Long chatId, Integer threadId) {
         TelegramSettingsDto settings = apiClient.getTelegramSettings();
         if (settings == null || settings.chatId() == null || threadId == null) {
@@ -1620,6 +2567,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (settings.scheduleThreadId() == null || !settings.scheduleThreadId().equals(threadId)) {
             return;
         }
+
+        /**
+         * Выполняет операцию.
+         */
         TelegramSettingsUpdateRequest request = new TelegramSettingsUpdateRequest(
                 chatId,
                 0,
@@ -1632,10 +2583,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         apiClient.updateTelegramSettings(request);
     }
 
+    /**
+     * Определяет Timezone.
+     */
     private ZoneId resolveTimezone() {
         return resolveTimezone(apiClient.getTelegramSettings());
     }
 
+    /**
+     * Определяет Timezone.
+     */
     private ZoneId resolveTimezone(TelegramSettingsDto settings) {
         if (settings != null && settings.timezone() != null && !settings.timezone().isBlank()) {
             try {
@@ -1647,6 +2604,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return ZoneId.of("Europe/Moscow");
     }
 
+    /**
+     * Форматирует Date.
+     */
     private String formatDate(LocalDate date) {
         if (date == null) {
             return "-";
@@ -1654,6 +2614,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return date.format(DATE_FORMAT);
     }
 
+    /**
+     * Форматирует Time.
+     */
     private String formatTime(LocalTime time) {
         if (time == null) {
             return "-";
@@ -1661,10 +2624,35 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return time.format(TIME_FORMAT);
     }
 
+    /**
+     * Нормализует название игры.
+     */
+    private String normalizeGameName(String value) {
+        if (value == null || !value.contains("%")) {
+            return value;
+        }
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ex) {
+            return value;
+        }
+    }
+
+    /**
+     * Обрабатывает BookingTimeSelected.
+     */
     private void handleBookingTimeSelected(ConversationState state, Message message, LocalTime time) {
         if (state.getDate() == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Сначала выберите дату.");
             YearMonth month = YearMonth.now(resolveTimezone());
+
+            /**
+             * Отправляет DatePicker.
+             */
             sendDatePicker(message.getChatId(), null, "Выберите дату игры", DATE_TARGET_BOOKING, month);
             return;
         }
@@ -1675,33 +2663,75 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setAvailableGames(games);
         if (games == null || games.isEmpty()) {
             state.setStep(ConversationState.Step.PICK_CUSTOM_GAME);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название игры.");
             return;
         }
         state.setStep(ConversationState.Step.PICK_GAME);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите игру:", buildGameKeyboard(games));
     }
 
+    /**
+     * Обрабатывает EventStartTimeSelected.
+     */
     private void handleEventStartTimeSelected(ConversationState state, Message message, LocalTime time) {
         if (state.getDate() == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Сначала выберите дату мероприятия.");
             YearMonth month = YearMonth.now(resolveTimezone());
+
+            /**
+             * Отправляет DatePicker.
+             */
             sendDatePicker(message.getChatId(), null, "Выберите дату мероприятия", DATE_TARGET_EVENT, month);
             return;
         }
         state.setStartTime(time);
         state.setStep(ConversationState.Step.EVENT_END_TIME);
+
+        /**
+         * Отправляет TimePicker.
+         */
         sendTimePicker(message.getChatId(), null, "Выберите время окончания", TIME_TARGET_EVENT_END);
     }
 
+    /**
+     * Обрабатывает EventEndTimeSelected.
+     */
     private void handleEventEndTimeSelected(ConversationState state, Message message, LocalTime time) {
         if (state.getStartTime() == null) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Сначала выберите время начала.");
+
+            /**
+             * Отправляет TimePicker.
+             */
             sendTimePicker(message.getChatId(), null, "Выберите время начала", TIME_TARGET_EVENT_START);
             return;
         }
         if (!time.isAfter(state.getStartTime())) {
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Окончание должно быть позже начала.");
+
+            /**
+             * Отправляет TimePicker.
+             */
             sendTimePicker(message.getChatId(), null, "Выберите время окончания", TIME_TARGET_EVENT_END);
             return;
         }
@@ -1710,91 +2740,213 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setStartAt(ZonedDateTime.of(state.getDate(), state.getStartTime(), zoneId).toOffsetDateTime());
         state.setEndAt(ZonedDateTime.of(state.getDate(), state.getEndTime(), zoneId).toOffsetDateTime());
         state.setStep(ConversationState.Step.EVENT_DESCRIPTION);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Описание (или '-' чтобы пропустить).");
     }
 
+    /**
+     * Обрабатывает CallbackQuery.
+     */
     private void handleCallbackQuery(CallbackQuery query) {
         if (query == null || query.getData() == null) {
             return;
         }
         String data = query.getData();
         if (CALLBACK_NOOP.equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         User from = query.getFrom();
         if (from == null) {
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("res:")) {
+
+            /**
+             * Обрабатывает ResultCallback.
+             */
             handleResultCallback(query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         ConversationState state = conversations.get(from.getId());
         if (state == null) {
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("d:")) {
+
+            /**
+             * Обрабатывает DateCallback.
+             */
             handleDateCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("t:")) {
+
+            /**
+             * Обрабатывает TimeCallback.
+             */
             handleTimeCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("g:")) {
+
+            /**
+             * Обрабатывает GameCallback.
+             */
             handleGameCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("u:")) {
+
+            /**
+             * Обрабатывает TableUnitsCallback.
+             */
             handleTableUnitsCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("at:")) {
+
+            /**
+             * Обрабатывает ArmyTypeCallback.
+             */
             handleArmyTypeCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("a:")) {
+
+            /**
+             * Обрабатывает ArmyCallback.
+             */
             handleArmyCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("f:")) {
+
+            /**
+             * Обрабатывает FactionCallback.
+             */
             handleFactionCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("et:")) {
+
+            /**
+             * Обрабатывает EventTypeCallback.
+             */
             handleEventTypeCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith(EVENT_TITLE_PREFIX + ":")) {
+
+            /**
+             * Обрабатывает EventTitleCallback.
+             */
             handleEventTitleCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("c:")) {
+
+            /**
+             * Обрабатывает ConfirmCallback.
+             */
             handleConfirmCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
         if (data.startsWith("op:")) {
+
+            /**
+             * Обрабатывает OpponentCallback.
+             */
             handleOpponentCallback(state, query, data);
+
+            /**
+             * Выполняет операцию.
+             */
             answerCallback(query.getId());
             return;
         }
+
+        /**
+         * Выполняет операцию.
+         */
         answerCallback(query.getId());
     }
 
+    /**
+     * Обрабатывает DateCallback.
+     */
     private void handleDateCallback(ConversationState state, CallbackQuery query, String data) {
         String[] parts = data.split(":", 3);
         if (parts.length < 3) {
@@ -1811,6 +2963,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             String titlePrefix = DATE_TARGET_EVENT.equals(target) ? "Выберите дату мероприятия" : "Выберите дату игры";
             editMessage(message.getChatId(), message.getMessageId(),
                     titlePrefix + " (" + month.atDay(1).format(MONTH_FORMAT) + ")",
+
+                    /**
+                     * Формирует CalendarKeyboard.
+                     */
                     buildCalendarKeyboard(month, target));
             return;
         }
@@ -1824,7 +2980,15 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             }
             state.setDate(date);
             state.setStep(ConversationState.Step.PICK_TIME);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Дата выбрана: " + formatDate(date), null);
+
+            /**
+             * Отправляет TimePicker.
+             */
             sendTimePicker(message.getChatId(), null, "Выберите время начала", TIME_TARGET_BOOKING_START);
             return;
         }
@@ -1834,11 +2998,22 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             }
             state.setDate(date);
             state.setStep(ConversationState.Step.EVENT_TIME);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Дата выбрана: " + formatDate(date), null);
+
+            /**
+             * Отправляет TimePicker.
+             */
             sendTimePicker(message.getChatId(), null, "Выберите время начала", TIME_TARGET_EVENT_START);
         }
     }
 
+    /**
+     * Обрабатывает TimeCallback.
+     */
     private void handleTimeCallback(ConversationState state, CallbackQuery query, String data) {
         String[] parts = data.split(":");
         if (parts.length < 4) {
@@ -1872,16 +3047,31 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             int hour = Integer.parseInt(value.substring(0, 2));
             int minute = Integer.parseInt(value.substring(2));
             LocalTime time = LocalTime.of(hour, minute);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Время выбрано: " + formatTime(time), null);
+
+            /**
+             * Применяет TimeSelection.
+             */
             applyTimeSelection(state, message, target, time);
         }
     }
 
+    /**
+     * Применяет TimeSelection.
+     */
     private void applyTimeSelection(ConversationState state, Message message, String target, LocalTime time) {
         if (TIME_TARGET_BOOKING_START.equals(target) && state.getFlow() == ConversationState.Flow.BOOKING) {
             if (state.getStep() != ConversationState.Step.PICK_TIME) {
                 return;
             }
+
+            /**
+             * Обрабатывает BookingTimeSelected.
+             */
             handleBookingTimeSelected(state, message, time);
             return;
         }
@@ -1889,6 +3079,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             if (state.getStep() != ConversationState.Step.EVENT_TIME) {
                 return;
             }
+
+            /**
+             * Обрабатывает EventStartTimeSelected.
+             */
             handleEventStartTimeSelected(state, message, time);
             return;
         }
@@ -1896,10 +3090,17 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             if (state.getStep() != ConversationState.Step.EVENT_END_TIME) {
                 return;
             }
+
+            /**
+             * Обрабатывает EventEndTimeSelected.
+             */
             handleEventEndTimeSelected(state, message, time);
         }
     }
 
+    /**
+     * Обрабатывает GameCallback.
+     */
     private void handleGameCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.PICK_GAME) {
             return;
@@ -1911,7 +3112,15 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (data.equals("g:other")) {
             state.setStep(ConversationState.Step.PICK_CUSTOM_GAME);
             state.setCustomGame(true);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Выбрана другая игра.", null);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название игры.");
             return;
         }
@@ -1925,16 +3134,23 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return;
         }
         GameDto game = games.get(index);
-        state.setGame(game.name());
+        state.setGame(normalizeGameName(game.name()));
         state.setDurationMinutes(game.defaultDurationMinutes());
         state.setTableUnits(game.tableUnits());
         state.setCustomGame(false);
         state.setStep(ConversationState.Step.PICK_DURATION);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Вы выбрали игру: " + game.name(), null);
         sendText(message.getChatId(), null,
                 "Обычно " + game.defaultDurationMinutes() + " минут. Отправьте число минут или 'по умолчанию'.");
     }
 
+    /**
+     * Обрабатывает TableUnitsCallback.
+     */
     private void handleTableUnitsCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.PICK_TABLE_UNITS) {
             return;
@@ -1963,10 +3179,21 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setTableUnits(units);
         state.setEndAt(state.getStartAt().plusMinutes(state.getDurationMinutes()));
         state.setStep(ConversationState.Step.PICK_OPPONENT);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Столы выбраны: " + formatTableUnits(units), null);
-        sendText(message.getChatId(), null, "С кем будете играть? @username или имя, '-' если один.");
+
+        /**
+         * Отправляет OpponentPrompt.
+         */
+        sendOpponentPrompt(state, message.getChatId());
     }
 
+    /**
+     * Обрабатывает ArmyTypeCallback.
+     */
     private void handleArmyTypeCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.PICK_ARMY_TYPE) {
             return;
@@ -1976,16 +3203,35 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return;
         }
         if ("at:own".equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Армия: своя", null);
+
+            /**
+             * Запускает OwnFactionSelection.
+             */
             startOwnFactionSelection(state, message);
             return;
         }
         if ("at:club".equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Армия: клубная", null);
+
+            /**
+             * Запускает ClubArmySelection.
+             */
             startClubArmySelection(state, message);
         }
     }
 
+    /**
+     * Обрабатывает ArmyCallback.
+     */
     private void handleArmyCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.PICK_ARMY) {
             return;
@@ -1995,7 +3241,15 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return;
         }
         if ("a:add".equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Добавление клубной армии", null);
+
+            /**
+             * Запускает ClubFactionInput.
+             */
             startClubFactionInput(state, message);
             return;
         }
@@ -2012,10 +3266,21 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setArmyId(army.id());
         state.setArmyLabel(army.game() + " / " + army.faction());
         state.setStep(ConversationState.Step.CONFIRM);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Армия выбрана: " + state.getArmyLabel(), null);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, buildBookingSummary(state), buildConfirmKeyboard());
     }
 
+    /**
+     * Обрабатывает FactionCallback.
+     */
     private void handleFactionCallback(ConversationState state, CallbackQuery query, String data) {
         boolean opponentStep = state.getStep() == ConversationState.Step.PICK_OPPONENT_FACTION;
         if (state.getStep() != ConversationState.Step.PICK_OWN_FACTION && !opponentStep) {
@@ -2026,12 +3291,24 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return;
         }
         if ("f:other".equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Фракция: другая", null);
             if (opponentStep) {
                 state.setAvailableFactions(null);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите фракцию соперника (или '-' чтобы пропустить).");
             } else {
                 state.setAvailableFactions(null);
+
+                /**
+                 * Отправляет Text.
+                 */
                 sendText(message.getChatId(), null, "Введите название фракции.");
             }
             return;
@@ -2049,15 +3326,38 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (opponentStep) {
             state.setOpponentFaction(faction);
             state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Фракция соперника: " + faction, null);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
             return;
         }
+
+        /**
+         * Применяет OwnFactionSelection.
+         */
         applyOwnFactionSelection(state, faction);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Фракция: " + faction, null);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, buildBookingSummary(state), buildConfirmKeyboard());
     }
 
+    /**
+     * Обрабатывает ResultCallback.
+     */
     private void handleResultCallback(CallbackQuery query, String data) {
         var maybeMessage = query.getMessage();
         if (!(maybeMessage instanceof Message message)) {
@@ -2096,8 +3396,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 case "DRAW" -> "ничья";
                 default -> "записано";
             };
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Результат записан: " + label, null);
         } catch (HttpClientErrorException.Conflict ex) {
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Результат уже записан.", null);
         } catch (RestClientResponseException ex) {
             editMessage(message.getChatId(), message.getMessageId(),
@@ -2108,6 +3416,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
     }
 
+    /**
+     * Обрабатывает EventTypeCallback.
+     */
     private void handleEventTypeCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.EVENT_TYPE) {
             return;
@@ -2122,11 +3433,22 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         state.setEventType(parts[1]);
         state.setStep(ConversationState.Step.EVENT_DATE);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Тип: " + formatEventTypeLabel(parts[1]), null);
         YearMonth month = YearMonth.now(resolveTimezone());
+
+        /**
+         * Отправляет DatePicker.
+         */
         sendDatePicker(message.getChatId(), null, "Выберите дату мероприятия", DATE_TARGET_EVENT, month);
     }
 
+    /**
+     * Обрабатывает EventTitleCallback.
+     */
     private void handleEventTitleCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.EVENT_TITLE) {
             return;
@@ -2141,7 +3463,15 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         if ("other".equals(parts[1])) {
             state.setStep(ConversationState.Step.EVENT_TITLE_CUSTOM);
+
+            /**
+             * Выполняет операцию.
+             */
             editMessage(message.getChatId(), message.getMessageId(), "Выбрано: другое", null);
+
+            /**
+             * Отправляет Text.
+             */
             sendText(message.getChatId(), null, "Введите название мероприятия.");
             return;
         }
@@ -2154,10 +3484,21 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setEventTitle(title);
         state.setCustomEventTitle(false);
         state.setStep(ConversationState.Step.EVENT_TYPE);
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Название: " + title, null);
+
+        /**
+         * Отправляет Text.
+         */
         sendText(message.getChatId(), null, "Выберите тип мероприятия:", buildEventTypeKeyboard());
     }
 
+    /**
+     * Обрабатывает ConfirmCallback.
+     */
     private void handleConfirmCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.CONFIRM
                 && state.getStep() != ConversationState.Step.EVENT_CONFIRM) {
@@ -2173,24 +3514,53 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         boolean yes = "yes".equals(parts[1]);
         String answer = yes ? "да" : "нет";
+
+        /**
+         * Выполняет операцию.
+         */
         editMessage(message.getChatId(), message.getMessageId(), "Ответ: " + (yes ? "Да" : "Нет"), null);
         if (state.getStep() == ConversationState.Step.CONFIRM) {
+
+            /**
+             * Обрабатывает BookingConfirm.
+             */
             handleBookingConfirm(state, message, answer);
             conversations.remove(query.getFrom().getId());
             return;
         }
         if (state.getStep() == ConversationState.Step.EVENT_CONFIRM) {
+
+            /**
+             * Обрабатывает EventConfirm.
+             */
             handleEventConfirm(state, message, answer);
             conversations.remove(query.getFrom().getId());
         }
     }
 
+    /**
+     * Обрабатывает OpponentCallback.
+     */
     private void handleOpponentCallback(ConversationState state, CallbackQuery query, String data) {
         if (state.getStep() != ConversationState.Step.PICK_OPPONENT) {
             return;
         }
         var maybeMessage = query.getMessage();
         if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        if ("op:manual".equals(data)) {
+
+            /**
+             * Выполняет операцию.
+             */
+            editMessage(message.getChatId(), message.getMessageId(), "Введите имя соперника.", null);
+            state.setFoundUsers(null);
+
+            /**
+             * Отправляет Text.
+             */
+            sendText(message.getChatId(), null, "Укажите @username или имя, '-' если играете один.");
             return;
         }
         String[] parts = data.split(":", 2);
@@ -2206,10 +3576,21 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         state.setOpponentUserId(user.id());
         state.setOpponentName(user.name());
         state.setFoundUsers(null);
-        editMessage(message.getChatId(), message.getMessageId(), "Соперник: " + user.name(), null);
+
+        /**
+         * Выполняет операцию.
+         */
+        editMessage(message.getChatId(), message.getMessageId(), "Соперник: " + formatUserDisplayName(user.name()), null);
+
+        /**
+         * Запускает OpponentFactionSelection.
+         */
         startOpponentFactionSelection(state, message);
     }
 
+    /**
+     * Формирует CalendarKeyboard.
+     */
     private InlineKeyboardMarkup buildCalendarKeyboard(YearMonth month, String target) {
         LocalDate today = LocalDate.now(resolveTimezone());
         YearMonth currentMonth = YearMonth.from(today);
@@ -2282,6 +3663,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует TimePeriodKeyboard.
+     */
     private InlineKeyboardMarkup buildTimePeriodKeyboard(String target) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -2299,6 +3683,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует TimeBlockKeyboard.
+     */
     private InlineKeyboardMarkup buildTimeBlockKeyboard(String target, String period) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         int base = "pm".equals(period) ? 12 : 0;
@@ -2317,6 +3704,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует TimeSlotKeyboard.
+     */
     private InlineKeyboardMarkup buildTimeSlotKeyboard(String target, int startHour) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -2341,6 +3731,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует EventTypeKeyboard.
+     */
     private InlineKeyboardMarkup buildEventTypeKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         InlineKeyboardButton paint = new InlineKeyboardButton();
@@ -2368,6 +3761,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует EventTitleKeyboard.
+     */
     private InlineKeyboardMarkup buildEventTitleKeyboard(List<String> titles) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -2400,6 +3796,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует GameKeyboard.
+     */
     private InlineKeyboardMarkup buildGameKeyboard(List<GameDto> games) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -2428,6 +3827,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует TableUnitsKeyboard.
+     */
     private InlineKeyboardMarkup buildTableUnitsKeyboard(Integer defaultUnits) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         InlineKeyboardButton half = new InlineKeyboardButton();
@@ -2457,6 +3859,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует ArmyTypeKeyboard.
+     */
     private InlineKeyboardMarkup buildArmyTypeKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         InlineKeyboardButton own = new InlineKeyboardButton();
@@ -2474,6 +3879,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует ArmyKeyboard.
+     */
     private InlineKeyboardMarkup buildArmyKeyboard(List<ArmyDto> armies) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         for (int i = 0; i < armies.size(); i++) {
@@ -2497,6 +3905,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует FactionKeyboard.
+     */
     private InlineKeyboardMarkup buildFactionKeyboard(List<String> factions) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -2524,6 +3935,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует ConfirmKeyboard.
+     */
     private InlineKeyboardMarkup buildConfirmKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         InlineKeyboardButton yes = new InlineKeyboardButton();
@@ -2541,6 +3955,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует ResultKeyboard.
+     */
     private InlineKeyboardMarkup buildResultKeyboard(Long bookingId) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         InlineKeyboardButton win = new InlineKeyboardButton();
@@ -2564,19 +3981,51 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return markup;
     }
 
+    /**
+     * Формирует OpponentKeyboard.
+     */
     private InlineKeyboardMarkup buildOpponentKeyboard(List<UserDto> users) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row = new ArrayList<>();
         for (int i = 0; i < users.size(); i++) {
             UserDto user = users.get(i);
             InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(user.name());
+            button.setText(formatUserDisplayName(user.name()));
             button.setCallbackData("op:" + i);
-            List<InlineKeyboardButton> row = new ArrayList<>();
             row.add(button);
+            if (row.size() == 2) {
+                rows.add(row);
+                row = new ArrayList<>();
+            }
+        }
+        if (!row.isEmpty()) {
             rows.add(row);
         }
+        InlineKeyboardButton manual = new InlineKeyboardButton();
+        manual.setText("Ввести вручную");
+        manual.setCallbackData("op:manual");
+        List<InlineKeyboardButton> manualRow = new ArrayList<>();
+        manualRow.add(manual);
+        rows.add(manualRow);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
         return markup;
+    }
+
+    /**
+     * Форматирует UserDisplayName.
+     */
+    private String formatUserDisplayName(String name) {
+        if (name == null || name.isBlank()) {
+            return "-";
+        }
+        String trimmed = name.trim();
+        if (trimmed.startsWith("@")) {
+            return trimmed;
+        }
+        if (!trimmed.contains(" ") && trimmed.matches("[A-Za-z0-9_]+") && !trimmed.matches("\\d+")) {
+            return "@" + trimmed;
+        }
+        return trimmed;
     }
 }

@@ -5,6 +5,9 @@ import java.util.UUID;
 import com.wargameclub.clubapi.enums.NotificationStatus;
 import com.wargameclub.clubapi.enums.NotificationTarget;
 
+/**
+ * DTO для NotificationOutbox.
+ */
 public record NotificationOutboxDto(
         UUID id,
         NotificationTarget target,

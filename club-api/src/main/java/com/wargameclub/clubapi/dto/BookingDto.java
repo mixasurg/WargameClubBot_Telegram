@@ -4,6 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import com.wargameclub.clubapi.enums.BookingStatus;
 
+/**
+ * DTO для бронирования.
+ */
 public record BookingDto(
         Long id,
         Long tableId,

@@ -15,16 +15,44 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с армиями.
+ */
 @Service
 public class ArmyService {
+    /**
+     * Поле состояния.
+     */
     private static final DateTimeFormatter MESSAGE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm XXX");
 
+    /**
+     * Репозиторий армии.
+     */
     private final ArmyRepository armyRepository;
+
+    /**
+     * Репозиторий использования армии.
+     */
     private final ArmyUsageRepository usageRepository;
+
+    /**
+     * Репозиторий пользователя.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Сервис лояльности.
+     */
     private final LoyaltyService loyaltyService;
+
+    /**
+     * Поле состояния.
+     */
     private final EventPublisher eventPublisher;
 
+    /**
+     * Выполняет операцию.
+     */
     public ArmyService(
             ArmyRepository armyRepository,
             ArmyUsageRepository usageRepository,
@@ -39,6 +67,9 @@ public class ArmyService {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Создает армию.
+     */
     @Transactional
     public Army create(Long ownerUserId, String game, String faction, boolean isClubShared) {
         User owner = userRepository.findById(ownerUserId)
@@ -51,8 +82,11 @@ public class ArmyService {
         return saved;
     }
 
+    /**
+     * Возвращает армию.
+     */
     @Transactional(readOnly = true)
-    public List<Army> find(String game, String faction, Boolean clubShared, Boolean active) {
+    public List<Army> find(String game, String faction, Boolean clubShared, Long ownerUserId, Boolean active) {
         Specification<Army> spec = Specification.where(null);
         if (game != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("game"), game));
@@ -63,12 +97,18 @@ public class ArmyService {
         if (clubShared != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("isClubShared"), clubShared));
         }
+        if (ownerUserId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("owner").get("id"), ownerUserId));
+        }
         if (active != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), active));
         }
         return armyRepository.findAll(spec);
     }
 
+    /**
+     * Деактивирует армию.
+     */
     @Transactional
     public Army deactivate(Long armyId) {
         Army army = armyRepository.findById(armyId)
@@ -77,6 +117,9 @@ public class ArmyService {
         return army;
     }
 
+    /**
+     * Фиксирует использование армии.
+     */
     @Transactional
     public ArmyUsage useArmy(Long armyId, Long usedByUserId, OffsetDateTime usedAt, String notes) {
         if (usedAt == null) {
@@ -92,10 +135,17 @@ public class ArmyService {
         ArmyUsage usage = new ArmyUsage(army, usedBy, usedAt, notes);
         usageRepository.save(usage);
         loyaltyService.addPoints(army.getOwner().getId());
+
+        /**
+         * Публикует ArmyUsageNotification.
+         */
         publishArmyUsageNotification(army, usedBy, usedAt);
         return usage;
     }
 
+    /**
+     * Публикует ArmyUsageNotification.
+     */
     private void publishArmyUsageNotification(Army army, User usedBy, OffsetDateTime usedAt) {
         String message = "Армия использована: " + army.getGame() + " / " + army.getFaction()
                 + "\nВладелец: " + army.getOwner().getName()

@@ -16,16 +16,31 @@ import com.wargameclub.clubapi.entity.ClubTable;
 import com.wargameclub.clubapi.entity.UserGameStats;
 import com.wargameclub.clubapi.entity.User;
 
+/**
+ * Сервис для работы с сущностью Dto.
+ */
 public final class DtoMapper {
+    /**
+     * Сериализатор JSON.
+     */
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    /**
+     * Конструктор DtoMapper.
+     */
     private DtoMapper() {
     }
 
+    /**
+     * Преобразует в UserDto.
+     */
     public static UserDto toUserDto(User user) {
         return new UserDto(user.getId(), user.getName(), user.getTelegramId(), user.getCreatedAt());
     }
 
+    /**
+     * Преобразует в UserGameStatsDto.
+     */
     public static UserGameStatsDto toUserGameStatsDto(UserGameStats stats) {
         return new UserGameStatsDto(
                 stats.getUserId(),
@@ -36,10 +51,16 @@ public final class DtoMapper {
         );
     }
 
+    /**
+     * Преобразует в TableDto.
+     */
     public static TableDto toTableDto(ClubTable table) {
         return new TableDto(table.getId(), table.getName(), table.isActive(), table.getNotes());
     }
 
+    /**
+     * Преобразует в BookingDto.
+     */
     public static BookingDto toBookingDto(Booking booking) {
         var assignments = parseAssignments(booking.getTableAssignments());
         return new BookingDto(
@@ -63,6 +84,9 @@ public final class DtoMapper {
         );
     }
 
+    /**
+     * Преобразует в EventDto.
+     */
     public static EventDto toEventDto(ClubEvent event) {
         return new EventDto(
                 event.getId(),
@@ -80,6 +104,9 @@ public final class DtoMapper {
         );
     }
 
+    /**
+     * Преобразует в ArmyDto.
+     */
     public static ArmyDto toArmyDto(Army army) {
         return new ArmyDto(
                 army.getId(),
@@ -109,6 +136,9 @@ public final class DtoMapper {
         }
     }
 
+    /**
+     * Сервис для работы с сущностью TableAssignment.
+     */
     private record TableAssignment(Long tableId, int units) {
     }
 }

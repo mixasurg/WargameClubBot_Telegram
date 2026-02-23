@@ -15,16 +15,46 @@ import com.wargameclub.clubapi.enums.EventType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Компонент обмена сообщениями для аналитики.
+ */
 @Service
 public class AnalyticsService {
+    /**
+     * Поле состояния.
+     */
     private final Object lock = new Object();
+    /**
+     * Поле состояния.
+     */
     private final Map<String, Integer> purchasesByCategory = new HashMap<>();
+    /**
+     * Поле состояния.
+     */
     private final Map<Long, Integer> purchasesByEvent = new HashMap<>();
+    /**
+     * Поле состояния.
+     */
     private final Map<Long, EventInfo> eventInfo = new HashMap<>();
+
+    /**
+     * Поле состояния.
+     */
     private BigDecimal revenue = BigDecimal.ZERO;
+
+    /**
+     * Поле состояния.
+     */
     private OffsetDateTime lastUpdated;
 
+    /**
+     * Сериализатор JSON.
+     */
     private final ObjectMapper objectMapper;
+
+    /**
+     * Поле состояния.
+     */
     private final Path analyticsFile;
 
     public AnalyticsService(ObjectMapper objectMapper, @Value("${app.analytics.file:}") String analyticsFile) {
@@ -32,6 +62,9 @@ public class AnalyticsService {
         this.analyticsFile = analyticsFile == null || analyticsFile.isBlank() ? null : Path.of(analyticsFile);
     }
 
+    /**
+     * Фиксирует Purchase.
+     */
     public void recordPurchase(TicketPurchasedEvent event) {
         if (event == null) {
             throw new IllegalArgumentException("Событие ticket.purchased отсутствует");
@@ -47,10 +80,17 @@ public class AnalyticsService {
             }
             revenue = revenue.add(amount);
             lastUpdated = event.occurredAt();
+
+            /**
+             * Выполняет операцию.
+             */
             persistLocked();
         }
     }
 
+    /**
+     * Фиксирует EventUpdated.
+     */
     public void recordEventUpdated(EventUpdatedEvent event) {
         if (event == null) {
             throw new IllegalArgumentException("Событие event.updated отсутствует");
@@ -60,10 +100,17 @@ public class AnalyticsService {
                 eventInfo.put(event.eventId(), new EventInfo(event.title(), event.type()));
             }
             lastUpdated = event.updatedAt();
+
+            /**
+             * Выполняет операцию.
+             */
             persistLocked();
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private void persistLocked() {
         if (analyticsFile == null) {
             return;
@@ -102,6 +149,9 @@ public class AnalyticsService {
         return result;
     }
 
+    /**
+     * Компонент обмена сообщениями для EventInfo.
+     */
     private record EventInfo(String title, EventType type) {
     }
 }

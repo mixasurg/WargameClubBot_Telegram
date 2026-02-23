@@ -20,14 +20,34 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с сущностью NotificationOutbox.
+ */
 @Service
 public class NotificationOutboxService {
+    /**
+     * Логгер.
+     */
     private static final Logger log = LoggerFactory.getLogger(NotificationOutboxService.class);
 
+    /**
+     * Репозиторий NotificationOutbox.
+     */
     private final NotificationOutboxRepository repository;
+
+    /**
+     * Сериализатор JSON.
+     */
     private final ObjectMapper objectMapper;
+
+    /**
+     * Параметры конфигурации App.
+     */
     private final AppProperties appProperties;
 
+    /**
+     * Выполняет операцию.
+     */
     public NotificationOutboxService(
             NotificationOutboxRepository repository,
             ObjectMapper objectMapper,
@@ -38,11 +58,17 @@ public class NotificationOutboxService {
         this.appProperties = appProperties;
     }
 
+    /**
+     * Ставит в очередь NotificationOutbox.
+     */
     @Transactional
     public NotificationOutbox enqueue(NotificationTarget target, ChatRouting routing, String text) {
         return enqueueAt(target, routing, text, null, null, null);
     }
 
+    /**
+     * Ставит в очередь At.
+     */
     @Transactional
     public NotificationOutbox enqueueAt(
             NotificationTarget target,
@@ -70,6 +96,9 @@ public class NotificationOutboxService {
         return repository.save(outbox);
     }
 
+    /**
+     * Возвращает Pending.
+     */
     @Transactional(readOnly = true)
     public List<NotificationOutboxDto> getPending(NotificationTarget target, int limit) {
         return repository.findByTargetAndStatusAndNextAttemptAtLessThanEqual(
@@ -82,6 +111,9 @@ public class NotificationOutboxService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Transactional
     public void markSent(UUID id) {
         NotificationOutbox outbox = repository.findById(id)
@@ -91,6 +123,9 @@ public class NotificationOutboxService {
         outbox.setLastError(null);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @Transactional
     public void markFailed(UUID id, String error) {
         NotificationOutbox outbox = repository.findById(id)
@@ -108,6 +143,9 @@ public class NotificationOutboxService {
         outbox.setNextAttemptAt(OffsetDateTime.now().plusSeconds(appProperties.getNotifications().getBackoffSeconds()));
     }
 
+    /**
+     * Удаляет PendingByReference.
+     */
     @Transactional
     public void deletePendingByReference(String referenceType, Long referenceId) {
         if (referenceType == null || referenceId == null) {
@@ -120,6 +158,9 @@ public class NotificationOutboxService {
         );
     }
 
+    /**
+     * Преобразует в DTO.
+     */
     private NotificationOutboxDto toDto(NotificationOutbox outbox) {
         return new NotificationOutboxDto(
                 outbox.getId(),

@@ -28,18 +28,55 @@ import com.wargameclub.clubapi.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с бронированиями.
+ */
 @Service
 public class BookingService {
+
+    /**
+     * Поле состояния.
+     */
     private static final int TABLE_CAPACITY_UNITS = 2;
 
+    /**
+     * Репозиторий бронирования.
+     */
     private final BookingRepository bookingRepository;
+
+    /**
+     * Репозиторий стола клуба.
+     */
     private final ClubTableRepository tableRepository;
+
+    /**
+     * Репозиторий пользователя.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Репозиторий армии.
+     */
     private final ArmyRepository armyRepository;
+
+    /**
+     * Сериализатор JSON.
+     */
     private final ObjectMapper objectMapper;
+
+    /**
+     * Сервис TelegramAutoRefresh.
+     */
     private final TelegramAutoRefreshService autoRefreshService;
+
+    /**
+     * Поле состояния.
+     */
     private final KafkaEventPublisher kafkaEventPublisher;
 
+    /**
+     * Выполняет операцию.
+     */
     public BookingService(
             BookingRepository bookingRepository,
             ClubTableRepository tableRepository,
@@ -58,8 +95,15 @@ public class BookingService {
         this.kafkaEventPublisher = kafkaEventPublisher;
     }
 
+    /**
+     * Создает бронирование.
+     */
     @Transactional
     public Booking create(BookingCreateRequest request) {
+
+        /**
+         * Проверяет Range.
+         */
         validateRange(request.startAt(), request.endAt());
         if (request.tableUnits() == null) {
             throw new BadRequestException("Поле tableUnits обязательно");
@@ -85,13 +129,15 @@ public class BookingService {
                 throw new BadRequestException("Армия неактивна");
             }
         }
-
         List<Booking> overlapping = bookingRepository.findOverlappingWithDetails(
                 BookingStatus.CREATED, request.startAt(), request.endAt());
         if (army != null && army.isClubShared() && hasArmyConflict(overlapping, army.getId())) {
             throw new ConflictException("Армия уже забронирована на это время");
         }
 
+        /**
+         * Выполняет операцию.
+         */
         List<TableAllocation> allocations = allocateTables(
                 overlapping,
                 request.tableUnits(),
@@ -115,8 +161,15 @@ public class BookingService {
         return saved;
     }
 
+    /**
+     * Возвращает Overlapping.
+     */
     @Transactional(readOnly = true)
     public List<Booking> findOverlapping(OffsetDateTime from, OffsetDateTime to, Long tableId) {
+
+        /**
+         * Проверяет Range.
+         */
         validateRange(from, to);
         List<Booking> bookings = bookingRepository.findOverlappingWithDetails(BookingStatus.CREATED, from, to);
         if (tableId == null) {
@@ -127,6 +180,9 @@ public class BookingService {
                 .toList();
     }
 
+    /**
+     * Проверяет возможность cel.
+     */
     @Transactional
     public Booking cancel(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -137,11 +193,17 @@ public class BookingService {
         return booking;
     }
 
+    /**
+     * Проверяет наличие ArmyConflict.
+     */
     private boolean hasArmyConflict(List<Booking> bookings, Long armyId) {
         return bookings.stream()
                 .anyMatch(booking -> booking.getArmy() != null && armyId.equals(booking.getArmy().getId()));
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private List<TableAllocation> allocateTables(List<Booking> overlapping, int requestedUnits, Long preferredTableId) {
         List<ClubTable> tables = tableRepository.findAll().stream()
                 .filter(ClubTable::isActive)
@@ -187,15 +249,20 @@ public class BookingService {
             allocations.add(new TableAllocation(tableId, units));
             usedUnits.merge(tableId, units, Integer::sum);
         }
-
         return allocations;
     }
 
+    /**
+     * Проверяет возможность Allocate.
+     */
     private boolean canAllocate(Long tableId, Map<Long, Integer> usedUnits, int units) {
         int used = usedUnits.getOrDefault(tableId, 0);
         return used + units <= TABLE_CAPACITY_UNITS;
     }
 
+    /**
+     * Возвращает BestTable.
+     */
     private Long findBestTable(Map<Long, Integer> usedUnits, int units) {
         if (units == TABLE_CAPACITY_UNITS) {
             return usedUnits.entrySet().stream()
@@ -212,6 +279,9 @@ public class BookingService {
                 .orElse(null);
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private List<Integer> expandAllocations(int requestedUnits) {
         List<Integer> allocations = new ArrayList<>();
         if (requestedUnits == 1) {
@@ -232,11 +302,17 @@ public class BookingService {
         return allocations;
     }
 
+    /**
+     * Возвращает идентификатор TableBy.
+     */
     private ClubTable findTableById(Long tableId) {
         return tableRepository.findById(tableId)
                 .orElseThrow(() -> new NotFoundException("Стол не найден: " + tableId));
     }
 
+    /**
+     * Разбирает Allocations.
+     */
     private List<TableAllocation> parseAllocations(Booking booking) {
         if (booking.getTableAssignments() == null || booking.getTableAssignments().isBlank()) {
             if (booking.getTable() == null) {
@@ -260,6 +336,9 @@ public class BookingService {
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private String serializeAllocations(List<TableAllocation> allocations) {
         try {
             return objectMapper.writeValueAsString(allocations);
@@ -268,17 +347,26 @@ public class BookingService {
         }
     }
 
+    /**
+     * Выполняет операцию.
+     */
     private boolean bookingHasTable(Booking booking, Long tableId) {
         return parseAllocations(booking).stream()
                 .anyMatch(allocation -> allocation.tableId().equals(tableId));
     }
 
+    /**
+     * Проверяет Range.
+     */
     private void validateRange(OffsetDateTime startAt, OffsetDateTime endAt) {
         if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
             throw new BadRequestException("Некорректный диапазон времени");
         }
     }
 
+    /**
+     * Сервис для работы с сущностью TableAllocation.
+     */
     private record TableAllocation(Long tableId, int units) {
     }
 }

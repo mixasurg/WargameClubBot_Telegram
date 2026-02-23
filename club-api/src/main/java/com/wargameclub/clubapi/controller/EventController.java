@@ -23,18 +23,35 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления мероприятиями.
+ */
 @RestController
 @Validated
 @RequestMapping("/api/events")
 public class EventController {
+
+    /**
+     * Сервис мероприятия.
+     */
     private final EventService eventService;
+
+    /**
+     * Сервис пользователя.
+     */
     private final UserService userService;
 
+    /**
+     * Конструктор EventController.
+     */
     public EventController(EventService eventService, UserService userService) {
         this.eventService = eventService;
         this.userService = userService;
     }
 
+    /**
+     * Создает мероприятие.
+     */
     @PostMapping
     public EventDto create(@Valid @RequestBody EventCreateRequest request) {
         ClubEvent event = new ClubEvent();
@@ -48,11 +65,17 @@ public class EventController {
         return DtoMapper.toEventDto(eventService.create(event));
     }
 
+    /**
+     * Обновляет мероприятие.
+     */
     @PutMapping("/{id}")
     public EventDto update(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest request) {
         return DtoMapper.toEventDto(eventService.update(id, request));
     }
 
+    /**
+     * Возвращает список мероприятий.
+     */
     @GetMapping
     public List<EventDto> list(
             @RequestParam(name = "from") @NotNull OffsetDateTime from,
@@ -64,16 +87,25 @@ public class EventController {
                 .toList();
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @GetMapping("/titles")
     public List<String> titles(@RequestParam(name = "limit", required = false, defaultValue = "20") int limit) {
         return eventService.listTitles(limit);
     }
 
+    /**
+     * Регистрирует мероприятие.
+     */
     @PostMapping("/{id}/register")
     public void register(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.register(id, request.userId(), request.count(), request.amount());
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @PostMapping("/{id}/unregister")
     public void unregister(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.unregister(id, request.userId(), request.count(), request.amount());

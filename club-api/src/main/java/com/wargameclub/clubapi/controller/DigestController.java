@@ -10,16 +10,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления дайджестами.
+ */
 @RestController
 @Validated
 @RequestMapping("/api/digest")
 public class DigestController {
+
+    /**
+     * Сервис дайджеста.
+     */
     private final DigestService digestService;
 
+    /**
+     * Конструктор DigestController.
+     */
     public DigestController(DigestService digestService) {
         this.digestService = digestService;
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @GetMapping("/week")
     public WeekDigestDto week(@RequestParam(name = "offset", defaultValue = "0") @Min(0) @Max(1) int offset) {
         return digestService.getWeekDigest(offset);

@@ -241,7 +241,7 @@
       "name": "List armies",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/api/armies?game=Warhammer&faction=Ultramarines&clubShared=true&active=true"
+        "url": "{{baseUrl}}/api/armies?game=Warhammer&faction=Ultramarines&clubShared=true&ownerUserId=1&active=true"
       }
     },
     {

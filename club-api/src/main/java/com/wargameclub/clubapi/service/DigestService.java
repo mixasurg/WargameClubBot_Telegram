@@ -33,16 +33,50 @@ import com.wargameclub.clubapi.repository.ClubTableRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для работы с дайджестами.
+ */
 @Service
 public class DigestService {
-    private static final Pattern OPPONENT_PATTERN = Pattern.compile("(?i)соперник:\\s*([^;\\n]+)");
-    private static final Pattern OPPONENT_FACTION_PATTERN = Pattern.compile("(?i)соперник\\s+фракция:\\s*([^;\\n]+)");
+    /**
+     * Поле состояния.
+     */
+    private static final Pattern OPPONENT_PATTERN = Pattern.compile("(?i)соперник\\s*:\\s*([^;\\n]+)");
+    private static final Pattern OPPONENT_FACTION_PATTERN =
+            Pattern.compile("(?i)соперник\\s+фракция\\s*:\\s*([^;\\n]+)");
+    private static final Pattern OPPONENT_FACTION_ALT_PATTERN =
+            Pattern.compile("(?i)фракция\\s+соперника\\s*:\\s*([^;\\n]+)");
+    private static final Pattern OPPONENT_WITH_FACTION_PATTERN =
+            Pattern.compile("(?i)соперник\\s*:\\s*[^;\\n()]*\\(([^)\\n]+)\\)");
+
+    /**
+     * Репозиторий бронирования.
+     */
     private final BookingRepository bookingRepository;
+
+    /**
+     * Репозиторий мероприятия клуба.
+     */
     private final ClubEventRepository eventRepository;
+
+    /**
+     * Репозиторий стола клуба.
+     */
     private final ClubTableRepository tableRepository;
+
+    /**
+     * Параметры конфигурации App.
+     */
     private final AppProperties appProperties;
+
+    /**
+     * Сериализатор JSON.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * Выполняет операцию.
+     */
     public DigestService(
             BookingRepository bookingRepository,
             ClubEventRepository eventRepository,
@@ -57,6 +91,9 @@ public class DigestService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Возвращает WeekDigest.
+     */
     @Transactional(readOnly = true)
     public WeekDigestDto getWeekDigest(int offset) {
         ZoneId zoneId = appProperties.getTimezone();
@@ -104,6 +141,9 @@ public class DigestService {
         return new WeekDigestDto(from, to, zoneId.getId(), days, eventDtos);
     }
 
+    /**
+     * Преобразует в TableBookings.
+     */
     private DigestTableBookingsDto toTableBookings(Long tableId, List<Booking> bookings, Map<Long, String> tableNames) {
         bookings.sort(Comparator.comparing(Booking::getStartAt));
         List<DigestBookingDto> bookingDtos = bookings.stream()
@@ -122,6 +162,9 @@ public class DigestService {
         return new DigestTableBookingsDto(tableId, tableName, bookingDtos);
     }
 
+    /**
+     * Преобразует в EventDto.
+     */
     private DigestEventDto toEventDto(ClubEvent event) {
         return new DigestEventDto(
                 event.getId(),
@@ -134,6 +177,9 @@ public class DigestService {
         );
     }
 
+    /**
+     * Разбирает Allocations.
+     */
     private List<TableAllocation> parseAllocations(Booking booking) {
         if (booking.getTableAssignments() == null || booking.getTableAssignments().isBlank()) {
             if (booking.getTable() == null) {
@@ -154,6 +200,9 @@ public class DigestService {
         }
     }
 
+    /**
+     * Определяет OpponentName.
+     */
     private String resolveOpponentName(Booking booking) {
         if (booking.getOpponent() != null) {
             return booking.getOpponent().getName();
@@ -170,6 +219,9 @@ public class DigestService {
         return opponent != null && !opponent.isBlank() ? opponent.trim() : null;
     }
 
+    /**
+     * Определяет UserFaction.
+     */
     private String resolveUserFaction(Booking booking) {
         if (booking.getArmy() == null || booking.getArmy().getFaction() == null) {
             return null;
@@ -178,6 +230,9 @@ public class DigestService {
         return faction != null && !faction.isBlank() ? faction.trim() : null;
     }
 
+    /**
+     * Определяет фракцию соперника.
+     */
     private String resolveOpponentFaction(Booking booking) {
         String notes = booking.getNotes();
         if (notes == null || notes.isBlank()) {
@@ -185,12 +240,21 @@ public class DigestService {
         }
         Matcher matcher = OPPONENT_FACTION_PATTERN.matcher(notes);
         if (!matcher.find()) {
+            matcher = OPPONENT_FACTION_ALT_PATTERN.matcher(notes);
+        }
+        if (!matcher.find()) {
+            matcher = OPPONENT_WITH_FACTION_PATTERN.matcher(notes);
+        }
+        if (!matcher.find()) {
             return null;
         }
         String faction = matcher.group(1);
         return faction != null && !faction.isBlank() ? faction.trim() : null;
     }
 
+    /**
+     * Сервис для работы с сущностью TableAllocation.
+     */
     private record TableAllocation(Long tableId, int units) {
     }
 }

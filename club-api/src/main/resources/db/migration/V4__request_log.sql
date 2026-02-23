@@ -1,3 +1,5 @@
+-- Миграция БД: журнал HTTP-запросов.
+
 create table if not exists request_log (
     id bigserial primary key,
     method varchar(10) not null,

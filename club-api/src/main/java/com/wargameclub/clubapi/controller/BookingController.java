@@ -19,23 +19,43 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для управления бронированиями.
+ */
 @RestController
 @Validated
 @RequestMapping("/api/bookings")
 public class BookingController {
+
+    /**
+     * Сервис бронирования.
+     */
     private final BookingService bookingService;
+
+    /**
+     * Сервис результата игры.
+     */
     private final GameResultService resultService;
 
+    /**
+     * Конструктор BookingController.
+     */
     public BookingController(BookingService bookingService, GameResultService resultService) {
         this.bookingService = bookingService;
         this.resultService = resultService;
     }
 
+    /**
+     * Создает бронирование.
+     */
     @PostMapping
     public BookingDto create(@Valid @RequestBody BookingCreateRequest request) {
         return DtoMapper.toBookingDto(bookingService.create(request));
     }
 
+    /**
+     * Возвращает список бронирований.
+     */
     @GetMapping
     public List<BookingDto> list(
             @RequestParam(name = "from") @NotNull OffsetDateTime from,
@@ -47,11 +67,17 @@ public class BookingController {
                 .toList();
     }
 
+    /**
+     * Проверяет возможность cel.
+     */
     @PostMapping("/{id}/cancel")
     public BookingDto cancel(@PathVariable Long id) {
         return DtoMapper.toBookingDto(bookingService.cancel(id));
     }
 
+    /**
+     * Выполняет операцию.
+     */
     @PostMapping("/{id}/result")
     public void result(@PathVariable Long id, @Valid @RequestBody BookingResultRequest request) {
         resultService.recordResult(id, request.reporterUserId(), request.outcome());

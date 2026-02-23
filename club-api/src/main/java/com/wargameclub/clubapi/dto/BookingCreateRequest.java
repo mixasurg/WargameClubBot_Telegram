@@ -7,6 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * DTO запроса на создание бронирования.
+ */
 public record BookingCreateRequest(
         @Positive Long tableId,
         @NotNull @Positive Long userId,

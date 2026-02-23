@@ -2,6 +2,9 @@ package com.wargameclub.clubbot.dto;
 
 import java.time.OffsetDateTime;
 
+/**
+ * DTO для DigestEvent.
+ */
 public record DigestEventDto(
         Long id,
         String title,
