@@ -1,0 +1,47 @@
+# Production compose for API + Postgres host.
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clubdb}
+      POSTGRES_USER: ${POSTGRES_USER:-club}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-club}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "work_mem=4MB", "-c", "maintenance_work_mem=32MB"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  club-api:
+    build:
+      context: .
+      dockerfile: club-api/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-clubdb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-club}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-club}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_SERVER_IP}:9092
+      LOYALTY_POINTS_ARMY_USED: ${LOYALTY_POINTS_ARMY_USED:-10}
+      LOYALTY_POINTS_ARMY_SHARED: ${LOYALTY_POINTS_ARMY_SHARED:-5}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      API_KEY: ${API_KEY:-}
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps -p 1 > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
