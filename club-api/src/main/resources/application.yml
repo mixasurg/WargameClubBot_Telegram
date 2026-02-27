@@ -35,6 +35,8 @@ management:
 
 app:
   timezone: ${APP_TIMEZONE:Europe/Moscow}
+  security:
+    api-key: ${API_KEY:}
   loyalty:
     points-army-used: ${LOYALTY_POINTS_ARMY_USED:10}
     points-army-shared: ${LOYALTY_POINTS_ARMY_SHARED:5}
@@ -47,4 +49,3 @@ app:
 logging:
   level:
     org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
-

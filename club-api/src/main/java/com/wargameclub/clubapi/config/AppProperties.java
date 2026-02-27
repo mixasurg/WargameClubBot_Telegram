@@ -15,6 +15,10 @@ public class AppProperties {
     /**
      * Поле состояния.
      */
+    private final Security security = new Security();
+    /**
+     * Поле состояния.
+     */
     private final Loyalty loyalty = new Loyalty();
     /**
      * Поле состояния.
@@ -40,6 +44,15 @@ public class AppProperties {
     }
 
     /**
+     * Возвращает настройки безопасности.
+     *
+     * @return настройки безопасности
+     */
+    public Security getSecurity() {
+        return security;
+    }
+
+    /**
      * Возвращает настройки лояльности.
      *
      * @return конфигурация начисления баллов
@@ -55,6 +68,35 @@ public class AppProperties {
      */
     public Notifications getNotifications() {
         return notifications;
+    }
+
+    /**
+     * Настройки безопасности приложения.
+     */
+    public static class Security {
+
+        /**
+         * Поле состояния.
+         */
+        private String apiKey;
+
+        /**
+         * Возвращает API-ключ для доступа к защищенным эндпоинтам.
+         *
+         * @return API-ключ или null
+         */
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        /**
+         * Устанавливает API-ключ для доступа к защищенным эндпоинтам.
+         *
+         * @param apiKey API-ключ
+         */
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
     }
 
     /**

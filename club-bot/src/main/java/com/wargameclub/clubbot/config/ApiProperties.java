@@ -14,6 +14,11 @@ public class ApiProperties {
     private String baseUrl = "http://localhost:8080";
 
     /**
+     * API-ключ для авторизации запросов.
+     */
+    private String apiKey;
+
+    /**
      * Возвращает базовый URL club-api.
      *
      * @return базовый URL
@@ -29,5 +34,23 @@ public class ApiProperties {
      */
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    /**
+     * Возвращает API-ключ для авторизации запросов.
+     *
+     * @return API-ключ или null
+     */
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    /**
+     * Устанавливает API-ключ для авторизации запросов.
+     *
+     * @param apiKey API-ключ
+     */
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
     }
 }
