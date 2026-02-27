@@ -3,7 +3,11 @@ package com.wargameclub.clubapi.dto;
 import java.util.List;
 
 /**
- * DTO для DigestTableBookings.
+ * Представление бронирований по конкретному столу в дайджесте.
+ *
+ * @param tableId идентификатор стола
+ * @param tableName название стола
+ * @param bookings список бронирований стола
  */
 public record DigestTableBookingsDto(
         Long tableId,
@@ -11,4 +15,3 @@ public record DigestTableBookingsDto(
         List<DigestBookingDto> bookings
 ) {
 }
-

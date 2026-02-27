@@ -32,14 +32,20 @@ public class NotificationController {
     private final NotificationOutboxService notificationService;
 
     /**
-     * Конструктор NotificationController.
+     * Создает контроллер для работы с очередью уведомлений.
+     *
+     * @param notificationService сервис исходящих уведомлений
      */
     public NotificationController(NotificationOutboxService notificationService) {
         this.notificationService = notificationService;
     }
 
     /**
-     * Выполняет операцию.
+     * Возвращает список ожидающих отправки уведомлений.
+     *
+     * @param target целевой канал уведомления
+     * @param limit максимальное число возвращаемых уведомлений
+     * @return список уведомлений к отправке
      */
     @GetMapping("/pending")
     public List<NotificationOutboxDto> pending(
@@ -50,7 +56,9 @@ public class NotificationController {
     }
 
     /**
-     * Выполняет операцию.
+     * Отмечает уведомление как отправленное.
+     *
+     * @param id идентификатор уведомления
      */
     @PostMapping("/{id}/ack")
     public void ack(@PathVariable("id") UUID id) {
@@ -58,11 +66,13 @@ public class NotificationController {
     }
 
     /**
-     * Выполняет операцию.
+     * Отмечает уведомление как ошибочное и сохраняет причину.
+     *
+     * @param id идентификатор уведомления
+     * @param request данные об ошибке
      */
     @PostMapping("/{id}/fail")
     public void fail(@PathVariable("id") UUID id, @Valid @RequestBody NotificationFailRequest request) {
         notificationService.markFailed(id, request.error());
     }
 }
-

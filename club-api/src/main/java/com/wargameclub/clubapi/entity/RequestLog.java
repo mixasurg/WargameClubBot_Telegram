@@ -9,75 +9,83 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность RequestLog.
+ * JPA-сущность записи лога HTTP-запроса.
  */
 @Entity
 @Table(name = "request_log")
 public class RequestLog {
 
     /**
-     * Поле состояния.
+     * Идентификатор записи лога.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * HTTP-метод запроса.
      */
     @Column(nullable = false, length = 10)
     private String method;
 
     /**
-     * Поле состояния.
+     * Путь запроса.
      */
     @Column(nullable = false, length = 300)
     private String path;
 
     /**
-     * Поле состояния.
+     * Строка запроса (query string).
      */
     @Column(length = 500)
     private String query;
 
     /**
-     * Поле состояния.
+     * HTTP-статус ответа.
      */
     @Column(nullable = false)
     private int status;
 
     /**
-     * Поле состояния.
+     * Длительность обработки запроса в миллисекундах.
      */
     @Column(name = "duration_ms", nullable = false)
     private long durationMs;
 
     /**
-     * Поле состояния.
+     * IP-адрес клиента (remote address).
      */
     @Column(name = "remote_addr", length = 100)
     private String remoteAddr;
 
     /**
-     * Поле состояния.
+     * Заголовок User-Agent.
      */
     @Column(name = "user_agent", length = 300)
     private String userAgent;
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор RequestLog.
+     * Создает пустую сущность для JPA.
      */
     public RequestLog() {
     }
 
     /**
-     * Выполняет операцию.
+     * Создает запись лога запроса с заданными параметрами.
+     *
+     * @param method HTTP-метод
+     * @param path путь запроса
+     * @param query строка запроса
+     * @param status HTTP-статус ответа
+     * @param durationMs длительность обработки в миллисекундах
+     * @param remoteAddr IP-адрес клиента
+     * @param userAgent заголовок User-Agent
      */
     public RequestLog(
             String method,
@@ -99,119 +107,153 @@ public class RequestLog {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор записи лога.
+     *
+     * @return идентификатор записи
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает Method.
+     * Возвращает HTTP-метод запроса.
+     *
+     * @return HTTP-метод
      */
     public String getMethod() {
         return method;
     }
 
     /**
-     * Устанавливает Method.
+     * Устанавливает HTTP-метод запроса.
+     *
+     * @param method HTTP-метод
      */
     public void setMethod(String method) {
         this.method = method;
     }
 
     /**
-     * Возвращает Path.
+     * Возвращает путь запроса.
+     *
+     * @return путь запроса
      */
     public String getPath() {
         return path;
     }
 
     /**
-     * Устанавливает Path.
+     * Устанавливает путь запроса.
+     *
+     * @param path путь запроса
      */
     public void setPath(String path) {
         this.path = path;
     }
 
     /**
-     * Возвращает Query.
+     * Возвращает строку запроса.
+     *
+     * @return строка запроса
      */
     public String getQuery() {
         return query;
     }
 
     /**
-     * Устанавливает Query.
+     * Устанавливает строку запроса.
+     *
+     * @param query строка запроса
      */
     public void setQuery(String query) {
         this.query = query;
     }
 
     /**
-     * Возвращает Status.
+     * Возвращает HTTP-статус ответа.
+     *
+     * @return HTTP-статус
      */
     public int getStatus() {
         return status;
     }
 
     /**
-     * Устанавливает Status.
+     * Устанавливает HTTP-статус ответа.
+     *
+     * @param status HTTP-статус
      */
     public void setStatus(int status) {
         this.status = status;
     }
 
     /**
-     * Возвращает DurationMs.
+     * Возвращает длительность обработки запроса.
+     *
+     * @return длительность в миллисекундах
      */
     public long getDurationMs() {
         return durationMs;
     }
 
     /**
-     * Устанавливает DurationMs.
+     * Устанавливает длительность обработки запроса.
+     *
+     * @param durationMs длительность в миллисекундах
      */
     public void setDurationMs(long durationMs) {
         this.durationMs = durationMs;
     }
 
     /**
-     * Возвращает RemoteAddr.
+     * Возвращает IP-адрес клиента.
+     *
+     * @return IP-адрес
      */
     public String getRemoteAddr() {
         return remoteAddr;
     }
 
     /**
-     * Устанавливает RemoteAddr.
+     * Устанавливает IP-адрес клиента.
+     *
+     * @param remoteAddr IP-адрес
      */
     public void setRemoteAddr(String remoteAddr) {
         this.remoteAddr = remoteAddr;
     }
 
     /**
-     * Возвращает UserAgent.
+     * Возвращает заголовок User-Agent.
+     *
+     * @return User-Agent
      */
     public String getUserAgent() {
         return userAgent;
     }
 
     /**
-     * Устанавливает UserAgent.
+     * Устанавливает заголовок User-Agent.
+     *
+     * @param userAgent User-Agent
      */
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата и время создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата и время создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;

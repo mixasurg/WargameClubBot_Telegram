@@ -6,18 +6,25 @@ import com.wargameclub.clubapi.enums.RegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для EventRegistration.
+ * JPA-репозиторий для регистраций на мероприятия.
  */
 public interface EventRegistrationRepository extends JpaRepository<EventRegistration, Long> {
 
     /**
-     * Возвращает EventRegistration.
+     * Возвращает регистрацию пользователя на мероприятие.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     * @return регистрация, если найдена
      */
     Optional<EventRegistration> findByEventIdAndUserId(Long eventId, Long userId);
 
     /**
-     * Выполняет операцию.
+     * Подсчитывает количество регистраций в указанном статусе.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param status статус регистрации
+     * @return количество регистраций
      */
     long countByEventIdAndStatus(Long eventId, RegistrationStatus status);
 }
-

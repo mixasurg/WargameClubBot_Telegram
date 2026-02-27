@@ -25,47 +25,54 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с мероприятиями.
+ * Сервис управления мероприятиями и регистрациями пользователей.
  */
 @Service
 public class EventService {
     /**
-     * Поле состояния.
+     * Формат даты и времени для уведомлений.
      */
     private static final DateTimeFormatter MESSAGE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm XXX");
 
     /**
-     * Репозиторий мероприятия клуба.
+     * Репозиторий мероприятий клуба.
      */
     private final ClubEventRepository eventRepository;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     private final UserRepository userRepository;
 
     /**
-     * Репозиторий EventRegistration.
+     * Репозиторий регистраций на мероприятия.
      */
     private final EventRegistrationRepository registrationRepository;
 
     /**
-     * Поле состояния.
+     * Публикатор уведомлений о событиях.
      */
     private final EventPublisher eventPublisher;
 
     /**
-     * Поле состояния.
+     * Публикатор событий в Kafka.
      */
     private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Сервис TelegramAutoRefresh.
+     * Сервис автообновления Telegram-расписания.
      */
     private final TelegramAutoRefreshService autoRefreshService;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис мероприятий.
+     *
+     * @param eventRepository репозиторий мероприятий
+     * @param userRepository репозиторий пользователей
+     * @param registrationRepository репозиторий регистраций
+     * @param eventPublisher публикатор уведомлений
+     * @param kafkaEventPublisher публикатор Kafka-событий
+     * @param autoRefreshService сервис автообновления
      */
     public EventService(
             ClubEventRepository eventRepository,
@@ -84,27 +91,26 @@ public class EventService {
     }
 
     /**
-     * Создает мероприятие.
+     * Создает мероприятие и публикует уведомление.
+     *
+     * @param event мероприятие
+     * @return созданное мероприятие
      */
     @Transactional
     public ClubEvent create(ClubEvent event) {
-
-        /**
-         * Проверяет Range.
-         */
         validateRange(event.getStartAt(), event.getEndAt());
         ClubEvent saved = eventRepository.save(event);
-
-        /**
-         * Публикует уведомление.
-         */
         publishNotification(saved, "создано");
         autoRefreshService.refreshEventsIfWithinRange(saved.getStartAt());
         return saved;
     }
 
     /**
-     * Обновляет мероприятие.
+     * Обновляет мероприятие и публикует уведомление и событие в Kafka.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param request запрос на обновление
+     * @return обновленное мероприятие
      */
     @Transactional
     public ClubEvent update(Long eventId, EventUpdateRequest request) {
@@ -137,15 +143,9 @@ public class EventService {
             event.setStatus(request.status());
         }
 
-        /**
-         * Проверяет Range.
-         */
         validateRange(event.getStartAt(), event.getEndAt());
         event.setUpdatedAt(OffsetDateTime.now());
 
-        /**
-         * Публикует уведомление.
-         */
         publishNotification(event, "обновлено");
         kafkaEventPublisher.publishEventUpdated(new EventUpdatedEvent(
                 event.getId(),
@@ -161,20 +161,24 @@ public class EventService {
     }
 
     /**
-     * Возвращает Overlapping.
+     * Возвращает мероприятия, пересекающие интервал времени.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param type тип мероприятия (опционально)
+     * @return список мероприятий
      */
     @Transactional(readOnly = true)
     public List<ClubEvent> findOverlapping(OffsetDateTime from, OffsetDateTime to, EventType type) {
-
-        /**
-         * Проверяет Range.
-         */
         validateRange(from, to);
         return eventRepository.findOverlappingWithOrganizer(from, to, type);
     }
 
     /**
-     * Возвращает список Titles.
+     * Возвращает список уникальных названий мероприятий.
+     *
+     * @param limit максимальное число названий
+     * @return список названий
      */
     @Transactional(readOnly = true)
     public List<String> listTitles(int limit) {
@@ -183,7 +187,12 @@ public class EventService {
     }
 
     /**
-     * Регистрирует мероприятие.
+     * Регистрирует пользователя на мероприятие и публикует событие покупки билета.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     * @param count количество билетов (опционально)
+     * @param amount сумма оплаты (опционально)
      */
     @Transactional
     public void register(Long eventId, Long userId, Integer count, BigDecimal amount) {
@@ -217,7 +226,12 @@ public class EventService {
     }
 
     /**
-     * Выполняет операцию.
+     * Отменяет регистрацию пользователя на мероприятие и публикует событие отмены билета.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     * @param count количество билетов (опционально)
+     * @param amount сумма возврата (опционально)
      */
     @Transactional
     public void unregister(Long eventId, Long userId, Integer count, BigDecimal amount) {
@@ -238,7 +252,10 @@ public class EventService {
     }
 
     /**
-     * Проверяет Range.
+     * Проверяет корректность временного интервала.
+     *
+     * @param startAt начало интервала
+     * @param endAt конец интервала
      */
     private void validateRange(OffsetDateTime startAt, OffsetDateTime endAt) {
         if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
@@ -247,7 +264,10 @@ public class EventService {
     }
 
     /**
-     * Публикует уведомление.
+     * Публикует уведомление о мероприятии.
+     *
+     * @param event мероприятие
+     * @param action действие (например, "создано", "обновлено")
      */
     private void publishNotification(ClubEvent event, String action) {
         String message = "Мероприятие " + action + ": " + event.getTitle()
@@ -259,7 +279,10 @@ public class EventService {
     }
 
     /**
-     * Форматирует EventType.
+     * Форматирует тип мероприятия в человекочитаемый вид.
+     *
+     * @param type тип мероприятия
+     * @return строковое представление
      */
     private String formatEventType(EventType type) {
         if (type == null) {
@@ -274,7 +297,10 @@ public class EventService {
     }
 
     /**
-     * Форматирует EventStatus.
+     * Форматирует статус мероприятия в человекочитаемый вид.
+     *
+     * @param status статус мероприятия
+     * @return строковое представление
      */
     private String formatEventStatus(EventStatus status) {
         if (status == null) {
@@ -286,4 +312,3 @@ public class EventService {
         };
     }
 }
-

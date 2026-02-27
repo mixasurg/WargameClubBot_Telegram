@@ -20,18 +20,22 @@ public class LoyaltyController {
     private final LoyaltyService loyaltyService;
 
     /**
-     * Конструктор LoyaltyController.
+     * Создает контроллер для работы с баллами лояльности.
+     *
+     * @param loyaltyService сервис лояльности
      */
     public LoyaltyController(LoyaltyService loyaltyService) {
         this.loyaltyService = loyaltyService;
     }
 
     /**
-     * Возвращает лояльность.
+     * Возвращает количество баллов лояльности пользователя.
+     *
+     * @param userId идентификатор пользователя
+     * @return DTO с балансом лояльности
      */
     @GetMapping("/{userId}")
     public LoyaltyDto get(@PathVariable Long userId) {
         return new LoyaltyDto(userId, loyaltyService.getPoints(userId));
     }
 }
-

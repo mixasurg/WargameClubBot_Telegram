@@ -16,27 +16,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с армиями.
+ * Сервис управления армиями и фиксации их использования.
  */
 @Service
 public class ArmyService {
     /**
-     * Поле состояния.
+     * Формат даты и времени для уведомлений.
      */
     private static final DateTimeFormatter MESSAGE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm XXX");
 
     /**
-     * Репозиторий армии.
+     * Репозиторий армий.
      */
     private final ArmyRepository armyRepository;
 
     /**
-     * Репозиторий использования армии.
+     * Репозиторий записей использования армии.
      */
     private final ArmyUsageRepository usageRepository;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     private final UserRepository userRepository;
 
@@ -46,12 +46,18 @@ public class ArmyService {
     private final LoyaltyService loyaltyService;
 
     /**
-     * Поле состояния.
+     * Публикатор уведомлений о событиях.
      */
     private final EventPublisher eventPublisher;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис армий.
+     *
+     * @param armyRepository репозиторий армий
+     * @param usageRepository репозиторий использования армий
+     * @param userRepository репозиторий пользователей
+     * @param loyaltyService сервис лояльности
+     * @param eventPublisher публикатор уведомлений
      */
     public ArmyService(
             ArmyRepository armyRepository,
@@ -68,7 +74,13 @@ public class ArmyService {
     }
 
     /**
-     * Создает армию.
+     * Создает армию для пользователя.
+     *
+     * @param ownerUserId идентификатор владельца
+     * @param game название игры/системы
+     * @param faction фракция или подфракция
+     * @param isClubShared признак доступности армии для клуба
+     * @return созданная армия
      */
     @Transactional
     public Army create(Long ownerUserId, String game, String faction, boolean isClubShared) {
@@ -83,7 +95,14 @@ public class ArmyService {
     }
 
     /**
-     * Возвращает армию.
+     * Возвращает список армий с учетом фильтров.
+     *
+     * @param game название игры/системы (опционально)
+     * @param faction фракция (опционально)
+     * @param clubShared признак клубной армии (опционально)
+     * @param ownerUserId идентификатор владельца (опционально)
+     * @param active признак активности (опционально)
+     * @return список армий
      */
     @Transactional(readOnly = true)
     public List<Army> find(String game, String faction, Boolean clubShared, Long ownerUserId, Boolean active) {
@@ -107,7 +126,10 @@ public class ArmyService {
     }
 
     /**
-     * Деактивирует армию.
+     * Деактивирует армию по идентификатору.
+     *
+     * @param armyId идентификатор армии
+     * @return обновленная армия
      */
     @Transactional
     public Army deactivate(Long armyId) {
@@ -118,7 +140,13 @@ public class ArmyService {
     }
 
     /**
-     * Фиксирует использование армии.
+     * Фиксирует использование армии пользователем и начисляет баллы владельцу.
+     *
+     * @param armyId идентификатор армии
+     * @param usedByUserId идентификатор пользователя, использовавшего армию
+     * @param usedAt дата и время использования
+     * @param notes примечания (опционально)
+     * @return запись использования
      */
     @Transactional
     public ArmyUsage useArmy(Long armyId, Long usedByUserId, OffsetDateTime usedAt, String notes) {
@@ -135,16 +163,16 @@ public class ArmyService {
         ArmyUsage usage = new ArmyUsage(army, usedBy, usedAt, notes);
         usageRepository.save(usage);
         loyaltyService.addPoints(army.getOwner().getId());
-
-        /**
-         * Публикует ArmyUsageNotification.
-         */
         publishArmyUsageNotification(army, usedBy, usedAt);
         return usage;
     }
 
     /**
-     * Публикует ArmyUsageNotification.
+     * Публикует уведомление об использовании армии.
+     *
+     * @param army армия
+     * @param usedBy пользователь, использовавший армию
+     * @param usedAt дата и время использования
      */
     private void publishArmyUsageNotification(Army army, User usedBy, OffsetDateTime usedAt) {
         String message = "Армия использована: " + army.getGame() + " / " + army.getFaction()
@@ -154,4 +182,3 @@ public class ArmyService {
         eventPublisher.publishEventNotification(message);
     }
 }
-

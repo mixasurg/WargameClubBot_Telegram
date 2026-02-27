@@ -9,45 +9,47 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность пользователь.
+ * JPA-сущность пользователя клуба.
  */
 @Entity
 @Table(name = "app_user")
 public class User {
 
     /**
-     * Поле состояния.
+     * Идентификатор пользователя.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Имя пользователя.
      */
     @Column(nullable = false, length = 100)
     private String name;
 
     /**
-     * Поле состояния.
+     * Идентификатор пользователя в Telegram (опционально).
      */
     @Column(name = "telegram_id", unique = true)
     private Long telegramId;
 
     /**
-     * Поле состояния.
+     * Дата и время регистрации.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор User.
+     * Создает пустую сущность для JPA.
      */
     public User() {
     }
 
     /**
-     * Конструктор User.
+     * Создает пользователя с указанным именем.
+     *
+     * @param name имя пользователя
      */
     public User(String name) {
         this.name = name;
@@ -55,7 +57,10 @@ public class User {
     }
 
     /**
-     * Конструктор User.
+     * Создает пользователя с именем и Telegram ID.
+     *
+     * @param name имя пользователя
+     * @param telegramId идентификатор пользователя в Telegram
      */
     public User(String name, Long telegramId) {
         this.name = name;
@@ -64,52 +69,65 @@ public class User {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор пользователя.
+     *
+     * @return идентификатор пользователя
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает Name.
+     * Возвращает имя пользователя.
+     *
+     * @return имя пользователя
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Устанавливает Name.
+     * Устанавливает имя пользователя.
+     *
+     * @param name имя пользователя
      */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Возвращает идентификатор Telegram.
+     * Возвращает идентификатор пользователя в Telegram.
+     *
+     * @return идентификатор Telegram или null
      */
     public Long getTelegramId() {
         return telegramId;
     }
 
     /**
-     * Устанавливает идентификатор Telegram.
+     * Устанавливает идентификатор пользователя в Telegram.
+     *
+     * @param telegramId идентификатор Telegram
      */
     public void setTelegramId(Long telegramId) {
         this.telegramId = telegramId;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время регистрации.
+     *
+     * @return дата и время регистрации
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время регистрации.
+     *
+     * @param createdAt дата и время регистрации
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }
-

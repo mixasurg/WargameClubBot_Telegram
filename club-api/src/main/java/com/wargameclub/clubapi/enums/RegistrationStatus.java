@@ -1,10 +1,15 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Статусы регистрации на мероприятие.
  */
 public enum RegistrationStatus {
+    /**
+     * Пользователь зарегистрирован.
+     */
     REGISTERED,
+    /**
+     * Регистрация отменена.
+     */
     CANCELLED
 }
-

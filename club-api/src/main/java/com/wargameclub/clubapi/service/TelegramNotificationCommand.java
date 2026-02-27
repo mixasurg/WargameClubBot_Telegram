@@ -1,22 +1,22 @@
 package com.wargameclub.clubapi.service;
 
 /**
- * Сервис для работы с сущностью TelegramNotificationCommand.
+ * Команды для служебных уведомлений Telegram-бота.
  */
 public final class TelegramNotificationCommand {
 
     /**
-     * Поле состояния.
+     * Команда обновления расписания на две недели.
      */
     public static final String REFRESH_TWOWEEKS = "__cmd:refresh_twoweeks__";
 
     /**
-     * Поле состояния.
+     * Команда обновления списка мероприятий.
      */
     public static final String REFRESH_EVENTS = "__cmd:refresh_events__";
 
     /**
-     * Конструктор TelegramNotificationCommand.
+     * Закрытый конструктор для утилитного класса.
      */
     private TelegramNotificationCommand() {
     }

@@ -7,100 +7,90 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Компонент обмена сообщениями для KafkaEventPublisher.
+ * Публикатор доменных событий в Kafka с отправкой после commit транзакции.
  */
 @Service
 public class KafkaEventPublisher {
 
     /**
-     * Поле состояния.
+     * Kafka-шаблон для отправки сообщений.
      */
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
-     * Конструктор KafkaEventPublisher.
+     * Создает публикатор Kafka-событий.
+     *
+     * @param kafkaTemplate Kafka-шаблон
      */
     public KafkaEventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
     /**
-     * Публикует TicketPurchased.
+     * Публикует событие покупки билета.
+     *
+     * @param event событие покупки билета
      */
     public void publishTicketPurchased(TicketPurchasedEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.TICKET_PURCHASED, event.eventId(), event);
     }
 
     /**
-     * Публикует TicketCancelled.
+     * Публикует событие отмены билета.
+     *
+     * @param event событие отмены билета
      */
     public void publishTicketCancelled(TicketCancelledEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.TICKET_CANCELLED, event.eventId(), event);
     }
 
     /**
-     * Публикует EventUpdated.
+     * Публикует событие обновления мероприятия.
+     *
+     * @param event событие обновления мероприятия
      */
     public void publishEventUpdated(EventUpdatedEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.EVENT_UPDATED, event.eventId(), event);
     }
 
     /**
-     * Публикует BookingCreated.
+     * Публикует событие создания бронирования.
+     *
+     * @param event событие создания бронирования
      */
     public void publishBookingCreated(BookingCreatedEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.BOOKING_CREATED, event.bookingId(), event);
     }
 
     /**
-     * Публикует BookingCancelled.
+     * Публикует событие отмены бронирования.
+     *
+     * @param event событие отмены бронирования
      */
     public void publishBookingCancelled(BookingCancelledEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.BOOKING_CANCELLED, event.bookingId(), event);
     }
 
     /**
-     * Публикует UserRegistered.
+     * Публикует событие регистрации пользователя.
+     *
+     * @param event событие регистрации пользователя
      */
     public void publishUserRegistered(UserRegisteredEvent event) {
-
-        /**
-         * Отправляет KafkaEventPublisher.
-         */
         send(KafkaTopics.USER_REGISTERED, event.userId(), event);
     }
 
     /**
-     * Отправляет KafkaEventPublisher.
+     * Отправляет сообщение в Kafka немедленно либо после commit активной транзакции.
+     *
+     * @param topic топик Kafka
+     * @param key ключ сообщения
+     * @param payload полезная нагрузка
      */
     private void send(String topic, Long key, Object payload) {
         Runnable sendAction = () -> kafkaTemplate.send(topic, Optional.ofNullable(key).map(String::valueOf).orElse(null), payload);
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-
-                /**
-                 * Выполняет операцию.
-                 */
                 @Override
                 public void afterCommit() {
                     sendAction.run();

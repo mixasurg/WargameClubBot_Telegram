@@ -1,53 +1,56 @@
 package com.wargameclub.clubapi.messaging;
 
 /**
- * Компонент обмена сообщениями для KafkaTopics.
+ * Константы имен Kafka-топиков и утилита для DLT.
  */
 public final class KafkaTopics {
 
     /**
-     * Поле состояния.
+     * Топик события покупки билета.
      */
     public static final String TICKET_PURCHASED = "ticket.purchased";
 
     /**
-     * Поле состояния.
+     * Топик события отмены билета.
      */
     public static final String TICKET_CANCELLED = "ticket.cancelled";
 
     /**
-     * Поле состояния.
+     * Топик события создания бронирования.
      */
     public static final String BOOKING_CREATED = "booking.created";
 
     /**
-     * Поле состояния.
+     * Топик события отмены бронирования.
      */
     public static final String BOOKING_CANCELLED = "booking.cancelled";
 
     /**
-     * Поле состояния.
+     * Топик события обновления мероприятия.
      */
     public static final String EVENT_UPDATED = "event.updated";
 
     /**
-     * Поле состояния.
+     * Топик события регистрации пользователя.
      */
     public static final String USER_REGISTERED = "user.registered";
 
     /**
-     * Поле состояния.
+     * Суффикс dead-letter топиков.
      */
     public static final String DLT_SUFFIX = ".dlt";
 
     /**
-     * Конструктор KafkaTopics.
+     * Закрытый конструктор для утилитного класса.
      */
     private KafkaTopics() {
     }
 
     /**
-     * Выполняет операцию.
+     * Формирует имя DLT-топика для указанного топика.
+     *
+     * @param topic исходный топик
+     * @return имя DLT-топика
      */
     public static String dlt(String topic) {
         return topic + DLT_SUFFIX;

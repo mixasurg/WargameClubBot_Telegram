@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Класс модуля club-api.
+ * Интеграционные тесты фильтра логирования HTTP-запросов.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -26,19 +26,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class RequestLogFilterTest {
 
     /**
-     * Поле состояния.
+     * MockMvc для выполнения HTTP-запросов.
      */
     @Autowired
     private MockMvc mockMvc;
 
     /**
-     * Репозиторий RequestLog.
+     * Репозиторий логов запросов.
      */
     @Autowired
     private RequestLogRepository requestLogRepository;
 
     /**
-     * Выполняет операцию.
+     * Проверяет, что выполненный HTTP-запрос записывается в базу логов.
      */
     @Test
     void logsRequestToDatabase() throws Exception {
@@ -49,31 +49,12 @@ public class RequestLogFilterTest {
 
         List<RequestLog> logs = requestLogRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
 
-        /**
-         * Выполняет операцию.
-         */
         assertFalse(logs.isEmpty());
-
-        /**
-         * Выполняет операцию.
-         */
         assertTrue(logs.size() >= before + 1);
 
         RequestLog last = logs.get(0);
-
-        /**
-         * Выполняет операцию.
-         */
         assertEquals("GET", last.getMethod());
-
-        /**
-         * Выполняет операцию.
-         */
         assertEquals("/actuator/health", last.getPath());
-
-        /**
-         * Выполняет операцию.
-         */
         assertEquals(200, last.getStatus());
     }
 }

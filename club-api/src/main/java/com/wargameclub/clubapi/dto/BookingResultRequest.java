@@ -5,7 +5,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO запроса на фиксацию результата бронирования.
+ * Запрос на фиксацию результата бронирования.
+ *
+ * @param reporterUserId идентификатор пользователя, сообщившего результат
+ * @param outcome исход игры
  */
 public record BookingResultRequest(
         @NotNull @Positive Long reporterUserId,

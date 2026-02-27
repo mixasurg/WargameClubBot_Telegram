@@ -29,23 +29,26 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * HTTP-клиент для ClubApi.
+ * HTTP-клиент для взаимодействия с club-api из club-bot.
  */
 @Component
 public class ClubApiClient {
 
     /**
-     * Поле состояния.
+     * RestTemplate для выполнения HTTP-запросов.
      */
     private final RestTemplate restTemplate;
 
     /**
-     * Параметры конфигурации Api.
+     * Настройки доступа к API.
      */
     private final ApiProperties apiProperties;
 
     /**
-     * Конструктор ClubApiClient.
+     * Создает API-клиент.
+     *
+     * @param restTemplate RestTemplate
+     * @param apiProperties настройки API
      */
     public ClubApiClient(RestTemplate restTemplate, ApiProperties apiProperties) {
         this.restTemplate = restTemplate;
@@ -53,7 +56,10 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает PendingNotifications.
+     * Возвращает список ожидающих уведомлений для Telegram.
+     *
+     * @param limit максимальное число уведомлений
+     * @return список уведомлений
      */
     public List<NotificationOutboxDto> getPendingNotifications(int limit) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -72,14 +78,19 @@ public class ClubApiClient {
     }
 
     /**
-     * Выполняет операцию.
+     * Подтверждает успешную отправку уведомления.
+     *
+     * @param id идентификатор уведомления
      */
     public void ackNotification(UUID id) {
         restTemplate.postForLocation(baseUrl() + "/api/notifications/" + id + "/ack", null);
     }
 
     /**
-     * Выполняет операцию.
+     * Помечает уведомление как ошибочное и сохраняет причину.
+     *
+     * @param id идентификатор уведомления
+     * @param error описание ошибки
      */
     public void failNotification(UUID id, String error) {
         NotificationFailRequest request = new NotificationFailRequest(error);
@@ -87,7 +98,10 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает WeekDigest.
+     * Возвращает недельный дайджест.
+     *
+     * @param offset смещение недели (0 — текущая, 1 — следующая)
+     * @return недельный дайджест
      */
     public WeekDigestDto getWeekDigest(int offset) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -98,7 +112,11 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает Events.
+     * Возвращает мероприятия, пересекающие заданный интервал.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @return список мероприятий
      */
     public List<EventDto> getEvents(OffsetDateTime from, OffsetDateTime to) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -117,7 +135,10 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает EventTitles.
+     * Возвращает список названий мероприятий для автодополнения.
+     *
+     * @param limit максимальное число названий
+     * @return список названий мероприятий
      */
     public List<String> getEventTitles(int limit) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -135,7 +156,9 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает настройки Telegram.
+     * Возвращает текущие настройки Telegram или {@code null}, если они не заданы.
+     *
+     * @return настройки Telegram или null
      */
     public TelegramSettingsDto getTelegramSettings() {
         try {
@@ -147,6 +170,9 @@ public class ClubApiClient {
 
     /**
      * Обновляет настройки Telegram.
+     *
+     * @param request запрос на обновление настроек
+     * @return обновленные настройки
      */
     public TelegramSettingsDto updateTelegramSettings(TelegramSettingsUpdateRequest request) {
         HttpEntity<TelegramSettingsUpdateRequest> entity = new HttpEntity<>(request);
@@ -160,7 +186,11 @@ public class ClubApiClient {
     }
 
     /**
-     * Создает или обновляет TelegramUser.
+     * Создает или обновляет пользователя Telegram.
+     *
+     * @param telegramId идентификатор пользователя в Telegram
+     * @param name имя пользователя
+     * @return DTO пользователя
      */
     public UserDto upsertTelegramUser(Long telegramId, String name) {
         TelegramUserUpsertRequest request = new TelegramUserUpsertRequest(telegramId, name);
@@ -168,7 +198,10 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает список Users.
+     * Выполняет поиск пользователей по имени.
+     *
+     * @param query строка поиска (опционально)
+     * @return список пользователей
      */
     public List<UserDto> searchUsers(String query) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -186,7 +219,9 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает Games.
+     * Возвращает список активных игр.
+     *
+     * @return список игр
      */
     public List<GameDto> getGames() {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -204,14 +239,19 @@ public class ClubApiClient {
     }
 
     /**
-     * Создает игру.
+     * Создает игру в каталоге.
+     *
+     * @param request запрос на создание игры
+     * @return DTO созданной игры
      */
     public GameDto createGame(GameCreateRequest request) {
         return restTemplate.postForObject(baseUrl() + "/api/games", request, GameDto.class);
     }
 
     /**
-     * Возвращает ClubArmies.
+     * Возвращает список активных клубных армий.
+     *
+     * @return список клубных армий
      */
     public List<ArmyDto> getClubArmies() {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -230,7 +270,13 @@ public class ClubApiClient {
     }
 
     /**
-     * Возвращает Armies.
+     * Возвращает список армий с учетом фильтров.
+     *
+     * @param game название игры (опционально)
+     * @param clubShared признак клубной армии (опционально)
+     * @param ownerUserId идентификатор владельца (опционально)
+     * @param active признак активности (опционально)
+     * @return список армий
      */
     public List<ArmyDto> getArmies(String game, Boolean clubShared, Long ownerUserId, Boolean active) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl())
@@ -262,6 +308,9 @@ public class ClubApiClient {
 
     /**
      * Создает армию.
+     *
+     * @param request запрос на создание армии
+     * @return DTO созданной армии
      */
     public ArmyDto createArmy(ArmyCreateRequest request) {
         return restTemplate.postForObject(baseUrl() + "/api/armies", request, ArmyDto.class);
@@ -269,6 +318,8 @@ public class ClubApiClient {
 
     /**
      * Создает бронирование.
+     *
+     * @param request запрос на создание бронирования
      */
     public void createBooking(BookingCreateRequest request) {
         restTemplate.postForLocation(baseUrl() + "/api/bookings", request);
@@ -276,23 +327,30 @@ public class ClubApiClient {
 
     /**
      * Создает мероприятие.
+     *
+     * @param request запрос на создание мероприятия
+     * @return DTO созданного мероприятия
      */
     public EventDto createEvent(EventCreateRequest request) {
         return restTemplate.postForObject(baseUrl() + "/api/events", request, EventDto.class);
     }
 
     /**
-     * Выполняет операцию.
+     * Отправляет результат игры по бронированию.
+     *
+     * @param bookingId идентификатор бронирования
+     * @param request запрос с результатом
      */
     public void submitBookingResult(Long bookingId, BookingResultRequest request) {
         restTemplate.postForLocation(baseUrl() + "/api/bookings/" + bookingId + "/result", request);
     }
 
     /**
-     * Выполняет операцию.
+     * Возвращает базовый URL club-api.
+     *
+     * @return базовый URL
      */
     private String baseUrl() {
         return apiProperties.getBaseUrl();
     }
 }
-

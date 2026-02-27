@@ -8,45 +8,49 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность стол клуба.
+ * JPA-сущность игрового стола клуба.
  */
 @Entity
 @Table(name = "club_table")
 public class ClubTable {
 
     /**
-     * Поле состояния.
+     * Идентификатор стола.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Название стола.
      */
     @Column(nullable = false, length = 50)
     private String name;
 
     /**
-     * Поле состояния.
+     * Признак активности стола.
      */
     @Column(nullable = false)
     private boolean isActive = true;
 
     /**
-     * Поле состояния.
+     * Дополнительные примечания.
      */
     @Column
     private String notes;
 
     /**
-     * Конструктор ClubTable.
+     * Создает пустую сущность для JPA.
      */
     public ClubTable() {
     }
 
     /**
-     * Конструктор ClubTable.
+     * Создает стол с указанными параметрами.
+     *
+     * @param name название стола
+     * @param isActive признак активности
+     * @param notes примечания (опционально)
      */
     public ClubTable(String name, boolean isActive, String notes) {
         this.name = name;
@@ -55,52 +59,65 @@ public class ClubTable {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор стола.
+     *
+     * @return идентификатор стола
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает Name.
+     * Возвращает название стола.
+     *
+     * @return название стола
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Устанавливает Name.
+     * Устанавливает название стола.
+     *
+     * @param name название стола
      */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Проверяет Active.
+     * Проверяет, активен ли стол.
+     *
+     * @return true, если стол активен
      */
     public boolean isActive() {
         return isActive;
     }
 
     /**
-     * Устанавливает Active.
+     * Устанавливает признак активности стола.
+     *
+     * @param active признак активности
      */
     public void setActive(boolean active) {
         isActive = active;
     }
 
     /**
-     * Возвращает Notes.
+     * Возвращает примечания к столу.
+     *
+     * @return примечания
      */
     public String getNotes() {
         return notes;
     }
 
     /**
-     * Устанавливает Notes.
+     * Устанавливает примечания к столу.
+     *
+     * @param notes примечания
      */
     public void setNotes(String notes) {
         this.notes = notes;
     }
 }
-

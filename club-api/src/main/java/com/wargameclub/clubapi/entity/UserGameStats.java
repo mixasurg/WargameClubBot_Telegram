@@ -11,21 +11,21 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность статистика игрока.
+ * JPA-сущность статистики игр пользователя.
  */
 @Entity
 @Table(name = "user_game_stats")
 public class UserGameStats {
 
     /**
-     * Поле состояния.
+     * Идентификатор пользователя (также первичный ключ статистики).
      */
     @Id
     @Column(name = "user_id")
     private Long userId;
 
     /**
-     * Поле состояния.
+     * Пользователь, к которому относится статистика.
      */
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
@@ -33,37 +33,39 @@ public class UserGameStats {
     private User user;
 
     /**
-     * Поле состояния.
+     * Количество побед.
      */
     @Column(nullable = false)
     private int wins = 0;
 
     /**
-     * Поле состояния.
+     * Количество поражений.
      */
     @Column(nullable = false)
     private int losses = 0;
 
     /**
-     * Поле состояния.
+     * Количество ничьих.
      */
     @Column(nullable = false)
     private int draws = 0;
 
     /**
-     * Поле состояния.
+     * Дата и время последнего обновления.
      */
     @Column(nullable = false)
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     /**
-     * Конструктор UserGameStats.
+     * Создает пустую сущность для JPA.
      */
     public UserGameStats() {
     }
 
     /**
-     * Конструктор UserGameStats.
+     * Создает статистику для указанного пользователя.
+     *
+     * @param user пользователь
      */
     public UserGameStats(User user) {
         this.user = user;
@@ -73,6 +75,8 @@ public class UserGameStats {
 
     /**
      * Возвращает идентификатор пользователя.
+     *
+     * @return идентификатор пользователя
      */
     public Long getUserId() {
         return userId;
@@ -80,62 +84,80 @@ public class UserGameStats {
 
     /**
      * Возвращает пользователя.
+     *
+     * @return пользователь
      */
     public User getUser() {
         return user;
     }
 
     /**
-     * Возвращает Wins.
+     * Возвращает количество побед.
+     *
+     * @return количество побед
      */
     public int getWins() {
         return wins;
     }
 
     /**
-     * Устанавливает Wins.
+     * Устанавливает количество побед.
+     *
+     * @param wins количество побед
      */
     public void setWins(int wins) {
         this.wins = wins;
     }
 
     /**
-     * Возвращает Losses.
+     * Возвращает количество поражений.
+     *
+     * @return количество поражений
      */
     public int getLosses() {
         return losses;
     }
 
     /**
-     * Устанавливает Losses.
+     * Устанавливает количество поражений.
+     *
+     * @param losses количество поражений
      */
     public void setLosses(int losses) {
         this.losses = losses;
     }
 
     /**
-     * Возвращает Draws.
+     * Возвращает количество ничьих.
+     *
+     * @return количество ничьих
      */
     public int getDraws() {
         return draws;
     }
 
     /**
-     * Устанавливает Draws.
+     * Устанавливает количество ничьих.
+     *
+     * @param draws количество ничьих
      */
     public void setDraws(int draws) {
         this.draws = draws;
     }
 
     /**
-     * Возвращает UpdatedAt.
+     * Возвращает дату и время последнего обновления.
+     *
+     * @return дата и время обновления
      */
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
 
     /**
-     * Устанавливает UpdatedAt.
+     * Устанавливает дату и время последнего обновления.
+     *
+     * @param updatedAt дата и время обновления
      */
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;

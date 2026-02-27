@@ -11,23 +11,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с пользователями.
+ * Сервис управления пользователями.
  */
 @Service
 public class UserService {
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     private final UserRepository userRepository;
 
     /**
-     * Поле состояния.
+     * Публикатор событий в Kafka.
      */
     private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Конструктор UserService.
+     * Создает сервис пользователей.
+     *
+     * @param userRepository репозиторий пользователей
+     * @param kafkaEventPublisher публикатор Kafka-событий
      */
     public UserService(UserRepository userRepository, KafkaEventPublisher kafkaEventPublisher) {
         this.userRepository = userRepository;
@@ -35,7 +38,10 @@ public class UserService {
     }
 
     /**
-     * Регистрирует пользователя.
+     * Регистрирует нового пользователя и публикует событие регистрации.
+     *
+     * @param name имя пользователя
+     * @return зарегистрированный пользователь
      */
     @Transactional
     public User register(String name) {
@@ -50,7 +56,11 @@ public class UserService {
     }
 
     /**
-     * Создает или обновляет TelegramUser.
+     * Создает или обновляет пользователя по Telegram ID.
+     *
+     * @param telegramId идентификатор пользователя в Telegram
+     * @param name имя пользователя
+     * @return сохраненный пользователь
      */
     @Transactional
     public User upsertTelegramUser(Long telegramId, String name) {
@@ -65,7 +75,10 @@ public class UserService {
     }
 
     /**
-     * Возвращает список пользователей.
+     * Возвращает список пользователей по поисковому запросу.
+     *
+     * @param query строка поиска по имени
+     * @return список пользователей
      */
     @Transactional(readOnly = true)
     public List<User> searchByName(String query) {
@@ -76,7 +89,10 @@ public class UserService {
     }
 
     /**
-     * Возвращает пользователя.
+     * Возвращает пользователя по идентификатору.
+     *
+     * @param id идентификатор пользователя
+     * @return пользователь
      */
     @Transactional(readOnly = true)
     public User getById(Long id) {
@@ -84,4 +100,3 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + id));
     }
 }
-

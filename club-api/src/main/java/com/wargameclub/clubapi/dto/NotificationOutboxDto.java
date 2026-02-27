@@ -6,7 +6,16 @@ import com.wargameclub.clubapi.enums.NotificationStatus;
 import com.wargameclub.clubapi.enums.NotificationTarget;
 
 /**
- * DTO для NotificationOutbox.
+ * Представление уведомления из outbox-очереди.
+ *
+ * @param id идентификатор уведомления
+ * @param target целевой канал уведомления
+ * @param chatRouting маршрут/идентификатор чата назначения
+ * @param text текст уведомления
+ * @param status статус отправки
+ * @param attempts число попыток отправки
+ * @param nextAttemptAt дата и время следующей попытки
+ * @param createdAt дата и время создания
  */
 public record NotificationOutboxDto(
         UUID id,
@@ -19,4 +28,3 @@ public record NotificationOutboxDto(
         OffsetDateTime createdAt
 ) {
 }
-

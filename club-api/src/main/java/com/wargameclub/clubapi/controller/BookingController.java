@@ -38,7 +38,10 @@ public class BookingController {
     private final GameResultService resultService;
 
     /**
-     * Конструктор BookingController.
+     * Создает контроллер для операций с бронированиями.
+     *
+     * @param bookingService сервис бронирований
+     * @param resultService сервис фиксации результатов игр
      */
     public BookingController(BookingService bookingService, GameResultService resultService) {
         this.bookingService = bookingService;
@@ -46,7 +49,10 @@ public class BookingController {
     }
 
     /**
-     * Создает бронирование.
+     * Создает бронирование стола.
+     *
+     * @param request данные для создания бронирования
+     * @return созданное бронирование
      */
     @PostMapping
     public BookingDto create(@Valid @RequestBody BookingCreateRequest request) {
@@ -54,7 +60,12 @@ public class BookingController {
     }
 
     /**
-     * Возвращает список бронирований.
+     * Возвращает список бронирований, пересекающих заданный интервал времени.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param tableId идентификатор стола для фильтрации (опционально)
+     * @return список бронирований
      */
     @GetMapping
     public List<BookingDto> list(
@@ -68,7 +79,10 @@ public class BookingController {
     }
 
     /**
-     * Проверяет возможность cel.
+     * Отменяет бронирование по идентификатору.
+     *
+     * @param id идентификатор бронирования
+     * @return отмененное бронирование
      */
     @PostMapping("/{id}/cancel")
     public BookingDto cancel(@PathVariable Long id) {
@@ -76,11 +90,13 @@ public class BookingController {
     }
 
     /**
-     * Выполняет операцию.
+     * Фиксирует результат игры для бронирования.
+     *
+     * @param id идентификатор бронирования
+     * @param request данные о результате
      */
     @PostMapping("/{id}/result")
     public void result(@PathVariable Long id, @Valid @RequestBody BookingResultRequest request) {
         resultService.recordResult(id, request.reporterUserId(), request.outcome());
     }
 }
-

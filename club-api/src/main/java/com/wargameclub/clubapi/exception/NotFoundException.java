@@ -1,19 +1,16 @@
 package com.wargameclub.clubapi.exception;
 
 /**
- * Исключение для NotFound.
+ * Исключение для случаев, когда ресурс не найден (HTTP 404).
  */
 public class NotFoundException extends RuntimeException {
 
     /**
-     * Конструктор NotFoundException.
+     * Создает исключение с описанием отсутствующего ресурса.
+     *
+     * @param message описание ошибки для клиента
      */
     public NotFoundException(String message) {
-
-        /**
-         * Выполняет операцию.
-         */
         super(message);
     }
 }
-

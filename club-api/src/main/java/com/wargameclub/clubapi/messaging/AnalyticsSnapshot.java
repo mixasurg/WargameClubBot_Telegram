@@ -7,7 +7,13 @@ import java.util.Map;
 import com.wargameclub.clubapi.enums.EventType;
 
 /**
- * Компонент обмена сообщениями для AnalyticsSnapshot.
+ * Снимок аналитики для сохранения или отдачи внешним системам.
+ *
+ * @param purchasesByCategory количество покупок по категориям
+ * @param purchasesByEvent количество покупок по мероприятиям
+ * @param topEvents список наиболее популярных мероприятий
+ * @param revenue суммарная выручка
+ * @param lastUpdated время последнего обновления
  */
 public record AnalyticsSnapshot(
         Map<String, Integer> purchasesByCategory,
@@ -18,7 +24,12 @@ public record AnalyticsSnapshot(
 ) {
 
     /**
-     * Событие для Popular.
+     * Популярное мероприятие в аналитике.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param title название мероприятия
+     * @param type тип мероприятия
+     * @param purchases количество покупок
      */
     public record PopularEvent(
             Long eventId,

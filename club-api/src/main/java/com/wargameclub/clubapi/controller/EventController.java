@@ -42,7 +42,10 @@ public class EventController {
     private final UserService userService;
 
     /**
-     * Конструктор EventController.
+     * Создает контроллер для операций над мероприятиями.
+     *
+     * @param eventService сервис мероприятий
+     * @param userService сервис пользователей
      */
     public EventController(EventService eventService, UserService userService) {
         this.eventService = eventService;
@@ -50,7 +53,10 @@ public class EventController {
     }
 
     /**
-     * Создает мероприятие.
+     * Создает новое мероприятие клуба.
+     *
+     * @param request данные для создания мероприятия
+     * @return созданное мероприятие
      */
     @PostMapping
     public EventDto create(@Valid @RequestBody EventCreateRequest request) {
@@ -66,7 +72,11 @@ public class EventController {
     }
 
     /**
-     * Обновляет мероприятие.
+     * Обновляет существующее мероприятие.
+     *
+     * @param id идентификатор мероприятия
+     * @param request данные для обновления
+     * @return обновленное мероприятие
      */
     @PutMapping("/{id}")
     public EventDto update(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest request) {
@@ -74,7 +84,12 @@ public class EventController {
     }
 
     /**
-     * Возвращает список мероприятий.
+     * Возвращает список мероприятий, пересекающих заданный интервал.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param type фильтр по типу мероприятия (опционально)
+     * @return список мероприятий
      */
     @GetMapping
     public List<EventDto> list(
@@ -88,7 +103,10 @@ public class EventController {
     }
 
     /**
-     * Выполняет операцию.
+     * Возвращает список названий мероприятий для автодополнения.
+     *
+     * @param limit максимальное число возвращаемых названий
+     * @return список названий
      */
     @GetMapping("/titles")
     public List<String> titles(@RequestParam(name = "limit", required = false, defaultValue = "20") int limit) {
@@ -96,7 +114,10 @@ public class EventController {
     }
 
     /**
-     * Регистрирует мероприятие.
+     * Регистрирует пользователя на мероприятие.
+     *
+     * @param id идентификатор мероприятия
+     * @param request данные регистрации
      */
     @PostMapping("/{id}/register")
     public void register(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
@@ -104,11 +125,13 @@ public class EventController {
     }
 
     /**
-     * Выполняет операцию.
+     * Отменяет регистрацию пользователя на мероприятие.
+     *
+     * @param id идентификатор мероприятия
+     * @param request данные отмены регистрации
      */
     @PostMapping("/{id}/unregister")
     public void unregister(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.unregister(id, request.userId(), request.count(), request.amount());
     }
 }
-

@@ -7,17 +7,21 @@ import com.wargameclub.clubbot.dto.EventDto;
 import org.springframework.stereotype.Component;
 
 /**
- * Сервис для работы с сущностью Events.
+ * Форматирует список мероприятий для отправки в Telegram.
  */
 @Component
 public class EventsFormatter {
     /**
-     * Поле состояния.
+     * Формат даты и времени.
      */
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     /**
-     * Форматирует Upcoming.
+     * Формирует текст списка ближайших мероприятий.
+     *
+     * @param events список мероприятий
+     * @param timezone часовой пояс
+     * @return форматированный текст
      */
     public String formatUpcoming(List<EventDto> events, String timezone) {
         StringBuilder sb = new StringBuilder();
@@ -50,7 +54,10 @@ public class EventsFormatter {
     }
 
     /**
-     * Форматирует EventTypeLabel.
+     * Форматирует тип мероприятия в человекочитаемый вид.
+     *
+     * @param type тип мероприятия
+     * @return строковое представление типа
      */
     private String formatEventTypeLabel(String type) {
         if (type == null) {
@@ -66,7 +73,10 @@ public class EventsFormatter {
     }
 
     /**
-     * Форматирует EventStatus.
+     * Форматирует статус мероприятия в человекочитаемый вид.
+     *
+     * @param status статус мероприятия
+     * @return строковое представление статуса
      */
     private String formatEventStatus(String status) {
         if (status == null) {
@@ -79,4 +89,3 @@ public class EventsFormatter {
         };
     }
 }
-

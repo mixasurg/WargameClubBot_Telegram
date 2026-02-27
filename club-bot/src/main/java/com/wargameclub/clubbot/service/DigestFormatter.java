@@ -11,23 +11,29 @@ import com.wargameclub.clubbot.dto.WeekDigestDto;
 import org.springframework.stereotype.Component;
 
 /**
- * Сервис для работы с дайджестами.
+ * Форматирует недельный дайджест в текст для отправки в Telegram.
  */
 @Component
 public class DigestFormatter {
     /**
-     * Поле состояния.
+     * Формат даты (дд.ММ.гггг).
      */
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     /**
-     * Поле состояния.
+     * Формат времени (ЧЧ:мм).
      */
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    /**
+     * Формат дня недели (краткий, на русском).
+     */
     private static final DateTimeFormatter DAY_FORMAT =
             DateTimeFormatter.ofPattern("EEE", new Locale("ru", "RU"));
 
     /**
-     * Форматирует дайджест.
+     * Формирует текст дайджеста с бронированиями и мероприятиями.
+     *
+     * @param digest недельный дайджест
+     * @return форматированный текст
      */
     public String format(WeekDigestDto digest) {
         StringBuilder sb = new StringBuilder();
@@ -100,7 +106,10 @@ public class DigestFormatter {
     }
 
     /**
-     * Определяет DigestZone.
+     * Определяет часовой пояс для отображения дайджеста.
+     *
+     * @param digest дайджест
+     * @return часовой пояс
      */
     private ZoneId resolveDigestZone(WeekDigestDto digest) {
         if (digest != null && digest.timezone() != null && !digest.timezone().isBlank()) {
@@ -114,7 +123,10 @@ public class DigestFormatter {
     }
 
     /**
-     * Форматирует количество столов.
+     * Форматирует количество единиц стола в человекочитаемый вид.
+     *
+     * @param units количество единиц
+     * @return форматированная строка
      */
     private String formatTableUnits(int units) {
         return switch (units) {
@@ -128,7 +140,11 @@ public class DigestFormatter {
     }
 
     /**
-     * Форматирует Player.
+     * Формирует отображаемое имя игрока с фракцией.
+     *
+     * @param name имя игрока
+     * @param faction фракция игрока
+     * @return форматированная строка
      */
     private String formatPlayer(String name, String faction) {
         if (name == null || name.isBlank()) {
@@ -142,7 +158,10 @@ public class DigestFormatter {
     }
 
     /**
-     * Форматирует DisplayName.
+     * Форматирует имя пользователя с учетом Telegram-ника.
+     *
+     * @param name имя пользователя
+     * @return отображаемое имя
      */
     private String formatDisplayName(String name) {
         String trimmed = name.trim();
@@ -156,7 +175,10 @@ public class DigestFormatter {
     }
 
     /**
-     * Форматирует EventTypeLabel.
+     * Форматирует тип мероприятия в человекочитаемый вид.
+     *
+     * @param type тип мероприятия
+     * @return строковое представление типа
      */
     private String formatEventTypeLabel(String type) {
         if (type == null) {
@@ -172,7 +194,10 @@ public class DigestFormatter {
     }
 
     /**
-     * Форматирует EventStatus.
+     * Форматирует статус мероприятия в человекочитаемый вид.
+     *
+     * @param status статус мероприятия
+     * @return строковое представление статуса
      */
     private String formatEventStatus(String status) {
         if (status == null) {
@@ -185,4 +210,3 @@ public class DigestFormatter {
         };
     }
 }
-

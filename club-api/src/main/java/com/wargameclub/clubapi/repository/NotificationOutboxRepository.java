@@ -10,12 +10,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для NotificationOutbox.
+ * JPA-репозиторий для outbox-очереди уведомлений.
  */
 public interface NotificationOutboxRepository extends JpaRepository<NotificationOutbox, UUID> {
 
     /**
-     * Возвращает NotificationOutbox.
+     * Возвращает ожидающие отправки уведомления до указанного времени.
+     *
+     * @param target канал уведомления
+     * @param status статус уведомления
+     * @param now время, не позже которого должна быть попытка
+     * @param pageable параметры пагинации
+     * @return страница уведомлений
      */
     Page<NotificationOutbox> findByTargetAndStatusAndNextAttemptAtLessThanEqual(
             NotificationTarget target,
@@ -25,7 +31,11 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
     );
 
     /**
-     * Удаляет NotificationOutbox.
+     * Удаляет ожидающие уведомления по ссылочному типу и идентификатору.
+     *
+     * @param referenceType тип связанной сущности
+     * @param referenceId идентификатор связанной сущности
+     * @param status статус уведомления
      */
     void deleteByReferenceTypeAndReferenceIdAndStatus(
             String referenceType,
@@ -33,4 +43,3 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
             NotificationStatus status
     );
 }
-

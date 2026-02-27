@@ -15,54 +15,57 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность EventRegistration.
+ * JPA-сущность регистрации пользователя на мероприятие.
  */
 @Entity
 @Table(name = "event_registration")
 public class EventRegistration {
 
     /**
-     * Поле состояния.
+     * Идентификатор регистрации.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Мероприятие, на которое выполнена регистрация.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private ClubEvent event;
 
     /**
-     * Поле состояния.
+     * Пользователь, зарегистрированный на мероприятие.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
-     * Поле состояния.
+     * Статус регистрации.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RegistrationStatus status = RegistrationStatus.REGISTERED;
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор EventRegistration.
+     * Создает пустую сущность для JPA.
      */
     public EventRegistration() {
     }
 
     /**
-     * Конструктор EventRegistration.
+     * Создает регистрацию пользователя на мероприятие.
+     *
+     * @param event мероприятие
+     * @param user пользователь
      */
     public EventRegistration(ClubEvent event, User user) {
         this.event = event;
@@ -72,66 +75,83 @@ public class EventRegistration {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор регистрации.
+     *
+     * @return идентификатор регистрации
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает мероприятие.
+     * Возвращает мероприятие регистрации.
+     *
+     * @return мероприятие
      */
     public ClubEvent getEvent() {
         return event;
     }
 
     /**
-     * Устанавливает мероприятие.
+     * Устанавливает мероприятие регистрации.
+     *
+     * @param event мероприятие
      */
     public void setEvent(ClubEvent event) {
         this.event = event;
     }
 
     /**
-     * Возвращает пользователя.
+     * Возвращает пользователя регистрации.
+     *
+     * @return пользователь
      */
     public User getUser() {
         return user;
     }
 
     /**
-     * Устанавливает пользователя.
+     * Устанавливает пользователя регистрации.
+     *
+     * @param user пользователь
      */
     public void setUser(User user) {
         this.user = user;
     }
 
     /**
-     * Возвращает Status.
+     * Возвращает статус регистрации.
+     *
+     * @return статус регистрации
      */
     public RegistrationStatus getStatus() {
         return status;
     }
 
     /**
-     * Устанавливает Status.
+     * Устанавливает статус регистрации.
+     *
+     * @param status статус регистрации
      */
     public void setStatus(RegistrationStatus status) {
         this.status = status;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата и время создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата и время создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }
-

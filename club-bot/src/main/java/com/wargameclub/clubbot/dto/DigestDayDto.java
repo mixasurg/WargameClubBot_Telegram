@@ -4,11 +4,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * DTO для DigestDay.
+ * Представление дня в недельном дайджесте.
+ *
+ * @param date дата дня
+ * @param tables список бронирований, сгруппированных по столам
  */
 public record DigestDayDto(
         LocalDate date,
         List<DigestTableBookingsDto> tables
 ) {
 }
-

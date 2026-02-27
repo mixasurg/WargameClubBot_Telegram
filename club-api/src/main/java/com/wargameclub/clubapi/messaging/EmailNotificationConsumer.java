@@ -7,7 +7,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
 /**
- * Обработчик сообщений для EmailNotification.
+ * Kafka-консьюмер, имитирующий отправку email-уведомлений о покупке билетов.
  */
 @Service
 public class EmailNotificationConsumer {
@@ -16,15 +16,17 @@ public class EmailNotificationConsumer {
      */
     private static final Logger log = LoggerFactory.getLogger(EmailNotificationConsumer.class);
 
+    /**
+     * Обрабатывает событие покупки билета и логирует сообщение.
+     *
+     * @param event событие покупки билетов
+     * @param acknowledgment подтверждение обработки сообщения
+     */
     @KafkaListener(
             topics = KafkaTopics.TICKET_PURCHASED,
             groupId = "email-notifier",
             containerFactory = "kafkaListenerContainerFactory"
     )
-
-    /**
-     * Выполняет операцию.
-     */
     public void onTicketPurchased(TicketPurchasedEvent event, Acknowledgment acknowledgment) {
         if (event == null || event.userName() == null || event.eventTitle() == null) {
             throw new IllegalArgumentException("Некорректные данные события ticket.purchased");

@@ -3,7 +3,12 @@ package com.wargameclub.clubapi.dto;
 import java.time.OffsetDateTime;
 
 /**
- * DTO для пользователя.
+ * Представление пользователя для API.
+ *
+ * @param id идентификатор пользователя
+ * @param name имя пользователя
+ * @param telegramId идентификатор пользователя в Telegram
+ * @param createdAt дата и время регистрации
  */
 public record UserDto(
         Long id,
@@ -12,4 +17,3 @@ public record UserDto(
         OffsetDateTime createdAt
 ) {
 }
-

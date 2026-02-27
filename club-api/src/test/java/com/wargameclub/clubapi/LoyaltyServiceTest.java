@@ -13,14 +13,14 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Класс модуля club-api.
+ * Интеграционные тесты начисления баллов лояльности.
  */
 @SpringBootTest
 @ActiveProfiles("test")
 public class LoyaltyServiceTest {
 
     /**
-     * Сервис армии.
+     * Сервис армий.
      */
     @Autowired
     private ArmyService armyService;
@@ -32,13 +32,13 @@ public class LoyaltyServiceTest {
     private LoyaltyService loyaltyService;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     @Autowired
     private UserRepository userRepository;
 
     /**
-     * Выполняет операцию.
+     * Проверяет начисление баллов владельцу при использовании армии.
      */
     @Test
     void armyUsageAddsPointsToOwner() {
@@ -48,10 +48,6 @@ public class LoyaltyServiceTest {
         var army = armyService.create(owner.getId(), "Game", "Faction", true);
         armyService.useArmy(army.getId(), usedBy.getId(), OffsetDateTime.now(), "Test");
 
-        /**
-         * Выполняет операцию.
-         */
         assertEquals(15, loyaltyService.getPoints(owner.getId()));
     }
 }
-

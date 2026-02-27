@@ -24,14 +24,18 @@ public class TelegramSettingsController {
     private final TelegramSettingsService settingsService;
 
     /**
-     * Конструктор TelegramSettingsController.
+     * Создает контроллер для работы с настройками Telegram.
+     *
+     * @param settingsService сервис настроек Telegram
      */
     public TelegramSettingsController(TelegramSettingsService settingsService) {
         this.settingsService = settingsService;
     }
 
     /**
-     * Возвращает настройки Telegram.
+     * Возвращает текущие настройки Telegram.
+     *
+     * @return настройки Telegram
      */
     @GetMapping
     public TelegramSettingsDto get() {
@@ -41,7 +45,10 @@ public class TelegramSettingsController {
     }
 
     /**
-     * Обновляет настройки Telegram.
+     * Создает или обновляет настройки Telegram.
+     *
+     * @param request данные для обновления настроек
+     * @return обновленные настройки
      */
     @PutMapping
     public TelegramSettingsDto update(@Valid @RequestBody TelegramSettingsUpdateRequest request) {
@@ -58,7 +65,10 @@ public class TelegramSettingsController {
     }
 
     /**
-     * Преобразует в DTO.
+     * Преобразует сущность настроек Telegram в DTO.
+     *
+     * @param settings сущность настроек
+     * @return DTO настроек Telegram
      */
     private TelegramSettingsDto toDto(ClubTelegramSettings settings) {
         return new TelegramSettingsDto(
@@ -72,4 +82,3 @@ public class TelegramSettingsController {
         );
     }
 }
-

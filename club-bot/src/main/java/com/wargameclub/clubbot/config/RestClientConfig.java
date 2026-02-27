@@ -6,17 +6,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Конфигурация для RestClient.
+ * Конфигурация клиента HTTP для взаимодействия с club-api.
  */
 @Configuration
 public class RestClientConfig {
 
     /**
-     * Выполняет операцию.
+     * Создает {@link RestTemplate} для HTTP-вызовов.
+     *
+     * @param builder билдер RestTemplate
+     * @return настроенный RestTemplate
      */
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.build();
     }
 }
-

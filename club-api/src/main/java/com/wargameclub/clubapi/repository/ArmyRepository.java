@@ -5,8 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 /**
- * JPA-репозиторий для армии.
+ * JPA-репозиторий для работы с армиями и спецификациями поиска.
  */
 public interface ArmyRepository extends JpaRepository<Army, Long>, JpaSpecificationExecutor<Army> {
 }
-

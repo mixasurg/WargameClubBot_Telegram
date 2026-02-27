@@ -21,14 +21,18 @@ public class TableController {
     private final TableService tableService;
 
     /**
-     * Конструктор TableController.
+     * Создает контроллер для работы со столами.
+     *
+     * @param tableService сервис столов
      */
     public TableController(TableService tableService) {
         this.tableService = tableService;
     }
 
     /**
-     * Возвращает список столов.
+     * Возвращает список всех столов.
+     *
+     * @return список столов
      */
     @GetMapping
     public List<TableDto> list() {
@@ -37,4 +41,3 @@ public class TableController {
                 .toList();
     }
 }
-

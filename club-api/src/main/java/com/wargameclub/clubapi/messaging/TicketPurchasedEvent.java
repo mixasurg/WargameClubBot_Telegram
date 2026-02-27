@@ -5,7 +5,16 @@ import java.time.OffsetDateTime;
 import com.wargameclub.clubapi.enums.EventType;
 
 /**
- * Событие для TicketPurchased.
+ * Событие покупки билета.
+ *
+ * @param eventId идентификатор мероприятия
+ * @param eventTitle название мероприятия
+ * @param eventType тип мероприятия
+ * @param userId идентификатор пользователя
+ * @param userName имя пользователя
+ * @param count количество купленных билетов
+ * @param amount сумма покупки
+ * @param occurredAt время события
  */
 public record TicketPurchasedEvent(
         Long eventId,

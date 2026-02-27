@@ -12,64 +12,69 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность армия.
+ * JPA-сущность армии пользователя или клубной армии.
  */
 @Entity
 @Table(name = "army")
 public class Army {
 
     /**
-     * Поле состояния.
+     * Идентификатор армии.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Владелец армии.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_user_id", nullable = false)
     private User owner;
 
     /**
-     * Поле состояния.
+     * Название игры/системы.
      */
     @Column(nullable = false, length = 100)
     private String game;
 
     /**
-     * Поле состояния.
+     * Фракция или подфракция.
      */
     @Column(nullable = false, length = 100)
     private String faction;
 
     /**
-     * Поле состояния.
+     * Признак доступности армии для клуба.
      */
     @Column(nullable = false)
     private boolean isClubShared = false;
 
     /**
-     * Поле состояния.
+     * Признак активности записи.
      */
     @Column(nullable = false)
     private boolean isActive = true;
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор Army.
+     * Создает пустую сущность для JPA.
      */
     public Army() {
     }
 
     /**
-     * Конструктор Army.
+     * Создает армию с указанными параметрами.
+     *
+     * @param owner владелец армии
+     * @param game название игры/системы
+     * @param faction фракция или подфракция
+     * @param isClubShared признак доступности армии для клуба
      */
     public Army(User owner, String game, String faction, boolean isClubShared) {
         this.owner = owner;
@@ -81,94 +86,119 @@ public class Army {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор армии.
+     *
+     * @return идентификатор армии
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает Owner.
+     * Возвращает владельца армии.
+     *
+     * @return владелец армии
      */
     public User getOwner() {
         return owner;
     }
 
     /**
-     * Устанавливает Owner.
+     * Устанавливает владельца армии.
+     *
+     * @param owner владелец армии
      */
     public void setOwner(User owner) {
         this.owner = owner;
     }
 
     /**
-     * Возвращает игру.
+     * Возвращает название игры/системы.
+     *
+     * @return название игры
      */
     public String getGame() {
         return game;
     }
 
     /**
-     * Устанавливает игру.
+     * Устанавливает название игры/системы.
+     *
+     * @param game название игры
      */
     public void setGame(String game) {
         this.game = game;
     }
 
     /**
-     * Возвращает фракцию.
+     * Возвращает фракцию или подфракцию.
+     *
+     * @return фракция
      */
     public String getFaction() {
         return faction;
     }
 
     /**
-     * Устанавливает фракцию.
+     * Устанавливает фракцию или подфракцию.
+     *
+     * @param faction фракция
      */
     public void setFaction(String faction) {
         this.faction = faction;
     }
 
     /**
-     * Проверяет ClubShared.
+     * Проверяет, доступна ли армия для клуба.
+     *
+     * @return true, если армия клубная
      */
     public boolean isClubShared() {
         return isClubShared;
     }
 
     /**
-     * Устанавливает ClubShared.
+     * Устанавливает признак доступности армии для клуба.
+     *
+     * @param clubShared признак клубной армии
      */
     public void setClubShared(boolean clubShared) {
         isClubShared = clubShared;
     }
 
     /**
-     * Проверяет Active.
+     * Проверяет, активна ли запись армии.
+     *
+     * @return true, если армия активна
      */
     public boolean isActive() {
         return isActive;
     }
 
     /**
-     * Устанавливает Active.
+     * Устанавливает признак активности записи армии.
+     *
+     * @param active признак активности
      */
     public void setActive(boolean active) {
         isActive = active;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }
-

@@ -30,14 +30,19 @@ public class ArmyController {
     private final ArmyService armyService;
 
     /**
-     * Конструктор ArmyController.
+     * Создает контроллер для операций над армиями.
+     *
+     * @param armyService сервис работы с армиями
      */
     public ArmyController(ArmyService armyService) {
         this.armyService = armyService;
     }
 
     /**
-     * Создает армию.
+     * Создает армию пользователя.
+     *
+     * @param request данные для создания армии
+     * @return созданная армия
      */
     @PostMapping
     public ArmyDto create(@Valid @RequestBody ArmyCreateRequest request) {
@@ -50,7 +55,14 @@ public class ArmyController {
     }
 
     /**
-     * Возвращает список армий.
+     * Возвращает список армий с учетом фильтров.
+     *
+     * @param game название игры (опционально)
+     * @param faction фракция (опционально)
+     * @param clubShared признак клубной армии (опционально)
+     * @param ownerUserId идентификатор владельца (опционально)
+     * @param active признак активности (опционально)
+     * @return список армий
      */
     @GetMapping
     public List<ArmyDto> list(
@@ -68,7 +80,10 @@ public class ArmyController {
     }
 
     /**
-     * Декодирует значение параметра запроса.
+     * Декодирует значение параметра запроса, если оно URL-encoded.
+     *
+     * @param value значение параметра
+     * @return декодированное значение или исходное, если декодирование не требуется/не удалось
      */
     private String decodeQueryValue(String value) {
         if (value == null || !value.contains("%")) {
@@ -82,7 +97,10 @@ public class ArmyController {
     }
 
     /**
-     * Деактивирует армию.
+     * Деактивирует армию по идентификатору.
+     *
+     * @param id идентификатор армии
+     * @return обновленная армия
      */
     @PostMapping("/{id}/deactivate")
     public ArmyDto deactivate(@PathVariable Long id) {
@@ -90,11 +108,13 @@ public class ArmyController {
     }
 
     /**
-     * Фиксирует использование армии.
+     * Фиксирует использование армии пользователем.
+     *
+     * @param id идентификатор армии
+     * @param request данные об использовании
      */
     @PostMapping("/{id}/use")
     public void use(@PathVariable Long id, @Valid @RequestBody ArmyUsageRequest request) {
         armyService.useArmy(id, request.usedByUserId(), request.usedAt(), request.notes());
     }
 }
-

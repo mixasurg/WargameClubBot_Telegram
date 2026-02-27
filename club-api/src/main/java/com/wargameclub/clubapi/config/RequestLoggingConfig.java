@@ -5,13 +5,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CommonsRequestLoggingFilter;
 
 /**
- * Конфигурация для RequestLogging.
+ * Конфигурация логирования входящих HTTP-запросов через {@link CommonsRequestLoggingFilter}.
  */
 @Configuration
 public class RequestLoggingConfig {
 
     /**
-     * Выполняет операцию.
+     * Создает фильтр логирования HTTP-запросов и настраивает формат записи.
+     *
+     * @return фильтр логирования входящих запросов
      */
     @Bean
     public CommonsRequestLoggingFilter requestLoggingFilter() {
@@ -24,4 +26,3 @@ public class RequestLoggingConfig {
         return filter;
     }
 }
-

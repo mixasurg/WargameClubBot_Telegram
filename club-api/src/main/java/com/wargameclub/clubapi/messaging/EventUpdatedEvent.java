@@ -5,7 +5,15 @@ import com.wargameclub.clubapi.enums.EventStatus;
 import com.wargameclub.clubapi.enums.EventType;
 
 /**
- * Событие для EventUpdated.
+ * Событие обновления мероприятия.
+ *
+ * @param eventId идентификатор мероприятия
+ * @param title название мероприятия
+ * @param type тип мероприятия
+ * @param status статус мероприятия
+ * @param startAt время начала
+ * @param endAt время окончания
+ * @param updatedAt время обновления
  */
 public record EventUpdatedEvent(
         Long eventId,

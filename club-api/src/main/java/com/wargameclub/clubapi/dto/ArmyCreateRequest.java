@@ -5,7 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO запроса на создание армии.
+ * Запрос на создание армии.
+ *
+ * @param ownerUserId идентификатор владельца армии
+ * @param game название игры/системы
+ * @param faction фракция или подфракция
+ * @param isClubShared признак доступности армии для клуба
  */
 public record ArmyCreateRequest(
         @NotNull @Positive Long ownerUserId,
@@ -14,4 +19,3 @@ public record ArmyCreateRequest(
         boolean isClubShared
 ) {
 }
-

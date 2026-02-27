@@ -14,42 +14,35 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
 /**
- * Класс модуля club-api.
+ * Интеграционные тесты публикации события регистрации пользователя.
  */
 @SpringBootTest
 @ActiveProfiles("test")
 public class UserServiceKafkaPublishTest {
 
     /**
-     * Сервис пользователя.
+     * Сервис пользователей.
      */
     @Autowired
     private UserService userService;
 
     /**
-     * Поле состояния.
+     * Публикатор Kafka-событий (мок).
      */
     @MockBean
     private KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Регистрирует PublishesUserRegistered.
+     * Проверяет, что при регистрации публикуется событие UserRegistered.
      */
     @Test
     void registerPublishesUserRegistered() {
         userService.register("Alice");
 
         ArgumentCaptor<UserRegisteredEvent> captor = ArgumentCaptor.forClass(UserRegisteredEvent.class);
-
-        /**
-         * Выполняет операцию.
-         */
         verify(kafkaEventPublisher).publishUserRegistered(captor.capture());
         UserRegisteredEvent payload = captor.getValue();
 
-        /**
-         * Выполняет операцию.
-         */
         assertEquals("Alice", payload.name());
     }
 }

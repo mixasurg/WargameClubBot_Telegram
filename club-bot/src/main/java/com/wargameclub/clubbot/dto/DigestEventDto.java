@@ -3,7 +3,15 @@ package com.wargameclub.clubbot.dto;
 import java.time.OffsetDateTime;
 
 /**
- * DTO для DigestEvent.
+ * Представление мероприятия в дайджесте.
+ *
+ * @param id идентификатор мероприятия
+ * @param title название мероприятия
+ * @param type тип мероприятия
+ * @param startAt дата и время начала
+ * @param endAt дата и время окончания
+ * @param organizerName имя организатора
+ * @param status статус мероприятия
  */
 public record DigestEventDto(
         Long id,
@@ -15,4 +23,3 @@ public record DigestEventDto(
         String status
 ) {
 }
-

@@ -1,10 +1,19 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Исходы игры.
  */
 public enum GameOutcome {
+    /**
+     * Победа.
+     */
     WIN,
+    /**
+     * Поражение.
+     */
     LOSS,
+    /**
+     * Ничья.
+     */
     DRAW
 }

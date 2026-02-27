@@ -4,7 +4,7 @@ import com.wargameclub.clubapi.entity.UserGameStats;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для статистики игрока.
+ * JPA-репозиторий для статистики игр пользователей.
  */
 public interface UserGameStatsRepository extends JpaRepository<UserGameStats, Long> {
 }

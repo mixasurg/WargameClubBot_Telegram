@@ -6,7 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO запроса для EventRegistration.
+ * Запрос на регистрацию или отмену регистрации на мероприятие.
+ *
+ * @param userId идентификатор пользователя
+ * @param count количество мест/участников (опционально)
+ * @param amount сумма оплаты (опционально)
  */
 public record EventRegistrationRequest(
         @NotNull @Positive Long userId,
@@ -14,4 +18,3 @@ public record EventRegistrationRequest(
         @DecimalMin(value = "0.0", inclusive = true) BigDecimal amount
 ) {
 }
-

@@ -7,23 +7,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с лояльностью.
+ * Сервис управления баллами лояльности пользователей.
  */
 @Service
 public class LoyaltyService {
 
     /**
-     * Репозиторий LoyaltyAccount.
+     * Репозиторий счетов лояльности.
      */
     private final LoyaltyAccountRepository repository;
 
     /**
-     * Параметры конфигурации App.
+     * Настройки приложения.
      */
     private final AppProperties appProperties;
 
     /**
-     * Конструктор LoyaltyService.
+     * Создает сервис лояльности.
+     *
+     * @param repository репозиторий счетов
+     * @param appProperties настройки приложения
      */
     public LoyaltyService(LoyaltyAccountRepository repository, AppProperties appProperties) {
         this.repository = repository;
@@ -31,7 +34,10 @@ public class LoyaltyService {
     }
 
     /**
-     * Добавляет Points.
+     * Начисляет баллы за использование армии.
+     *
+     * @param userId идентификатор пользователя
+     * @return новый баланс баллов
      */
     @Transactional
     public int addPoints(Long userId) {
@@ -40,7 +46,10 @@ public class LoyaltyService {
     }
 
     /**
-     * Добавляет PointsForSharedArmy.
+     * Начисляет баллы за шаринг армии.
+     *
+     * @param userId идентификатор пользователя
+     * @return новый баланс баллов
      */
     @Transactional
     public int addPointsForSharedArmy(Long userId) {
@@ -49,7 +58,11 @@ public class LoyaltyService {
     }
 
     /**
-     * Добавляет Points.
+     * Увеличивает баланс лояльности на указанное количество баллов.
+     *
+     * @param userId идентификатор пользователя
+     * @param pointsToAdd число начисляемых баллов
+     * @return новый баланс
      */
     private int addPoints(Long userId, int pointsToAdd) {
         LoyaltyAccount account = repository.findById(userId)
@@ -60,7 +73,10 @@ public class LoyaltyService {
     }
 
     /**
-     * Возвращает Points.
+     * Возвращает текущий баланс баллов пользователя.
+     *
+     * @param userId идентификатор пользователя
+     * @return баланс баллов
      */
     @Transactional(readOnly = true)
     public int getPoints(Long userId) {
@@ -69,4 +85,3 @@ public class LoyaltyService {
                 .orElse(0);
     }
 }
-

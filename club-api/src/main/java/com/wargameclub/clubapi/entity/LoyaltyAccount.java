@@ -6,33 +6,36 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность LoyaltyAccount.
+ * JPA-сущность счета лояльности пользователя.
  */
 @Entity
 @Table(name = "loyalty_account")
 public class LoyaltyAccount {
 
     /**
-     * Поле состояния.
+     * Идентификатор пользователя, которому принадлежит счет.
      */
     @Id
     @Column(name = "user_id")
     private Long userId;
 
     /**
-     * Поле состояния.
+     * Текущий баланс баллов лояльности.
      */
     @Column(nullable = false)
     private int points = 0;
 
     /**
-     * Конструктор LoyaltyAccount.
+     * Создает пустую сущность для JPA.
      */
     public LoyaltyAccount() {
     }
 
     /**
-     * Конструктор LoyaltyAccount.
+     * Создает счет лояльности с указанным балансом.
+     *
+     * @param userId идентификатор пользователя
+     * @param points количество баллов
      */
     public LoyaltyAccount(Long userId, int points) {
         this.userId = userId;
@@ -41,6 +44,8 @@ public class LoyaltyAccount {
 
     /**
      * Возвращает идентификатор пользователя.
+     *
+     * @return идентификатор пользователя
      */
     public Long getUserId() {
         return userId;
@@ -48,23 +53,28 @@ public class LoyaltyAccount {
 
     /**
      * Устанавливает идентификатор пользователя.
+     *
+     * @param userId идентификатор пользователя
      */
     public void setUserId(Long userId) {
         this.userId = userId;
     }
 
     /**
-     * Возвращает Points.
+     * Возвращает количество баллов лояльности.
+     *
+     * @return количество баллов
      */
     public int getPoints() {
         return points;
     }
 
     /**
-     * Устанавливает Points.
+     * Устанавливает количество баллов лояльности.
+     *
+     * @param points количество баллов
      */
     public void setPoints(int points) {
         this.points = points;
     }
 }
-

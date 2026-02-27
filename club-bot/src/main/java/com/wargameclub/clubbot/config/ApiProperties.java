@@ -3,28 +3,31 @@ package com.wargameclub.clubbot.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Конфигурация для Api.
+ * Настройки доступа к club-api.
  */
 @ConfigurationProperties(prefix = "api")
 public class ApiProperties {
 
     /**
-     * Поле состояния.
+     * Базовый URL club-api.
      */
     private String baseUrl = "http://localhost:8080";
 
     /**
-     * Возвращает BaseUrl.
+     * Возвращает базовый URL club-api.
+     *
+     * @return базовый URL
      */
     public String getBaseUrl() {
         return baseUrl;
     }
 
     /**
-     * Устанавливает BaseUrl.
+     * Устанавливает базовый URL club-api.
+     *
+     * @param baseUrl базовый URL
      */
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
     }
 }
-

@@ -8,13 +8,17 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import com.wargameclub.clubbot.service.TelegramClubBot;
 
 /**
- * Конфигурация для TelegramBot.
+ * Конфигурация регистрации Telegram-бота.
  */
 @Configuration
 public class TelegramBotConfig {
 
     /**
-     * Выполняет операцию.
+     * Создает и регистрирует {@link TelegramBotsApi} с ботом.
+     *
+     * @param bot экземпляр Telegram-бота
+     * @return TelegramBotsApi
+     * @throws TelegramApiException при ошибке регистрации бота
      */
     @Bean
     public TelegramBotsApi telegramBotsApi(TelegramClubBot bot) throws TelegramApiException {
@@ -23,4 +27,3 @@ public class TelegramBotConfig {
         return api;
     }
 }
-

@@ -3,7 +3,15 @@ package com.wargameclub.clubapi.dto;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * DTO запроса на обновление настроек Telegram.
+ * Запрос на обновление настроек Telegram.
+ *
+ * @param chatId идентификатор чата
+ * @param scheduleThreadId идентификатор темы расписания
+ * @param eventsThreadId идентификатор темы мероприятий
+ * @param scheduleTwoweeksMessageId идентификатор сообщения расписания на две недели
+ * @param scheduleTwoweeksNextMessageId идентификатор сообщения следующего двухнедельного расписания
+ * @param eventsMessageId идентификатор сообщения списка мероприятий
+ * @param timezone часовой пояс в строковом виде
  */
 public record TelegramSettingsUpdateRequest(
         @NotNull Long chatId,
@@ -15,4 +23,3 @@ public record TelegramSettingsUpdateRequest(
         String timezone
 ) {
 }
-

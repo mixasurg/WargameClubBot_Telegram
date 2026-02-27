@@ -9,12 +9,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * JPA-репозиторий для бронирования.
+ * JPA-репозиторий для бронирований.
  */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     /**
-     * Выполняет операцию.
+     * Проверяет наличие пересекающегося бронирования для стола.
+     *
+     * @param tableId идентификатор стола
+     * @param status статус бронирования
+     * @param endAt конец интервала
+     * @param startAt начало интервала
+     * @return true, если пересечение найдено
      */
     boolean existsByTableIdAndStatusAndStartAtLessThanAndEndAtGreaterThan(
             Long tableId,
@@ -23,32 +29,41 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             OffsetDateTime startAt
     );
 
+    /**
+     * Возвращает бронирования с деталями (таблица, пользователь, соперник, армия), пересекающие интервал.
+     *
+     * @param status статус бронирования
+     * @param from начало интервала
+     * @param to конец интервала
+     * @return список бронирований
+     */
     @Query("select b from Booking b " +
             "left join fetch b.table t " +
             "join fetch b.user u " +
             "left join fetch b.opponent o " +
             "left join fetch b.army a " +
             "where b.status = :status and b.startAt < :to and b.endAt > :from")
-
-    /**
-     * Возвращает OverlappingWithDetails.
-     */
     List<Booking> findOverlappingWithDetails(
             @Param("status") BookingStatus status,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to
     );
 
+    /**
+     * Возвращает бронирования указанного стола с деталями, пересекающие интервал.
+     *
+     * @param status статус бронирования
+     * @param tableId идентификатор стола
+     * @param from начало интервала
+     * @param to конец интервала
+     * @return список бронирований
+     */
     @Query("select b from Booking b " +
             "left join fetch b.table t " +
             "join fetch b.user u " +
             "left join fetch b.opponent o " +
             "left join fetch b.army a " +
             "where b.status = :status and b.table.id = :tableId and b.startAt < :to and b.endAt > :from")
-
-    /**
-     * Возвращает OverlappingWithDetailsForTable.
-     */
     List<Booking> findOverlappingWithDetailsForTable(
             @Param("status") BookingStatus status,
             @Param("tableId") Long tableId,
@@ -56,35 +71,41 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("to") OffsetDateTime to
     );
 
+    /**
+     * Возвращает все бронирования с деталями, пересекающие интервал (без фильтра по статусу).
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @return список бронирований
+     */
     @Query("select b from Booking b " +
             "left join fetch b.table t " +
             "join fetch b.user u " +
             "left join fetch b.opponent o " +
             "left join fetch b.army a " +
             "where b.startAt < :to and b.endAt > :from")
-
-    /**
-     * Возвращает OverlappingWithDetailsAll.
-     */
     List<Booking> findOverlappingWithDetailsAll(
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to
     );
 
+    /**
+     * Возвращает бронирования указанного стола с деталями, пересекающие интервал (без фильтра по статусу).
+     *
+     * @param tableId идентификатор стола
+     * @param from начало интервала
+     * @param to конец интервала
+     * @return список бронирований
+     */
     @Query("select b from Booking b " +
             "left join fetch b.table t " +
             "join fetch b.user u " +
             "left join fetch b.opponent o " +
             "left join fetch b.army a " +
             "where b.table.id = :tableId and b.startAt < :to and b.endAt > :from")
-
-    /**
-     * Возвращает OverlappingWithDetailsForTableAll.
-     */
     List<Booking> findOverlappingWithDetailsForTableAll(
             @Param("tableId") Long tableId,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to
     );
 }
-

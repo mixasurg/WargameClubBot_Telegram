@@ -3,7 +3,11 @@ package com.wargameclub.clubbot.dto;
 import java.util.UUID;
 
 /**
- * DTO для NotificationOutbox.
+ * Представление уведомления из outbox-очереди.
+ *
+ * @param id идентификатор уведомления
+ * @param chatRouting JSON-маршрут доставки уведомления
+ * @param text текст уведомления
  */
 public record NotificationOutboxDto(
         UUID id,
@@ -11,4 +15,3 @@ public record NotificationOutboxDto(
         String text
 ) {
 }
-

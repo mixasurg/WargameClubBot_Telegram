@@ -16,14 +16,18 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
- * Конфигурация для Kafka.
+ * Конфигурация Kafka: слушатели с ручным подтверждением, обработчик ошибок и топики приложения.
  */
 @Configuration
 @EnableKafka
 public class KafkaConfig {
 
     /**
-     * Выполняет операцию.
+     * Создает фабрику контейнеров слушателей Kafka с ручным подтверждением и обработчиком ошибок.
+     *
+     * @param consumerFactory фабрика консьюмеров
+     * @param kafkaErrorHandler общий обработчик ошибок слушателей
+     * @return настроенная фабрика контейнеров слушателей
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
@@ -39,14 +43,14 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Создает обработчик ошибок, перенаправляющий сообщения в DLT и ограничивающий повторы.
+     *
+     * @param kafkaTemplate шаблон для публикации сообщений в Kafka
+     * @return обработчик ошибок для слушателей Kafka
      */
     @Bean
     public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
-
-        /**
-         * Выполняет операцию.
-         */
+        // Публикует сообщения в DLT-топики, соответствующие исходной теме.
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
                 (record, ex) -> new TopicPartition(KafkaTopics.dlt(record.topic()), record.partition())
@@ -57,7 +61,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует топик для события покупки билета.
+     *
+     * @return топик {@link KafkaTopics#TICKET_PURCHASED}
      */
     @Bean
     public NewTopic ticketPurchasedTopic() {
@@ -65,7 +71,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует топик для события отмены билета.
+     *
+     * @return топик {@link KafkaTopics#TICKET_CANCELLED}
      */
     @Bean
     public NewTopic ticketCancelledTopic() {
@@ -73,7 +81,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует топик для события обновления мероприятия.
+     *
+     * @return топик {@link KafkaTopics#EVENT_UPDATED}
      */
     @Bean
     public NewTopic eventUpdatedTopic() {
@@ -81,7 +91,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует топик для события создания бронирования.
+     *
+     * @return топик {@link KafkaTopics#BOOKING_CREATED}
      */
     @Bean
     public NewTopic bookingCreatedTopic() {
@@ -89,7 +101,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует топик для события отмены бронирования.
+     *
+     * @return топик {@link KafkaTopics#BOOKING_CANCELLED}
      */
     @Bean
     public NewTopic bookingCancelledTopic() {
@@ -97,7 +111,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Фиксирует использование rRegisteredTopic.
+     * Регистрирует топик для события регистрации пользователя.
+     *
+     * @return топик {@link KafkaTopics#USER_REGISTERED}
      */
     @Bean
     public NewTopic userRegisteredTopic() {
@@ -105,7 +121,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует DLT-топик для сообщений о покупке билета.
+     *
+     * @return DLT-топик для {@link KafkaTopics#TICKET_PURCHASED}
      */
     @Bean
     public NewTopic ticketPurchasedDltTopic() {
@@ -113,7 +131,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует DLT-топик для сообщений об отмене билета.
+     *
+     * @return DLT-топик для {@link KafkaTopics#TICKET_CANCELLED}
      */
     @Bean
     public NewTopic ticketCancelledDltTopic() {
@@ -121,7 +141,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует DLT-топик для сообщений об обновлении мероприятия.
+     *
+     * @return DLT-топик для {@link KafkaTopics#EVENT_UPDATED}
      */
     @Bean
     public NewTopic eventUpdatedDltTopic() {
@@ -129,7 +151,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует DLT-топик для сообщений о создании бронирования.
+     *
+     * @return DLT-топик для {@link KafkaTopics#BOOKING_CREATED}
      */
     @Bean
     public NewTopic bookingCreatedDltTopic() {
@@ -137,7 +161,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Выполняет операцию.
+     * Регистрирует DLT-топик для сообщений об отмене бронирования.
+     *
+     * @return DLT-топик для {@link KafkaTopics#BOOKING_CANCELLED}
      */
     @Bean
     public NewTopic bookingCancelledDltTopic() {
@@ -145,7 +171,9 @@ public class KafkaConfig {
     }
 
     /**
-     * Фиксирует использование rRegisteredDltTopic.
+     * Регистрирует DLT-топик для сообщений о регистрации пользователя.
+     *
+     * @return DLT-топик для {@link KafkaTopics#USER_REGISTERED}
      */
     @Bean
     public NewTopic userRegisteredDltTopic() {

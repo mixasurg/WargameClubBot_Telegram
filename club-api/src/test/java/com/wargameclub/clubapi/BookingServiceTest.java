@@ -18,38 +18,38 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Класс модуля club-api.
+ * Интеграционные тесты сервиса бронирований.
  */
 @SpringBootTest
 @ActiveProfiles("test")
 public class BookingServiceTest {
 
     /**
-     * Сервис бронирования.
+     * Сервис бронирований.
      */
     @Autowired
     private BookingService bookingService;
 
     /**
-     * Репозиторий стола клуба.
+     * Репозиторий столов клуба.
      */
     @Autowired
     private ClubTableRepository tableRepository;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     @Autowired
     private UserRepository userRepository;
 
     /**
-     * Поле состояния.
+     * Публикатор Kafka-событий (мок).
      */
     @MockBean
     private KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Выполняет операцию.
+     * Проверяет, что пересекающееся бронирование отклоняется.
      */
     @Test
     void bookingOverlapIsRejected() {
@@ -59,9 +59,6 @@ public class BookingServiceTest {
         OffsetDateTime start = OffsetDateTime.now().plusDays(1);
         OffsetDateTime end = start.plusHours(2);
 
-        /**
-         * Выполняет операцию.
-         */
         BookingCreateRequest request = new BookingCreateRequest(
                 table.getId(),
                 user.getId(),
@@ -75,9 +72,6 @@ public class BookingServiceTest {
         );
         bookingService.create(request);
 
-        /**
-         * Выполняет операцию.
-         */
         BookingCreateRequest overlap = new BookingCreateRequest(
                 table.getId(),
                 user.getId(),
@@ -93,4 +87,3 @@ public class BookingServiceTest {
         assertThrows(ConflictException.class, () -> bookingService.create(overlap));
     }
 }
-

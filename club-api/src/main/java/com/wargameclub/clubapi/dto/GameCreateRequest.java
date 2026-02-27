@@ -4,7 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO запроса на создание игры.
+ * Запрос на создание игры в каталоге.
+ *
+ * @param name название игры/системы
+ * @param defaultDurationMinutes длительность по умолчанию в минутах
+ * @param tableUnits требуемое количество единиц стола
  */
 public record GameCreateRequest(
         @NotBlank String name,
@@ -12,4 +16,3 @@ public record GameCreateRequest(
         @Positive int tableUnits
 ) {
 }
-

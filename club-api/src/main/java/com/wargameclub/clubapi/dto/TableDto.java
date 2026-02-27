@@ -1,7 +1,12 @@
 package com.wargameclub.clubapi.dto;
 
 /**
- * DTO для стола.
+ * Представление игрового стола.
+ *
+ * @param id идентификатор стола
+ * @param name название стола
+ * @param isActive признак активности стола
+ * @param notes дополнительные примечания
  */
 public record TableDto(
         Long id,
@@ -10,4 +15,3 @@ public record TableDto(
         String notes
 ) {
 }
-

@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Сервис для работы с сущностью OutboxPolling.
+ * Периодически опрашивает club-api за pending уведомлениями и отправляет их.
  */
 @Component
 public class OutboxPollingService {
@@ -20,12 +20,12 @@ public class OutboxPollingService {
     private static final Logger log = LoggerFactory.getLogger(OutboxPollingService.class);
 
     /**
-     * Клиент ClubApi.
+     * Клиент club-api.
      */
     private final ClubApiClient apiClient;
 
     /**
-     * Поле состояния.
+     * Диспетчер отправки уведомлений.
      */
     private final NotificationDispatcher dispatcher;
 
@@ -35,7 +35,11 @@ public class OutboxPollingService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис опроса outbox-очереди.
+     *
+     * @param apiClient клиент club-api
+     * @param dispatcher диспетчер отправки
+     * @param objectMapper сериализатор JSON
      */
     public OutboxPollingService(
             ClubApiClient apiClient,
@@ -48,7 +52,7 @@ public class OutboxPollingService {
     }
 
     /**
-     * Выполняет операцию.
+     * Опрашивает outbox-очередь и отправляет накопившиеся уведомления.
      */
     @Scheduled(fixedDelayString = "#{${bot.poll-interval-seconds:10} * 1000}")
     public void pollOutbox() {
@@ -72,4 +76,3 @@ public class OutboxPollingService {
         }
     }
 }
-

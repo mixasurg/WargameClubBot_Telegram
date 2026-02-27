@@ -34,12 +34,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с дайджестами.
+ * Сервис формирования недельных дайджестов расписания и мероприятий.
  */
 @Service
 public class DigestService {
     /**
-     * Поле состояния.
+     * Шаблон поиска имени соперника в заметках.
      */
     private static final Pattern OPPONENT_PATTERN = Pattern.compile("(?i)соперник\\s*:\\s*([^;\\n]+)");
     private static final Pattern OPPONENT_FACTION_PATTERN =
@@ -50,22 +50,22 @@ public class DigestService {
             Pattern.compile("(?i)соперник\\s*:\\s*[^;\\n()]*\\(([^)\\n]+)\\)");
 
     /**
-     * Репозиторий бронирования.
+     * Репозиторий бронирований.
      */
     private final BookingRepository bookingRepository;
 
     /**
-     * Репозиторий мероприятия клуба.
+     * Репозиторий мероприятий клуба.
      */
     private final ClubEventRepository eventRepository;
 
     /**
-     * Репозиторий стола клуба.
+     * Репозиторий столов клуба.
      */
     private final ClubTableRepository tableRepository;
 
     /**
-     * Параметры конфигурации App.
+     * Настройки приложения.
      */
     private final AppProperties appProperties;
 
@@ -75,7 +75,13 @@ public class DigestService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис дайджестов.
+     *
+     * @param bookingRepository репозиторий бронирований
+     * @param eventRepository репозиторий мероприятий
+     * @param tableRepository репозиторий столов
+     * @param appProperties настройки приложения
+     * @param objectMapper сериализатор JSON
      */
     public DigestService(
             BookingRepository bookingRepository,
@@ -92,7 +98,10 @@ public class DigestService {
     }
 
     /**
-     * Возвращает WeekDigest.
+     * Формирует недельный дайджест относительно текущей недели.
+     *
+     * @param offset смещение недели (0 — текущая, 1 — следующая)
+     * @return DTO недельного дайджеста
      */
     @Transactional(readOnly = true)
     public WeekDigestDto getWeekDigest(int offset) {
@@ -142,7 +151,12 @@ public class DigestService {
     }
 
     /**
-     * Преобразует в TableBookings.
+     * Преобразует список бронирований по столу в DTO.
+     *
+     * @param tableId идентификатор стола
+     * @param bookings список бронирований
+     * @param tableNames карта идентификатор–название стола
+     * @return DTO бронирований по столу
      */
     private DigestTableBookingsDto toTableBookings(Long tableId, List<Booking> bookings, Map<Long, String> tableNames) {
         bookings.sort(Comparator.comparing(Booking::getStartAt));
@@ -163,7 +177,10 @@ public class DigestService {
     }
 
     /**
-     * Преобразует в EventDto.
+     * Преобразует мероприятие в DTO для дайджеста.
+     *
+     * @param event мероприятие
+     * @return DTO мероприятия
      */
     private DigestEventDto toEventDto(ClubEvent event) {
         return new DigestEventDto(
@@ -178,7 +195,10 @@ public class DigestService {
     }
 
     /**
-     * Разбирает Allocations.
+     * Разбирает назначения столов из JSON.
+     *
+     * @param booking бронирование
+     * @return список назначений столов
      */
     private List<TableAllocation> parseAllocations(Booking booking) {
         if (booking.getTableAssignments() == null || booking.getTableAssignments().isBlank()) {
@@ -201,7 +221,10 @@ public class DigestService {
     }
 
     /**
-     * Определяет OpponentName.
+     * Определяет имя соперника из бронирования или заметок.
+     *
+     * @param booking бронирование
+     * @return имя соперника или null
      */
     private String resolveOpponentName(Booking booking) {
         if (booking.getOpponent() != null) {
@@ -220,7 +243,10 @@ public class DigestService {
     }
 
     /**
-     * Определяет UserFaction.
+     * Определяет фракцию основного игрока.
+     *
+     * @param booking бронирование
+     * @return фракция или null
      */
     private String resolveUserFaction(Booking booking) {
         if (booking.getArmy() == null || booking.getArmy().getFaction() == null) {
@@ -231,7 +257,10 @@ public class DigestService {
     }
 
     /**
-     * Определяет фракцию соперника.
+     * Определяет фракцию соперника из заметок.
+     *
+     * @param booking бронирование
+     * @return фракция соперника или null
      */
     private String resolveOpponentFaction(Booking booking) {
         String notes = booking.getNotes();
@@ -253,9 +282,11 @@ public class DigestService {
     }
 
     /**
-     * Сервис для работы с сущностью TableAllocation.
+     * Назначение части бронирования на конкретный стол.
+     *
+     * @param tableId идентификатор стола
+     * @param units количество единиц стола
      */
     private record TableAllocation(Long tableId, int units) {
     }
 }
-

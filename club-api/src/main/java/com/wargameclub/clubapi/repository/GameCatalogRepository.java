@@ -11,13 +11,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface GameCatalogRepository extends JpaRepository<GameCatalog, Long> {
 
     /**
-     * Возвращает каталог игр.
+     * Возвращает игры с указанной активностью.
+     *
+     * @param isActive признак активности
+     * @return список игр
      */
     List<GameCatalog> findByIsActive(boolean isActive);
 
     /**
-     * Возвращает FirstByNameIgnoreCase.
+     * Ищет игру по названию без учета регистра.
+     *
+     * @param name название игры
+     * @return игра, если найдена
      */
     Optional<GameCatalog> findFirstByNameIgnoreCase(String name);
 }
-

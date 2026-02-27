@@ -1,11 +1,19 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Статусы отправки уведомлений.
  */
 public enum NotificationStatus {
+    /**
+     * Ожидает отправки.
+     */
     PENDING,
+    /**
+     * Успешно отправлено.
+     */
     SENT,
+    /**
+     * Ошибка отправки.
+     */
     FAILED
 }
-

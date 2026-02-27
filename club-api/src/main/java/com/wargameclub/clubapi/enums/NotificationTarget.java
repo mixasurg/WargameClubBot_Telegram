@@ -1,9 +1,11 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Каналы доставки уведомлений.
  */
 public enum NotificationTarget {
+    /**
+     * Уведомление через Telegram.
+     */
     TELEGRAM
 }
-

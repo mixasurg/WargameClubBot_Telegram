@@ -1,10 +1,15 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Статусы мероприятия.
  */
 public enum EventStatus {
+    /**
+     * Мероприятие запланировано.
+     */
     SCHEDULED,
+    /**
+     * Мероприятие отменено.
+     */
     CANCELLED
 }
-

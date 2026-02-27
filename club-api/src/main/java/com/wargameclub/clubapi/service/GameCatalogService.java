@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с каталогом игр.
+ * Сервис управления каталогом игр.
  */
 @Service
 public class GameCatalogService {
@@ -19,14 +19,19 @@ public class GameCatalogService {
     private final GameCatalogRepository repository;
 
     /**
-     * Конструктор GameCatalogService.
+     * Создает сервис каталога игр.
+     *
+     * @param repository репозиторий каталога игр
      */
     public GameCatalogService(GameCatalogRepository repository) {
         this.repository = repository;
     }
 
     /**
-     * Возвращает список каталогов игр.
+     * Возвращает список игр с учетом фильтра активности.
+     *
+     * @param active фильтр активности (опционально)
+     * @return список игр
      */
     @Transactional(readOnly = true)
     public List<GameCatalog> list(Boolean active) {
@@ -37,7 +42,12 @@ public class GameCatalogService {
     }
 
     /**
-     * Создает OrGet.
+     * Создает игру или возвращает существующую с таким же названием.
+     *
+     * @param name название игры
+     * @param defaultDurationMinutes длительность по умолчанию
+     * @param tableUnits требуемое количество единиц стола
+     * @return созданная или найденная запись каталога
      */
     @Transactional
     public GameCatalog createOrGet(String name, int defaultDurationMinutes, int tableUnits) {
@@ -52,4 +62,3 @@ public class GameCatalogService {
                 .orElseGet(() -> repository.save(new GameCatalog(normalized, defaultDurationMinutes, tableUnits)));
     }
 }
-

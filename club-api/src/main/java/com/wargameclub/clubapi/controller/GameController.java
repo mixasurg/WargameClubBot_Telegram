@@ -26,14 +26,19 @@ public class GameController {
     private final GameCatalogService gameCatalogService;
 
     /**
-     * Конструктор GameController.
+     * Создает контроллер для операций с каталогом игр.
+     *
+     * @param gameCatalogService сервис каталога игр
      */
     public GameController(GameCatalogService gameCatalogService) {
         this.gameCatalogService = gameCatalogService;
     }
 
     /**
-     * Возвращает список игр.
+     * Возвращает список игр с учетом фильтра активности.
+     *
+     * @param active фильтр по активности (опционально)
+     * @return список игр
      */
     @GetMapping
     public List<GameDto> list(@RequestParam(name = "active", required = false) Boolean active) {
@@ -43,7 +48,10 @@ public class GameController {
     }
 
     /**
-     * Создает игру.
+     * Создает новую игру или возвращает существующую с тем же названием.
+     *
+     * @param request данные для создания игры
+     * @return созданная или найденная игра
      */
     @PostMapping
     public GameDto create(@Valid @RequestBody GameCreateRequest request) {
@@ -56,7 +64,10 @@ public class GameController {
     }
 
     /**
-     * Преобразует в DTO.
+     * Преобразует сущность игры в DTO.
+     *
+     * @param game сущность игры
+     * @return DTO игры
      */
     private GameDto toDto(GameCatalog game) {
         return new GameDto(
@@ -69,4 +80,3 @@ public class GameController {
         );
     }
 }
-

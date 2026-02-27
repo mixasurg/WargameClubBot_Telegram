@@ -1,7 +1,12 @@
 package com.wargameclub.clubbot.dto;
 
 /**
- * DTO запроса на создание армии.
+ * Запрос на создание армии.
+ *
+ * @param ownerUserId идентификатор владельца армии
+ * @param game название игры/системы
+ * @param faction фракция или подфракция
+ * @param isClubShared признак доступности армии для клуба
  */
 public record ArmyCreateRequest(
         Long ownerUserId,

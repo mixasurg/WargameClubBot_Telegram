@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с сущностью NotificationOutbox.
+ * Сервис работы с outbox-очередью уведомлений.
  */
 @Service
 public class NotificationOutboxService {
@@ -31,7 +31,7 @@ public class NotificationOutboxService {
     private static final Logger log = LoggerFactory.getLogger(NotificationOutboxService.class);
 
     /**
-     * Репозиторий NotificationOutbox.
+     * Репозиторий outbox-уведомлений.
      */
     private final NotificationOutboxRepository repository;
 
@@ -41,12 +41,16 @@ public class NotificationOutboxService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Параметры конфигурации App.
+     * Настройки приложения.
      */
     private final AppProperties appProperties;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис outbox-уведомлений.
+     *
+     * @param repository репозиторий outbox-уведомлений
+     * @param objectMapper сериализатор JSON
+     * @param appProperties настройки приложения
      */
     public NotificationOutboxService(
             NotificationOutboxRepository repository,
@@ -59,7 +63,12 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Ставит в очередь NotificationOutbox.
+     * Ставит уведомление в очередь на отправку немедленно.
+     *
+     * @param target канал уведомления
+     * @param routing маршрут доставки
+     * @param text текст уведомления
+     * @return созданная запись outbox
      */
     @Transactional
     public NotificationOutbox enqueue(NotificationTarget target, ChatRouting routing, String text) {
@@ -67,7 +76,15 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Ставит в очередь At.
+     * Ставит уведомление в очередь на отправку в указанное время.
+     *
+     * @param target канал уведомления
+     * @param routing маршрут доставки
+     * @param text текст уведомления
+     * @param nextAttemptAt время первой попытки отправки
+     * @param referenceType тип связанной сущности (опционально)
+     * @param referenceId идентификатор связанной сущности (опционально)
+     * @return созданная запись outbox
      */
     @Transactional
     public NotificationOutbox enqueueAt(
@@ -97,7 +114,11 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Возвращает Pending.
+     * Возвращает список ожидающих отправки уведомлений.
+     *
+     * @param target канал уведомления
+     * @param limit максимальное число записей
+     * @return список DTO уведомлений
      */
     @Transactional(readOnly = true)
     public List<NotificationOutboxDto> getPending(NotificationTarget target, int limit) {
@@ -112,7 +133,9 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Выполняет операцию.
+     * Отмечает уведомление как успешно отправленное.
+     *
+     * @param id идентификатор уведомления
      */
     @Transactional
     public void markSent(UUID id) {
@@ -124,7 +147,10 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Выполняет операцию.
+     * Отмечает уведомление как ошибочное и планирует повторную попытку.
+     *
+     * @param id идентификатор уведомления
+     * @param error сообщение об ошибке
      */
     @Transactional
     public void markFailed(UUID id, String error) {
@@ -144,7 +170,10 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Удаляет PendingByReference.
+     * Удаляет ожидающие уведомления по ссылочному типу и идентификатору.
+     *
+     * @param referenceType тип связанной сущности
+     * @param referenceId идентификатор связанной сущности
      */
     @Transactional
     public void deletePendingByReference(String referenceType, Long referenceId) {
@@ -159,7 +188,10 @@ public class NotificationOutboxService {
     }
 
     /**
-     * Преобразует в DTO.
+     * Преобразует сущность outbox в DTO.
+     *
+     * @param outbox запись outbox
+     * @return DTO уведомления
      */
     private NotificationOutboxDto toDto(NotificationOutbox outbox) {
         return new NotificationOutboxDto(
@@ -174,4 +206,3 @@ public class NotificationOutboxService {
         );
     }
 }
-

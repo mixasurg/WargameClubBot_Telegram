@@ -8,7 +8,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO запроса на создание бронирования.
+ * Запрос на создание бронирования.
+ *
+ * @param tableId идентификатор стола (опционально, если назначение стола выполняется позже)
+ * @param userId идентификатор пользователя, создающего бронирование
+ * @param startAt дата и время начала
+ * @param endAt дата и время окончания
+ * @param game название игры/системы
+ * @param tableUnits требуемое количество единиц стола
+ * @param opponentUserId идентификатор соперника (опционально)
+ * @param armyId идентификатор выбранной армии (опционально)
+ * @param notes дополнительные примечания (опционально)
  */
 public record BookingCreateRequest(
         @Positive Long tableId,
@@ -22,4 +32,3 @@ public record BookingCreateRequest(
         String notes
 ) {
 }
-

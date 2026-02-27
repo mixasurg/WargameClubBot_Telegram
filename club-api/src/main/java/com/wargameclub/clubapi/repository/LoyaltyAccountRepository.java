@@ -4,8 +4,7 @@ import com.wargameclub.clubapi.entity.LoyaltyAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для LoyaltyAccount.
+ * JPA-репозиторий для счетов лояльности.
  */
 public interface LoyaltyAccountRepository extends JpaRepository<LoyaltyAccount, Long> {
 }
-

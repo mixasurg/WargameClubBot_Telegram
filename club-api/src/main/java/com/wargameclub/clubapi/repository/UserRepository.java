@@ -6,18 +6,23 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для пользователя.
+ * JPA-репозиторий для пользователей.
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
-     * Возвращает пользователя.
+     * Ищет пользователя по Telegram ID.
+     *
+     * @param telegramId идентификатор пользователя в Telegram
+     * @return пользователь, если найден
      */
     Optional<User> findByTelegramId(Long telegramId);
 
     /**
-     * Возвращает пользователя.
+     * Ищет пользователей по части имени без учета регистра.
+     *
+     * @param name часть имени
+     * @return список пользователей
      */
     List<User> findByNameContainingIgnoreCase(String name);
 }
-

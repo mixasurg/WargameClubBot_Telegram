@@ -1,19 +1,16 @@
 package com.wargameclub.clubapi.exception;
 
 /**
- * Исключение для Conflict.
+ * Исключение для конфликтующих запросов (HTTP 409).
  */
 public class ConflictException extends RuntimeException {
 
     /**
-     * Конструктор ConflictException.
+     * Создает исключение с описанием причины конфликта.
+     *
+     * @param message описание ошибки для клиента
      */
     public ConflictException(String message) {
-
-        /**
-         * Выполняет операцию.
-         */
         super(message);
     }
 }
-

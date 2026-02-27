@@ -1,7 +1,11 @@
 package com.wargameclub.clubbot.dto;
 
 /**
- * DTO запроса на создание игры.
+ * Запрос на создание игры в каталоге.
+ *
+ * @param name название игры/системы
+ * @param defaultDurationMinutes длительность по умолчанию в минутах
+ * @param tableUnits требуемое количество единиц стола
  */
 public record GameCreateRequest(
         String name,
@@ -9,4 +13,3 @@ public record GameCreateRequest(
         int tableUnits
 ) {
 }
-

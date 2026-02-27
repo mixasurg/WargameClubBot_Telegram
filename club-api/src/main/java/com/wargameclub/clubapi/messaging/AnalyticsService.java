@@ -16,34 +16,34 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Компонент обмена сообщениями для аналитики.
+ * Сервис агрегации и сохранения аналитики по событиям и покупкам.
  */
 @Service
 public class AnalyticsService {
     /**
-     * Поле состояния.
+     * Объект синхронизации для потокобезопасного обновления агрегатов.
      */
     private final Object lock = new Object();
     /**
-     * Поле состояния.
+     * Счетчики покупок по категориям/типам мероприятий.
      */
     private final Map<String, Integer> purchasesByCategory = new HashMap<>();
     /**
-     * Поле состояния.
+     * Счетчики покупок по идентификаторам мероприятий.
      */
     private final Map<Long, Integer> purchasesByEvent = new HashMap<>();
     /**
-     * Поле состояния.
+     * Справочник данных по мероприятиям для аналитики.
      */
     private final Map<Long, EventInfo> eventInfo = new HashMap<>();
 
     /**
-     * Поле состояния.
+     * Общая сумма выручки.
      */
     private BigDecimal revenue = BigDecimal.ZERO;
 
     /**
-     * Поле состояния.
+     * Время последнего обновления аналитики.
      */
     private OffsetDateTime lastUpdated;
 
@@ -53,17 +53,25 @@ public class AnalyticsService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Поле состояния.
+     * Путь к файлу сохранения аналитики (опционально).
      */
     private final Path analyticsFile;
 
+    /**
+     * Создает сервис аналитики.
+     *
+     * @param objectMapper сериализатор JSON
+     * @param analyticsFile путь к файлу аналитики из настроек приложения
+     */
     public AnalyticsService(ObjectMapper objectMapper, @Value("${app.analytics.file:}") String analyticsFile) {
         this.objectMapper = objectMapper;
         this.analyticsFile = analyticsFile == null || analyticsFile.isBlank() ? null : Path.of(analyticsFile);
     }
 
     /**
-     * Фиксирует Purchase.
+     * Фиксирует покупку билетов и обновляет агрегаты.
+     *
+     * @param event событие покупки билетов
      */
     public void recordPurchase(TicketPurchasedEvent event) {
         if (event == null) {
@@ -80,16 +88,14 @@ public class AnalyticsService {
             }
             revenue = revenue.add(amount);
             lastUpdated = event.occurredAt();
-
-            /**
-             * Выполняет операцию.
-             */
             persistLocked();
         }
     }
 
     /**
-     * Фиксирует EventUpdated.
+     * Фиксирует обновление мероприятия для аналитики.
+     *
+     * @param event событие обновления мероприятия
      */
     public void recordEventUpdated(EventUpdatedEvent event) {
         if (event == null) {
@@ -100,16 +106,12 @@ public class AnalyticsService {
                 eventInfo.put(event.eventId(), new EventInfo(event.title(), event.type()));
             }
             lastUpdated = event.updatedAt();
-
-            /**
-             * Выполняет операцию.
-             */
             persistLocked();
         }
     }
 
     /**
-     * Выполняет операцию.
+     * Сохраняет текущий снимок аналитики в файл. Метод должен вызываться под {@code lock}.
      */
     private void persistLocked() {
         if (analyticsFile == null) {
@@ -135,6 +137,12 @@ public class AnalyticsService {
         }
     }
 
+    /**
+     * Формирует список популярных мероприятий по количеству покупок.
+     * Метод должен вызываться под {@code lock}.
+     *
+     * @return список топ-мероприятий
+     */
     private List<AnalyticsSnapshot.PopularEvent> buildTopEventsLocked() {
         List<AnalyticsSnapshot.PopularEvent> result = new ArrayList<>();
         purchasesByEvent.entrySet().stream()
@@ -150,7 +158,10 @@ public class AnalyticsService {
     }
 
     /**
-     * Компонент обмена сообщениями для EventInfo.
+     * Метаданные мероприятия для аналитики.
+     *
+     * @param title название мероприятия
+     * @param type тип мероприятия
      */
     private record EventInfo(String title, EventType type) {
     }

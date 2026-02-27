@@ -12,59 +12,64 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность использование армии.
+ * JPA-сущность факта использования армии пользователем.
  */
 @Entity
 @Table(name = "army_usage")
 public class ArmyUsage {
 
     /**
-     * Поле состояния.
+     * Идентификатор записи использования.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Использованная армия.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "army_id", nullable = false)
     private Army army;
 
     /**
-     * Поле состояния.
+     * Пользователь, использовавший армию.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "used_by_user_id", nullable = false)
     private User usedBy;
 
     /**
-     * Поле состояния.
+     * Дата и время использования.
      */
     @Column(nullable = false)
     private OffsetDateTime usedAt;
 
     /**
-     * Поле состояния.
+     * Примечание к использованию (опционально).
      */
     @Column
     private String notes;
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор ArmyUsage.
+     * Создает пустую сущность для JPA.
      */
     public ArmyUsage() {
     }
 
     /**
-     * Конструктор ArmyUsage.
+     * Создает запись использования армии.
+     *
+     * @param army использованная армия
+     * @param usedBy пользователь, использовавший армию
+     * @param usedAt дата и время использования
+     * @param notes примечание (опционально)
      */
     public ArmyUsage(Army army, User usedBy, OffsetDateTime usedAt, String notes) {
         this.army = army;
@@ -75,80 +80,101 @@ public class ArmyUsage {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор записи использования.
+     *
+     * @return идентификатор записи
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает армию.
+     * Возвращает использованную армию.
+     *
+     * @return армия
      */
     public Army getArmy() {
         return army;
     }
 
     /**
-     * Устанавливает армию.
+     * Устанавливает использованную армию.
+     *
+     * @param army армия
      */
     public void setArmy(Army army) {
         this.army = army;
     }
 
     /**
-     * Возвращает UsedBy.
+     * Возвращает пользователя, использовавшего армию.
+     *
+     * @return пользователь
      */
     public User getUsedBy() {
         return usedBy;
     }
 
     /**
-     * Устанавливает UsedBy.
+     * Устанавливает пользователя, использовавшего армию.
+     *
+     * @param usedBy пользователь
      */
     public void setUsedBy(User usedBy) {
         this.usedBy = usedBy;
     }
 
     /**
-     * Возвращает UsedAt.
+     * Возвращает дату и время использования.
+     *
+     * @return дата и время использования
      */
     public OffsetDateTime getUsedAt() {
         return usedAt;
     }
 
     /**
-     * Устанавливает UsedAt.
+     * Устанавливает дату и время использования.
+     *
+     * @param usedAt дата и время использования
      */
     public void setUsedAt(OffsetDateTime usedAt) {
         this.usedAt = usedAt;
     }
 
     /**
-     * Возвращает Notes.
+     * Возвращает примечание к использованию.
+     *
+     * @return примечание
      */
     public String getNotes() {
         return notes;
     }
 
     /**
-     * Устанавливает Notes.
+     * Устанавливает примечание к использованию.
+     *
+     * @param notes примечание
      */
     public void setNotes(String notes) {
         this.notes = notes;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }
-

@@ -5,7 +5,16 @@ import java.time.OffsetDateTime;
 import com.wargameclub.clubapi.enums.EventType;
 
 /**
- * Событие для TicketCancelled.
+ * Событие отмены покупки билета.
+ *
+ * @param eventId идентификатор мероприятия
+ * @param eventTitle название мероприятия
+ * @param eventType тип мероприятия
+ * @param userId идентификатор пользователя
+ * @param userName имя пользователя
+ * @param count количество отмененных билетов
+ * @param amount сумма возврата/отмены
+ * @param occurredAt время события
  */
 public record TicketCancelledEvent(
         Long eventId,

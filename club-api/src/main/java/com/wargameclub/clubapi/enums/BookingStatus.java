@@ -1,10 +1,15 @@
 package com.wargameclub.clubapi.enums;
 
 /**
- * Класс модуля club-api.
+ * Статусы бронирования.
  */
 public enum BookingStatus {
+    /**
+     * Бронирование создано и активно.
+     */
     CREATED,
+    /**
+     * Бронирование отменено.
+     */
     CANCELLED
 }
-

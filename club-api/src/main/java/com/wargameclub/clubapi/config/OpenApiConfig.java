@@ -6,13 +6,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Конфигурация для OpenApi.
+ * Конфигурация OpenAPI/Swagger с базовыми метаданными сервиса.
  */
 @Configuration
 public class OpenApiConfig {
 
     /**
-     * Выполняет операцию.
+     * Создает {@link OpenAPI} с метаданными API клуба: название, версия и описание.
+     *
+     * @return объект OpenAPI для публикации спецификации Swagger/OpenAPI
      */
     @Bean
     public OpenAPI clubOpenApi() {
@@ -23,4 +25,3 @@ public class OpenApiConfig {
                         .description("REST API для расписания клуба, мероприятий, армий и уведомлений."));
     }
 }
-

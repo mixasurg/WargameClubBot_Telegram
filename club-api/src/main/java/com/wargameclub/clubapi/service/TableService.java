@@ -7,29 +7,32 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с столами.
+ * Сервис для работы с игровыми столами.
  */
 @Service
 public class TableService {
 
     /**
-     * Репозиторий стола клуба.
+     * Репозиторий столов клуба.
      */
     private final ClubTableRepository tableRepository;
 
     /**
-     * Конструктор TableService.
+     * Создает сервис столов.
+     *
+     * @param tableRepository репозиторий столов
      */
     public TableService(ClubTableRepository tableRepository) {
         this.tableRepository = tableRepository;
     }
 
     /**
-     * Возвращает All.
+     * Возвращает список всех столов.
+     *
+     * @return список столов
      */
     @Transactional(readOnly = true)
     public List<ClubTable> findAll() {
         return tableRepository.findAll();
     }
 }
-

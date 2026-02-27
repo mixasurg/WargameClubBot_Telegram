@@ -6,63 +6,65 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность ClubTelegram.
+ * JPA-сущность настроек Telegram для клуба.
  */
 @Entity
 @Table(name = "club_telegram_settings")
 public class ClubTelegramSettings {
 
     /**
-     * Поле состояния.
+     * Идентификатор чата Telegram.
      */
     @Id
     @Column(name = "chat_id")
     private Long chatId;
 
     /**
-     * Поле состояния.
+     * Идентификатор темы расписания.
      */
     @Column(name = "schedule_thread_id")
     private Integer scheduleThreadId;
 
     /**
-     * Поле состояния.
+     * Идентификатор темы мероприятий.
      */
     @Column(name = "events_thread_id")
     private Integer eventsThreadId;
 
     /**
-     * Поле состояния.
+     * Идентификатор сообщения расписания на две недели.
      */
     @Column(name = "schedule_twoweeks_message_id")
     private Integer scheduleTwoweeksMessageId;
 
     /**
-     * Поле состояния.
+     * Идентификатор сообщения следующего двухнедельного расписания.
      */
     @Column(name = "schedule_twoweeks_next_message_id")
     private Integer scheduleTwoweeksNextMessageId;
 
     /**
-     * Поле состояния.
+     * Идентификатор сообщения списка мероприятий.
      */
     @Column(name = "events_message_id")
     private Integer eventsMessageId;
 
     /**
-     * Поле состояния.
+     * Часовой пояс для публикации сообщений.
      */
     @Column(nullable = false, length = 50)
     private String timezone = "Europe/Moscow";
 
     /**
-     * Конструктор ClubTelegramSettings.
+     * Создает пустую сущность для JPA.
      */
     public ClubTelegramSettings() {
     }
 
     /**
-     * Конструктор ClubTelegramSettings.
+     * Создает настройки Telegram для указанного чата.
+     *
+     * @param chatId идентификатор чата
      */
     public ClubTelegramSettings(Long chatId) {
         this.chatId = chatId;
@@ -70,98 +72,126 @@ public class ClubTelegramSettings {
     }
 
     /**
-     * Возвращает идентификатор Chat.
+     * Возвращает идентификатор чата.
+     *
+     * @return идентификатор чата
      */
     public Long getChatId() {
         return chatId;
     }
 
     /**
-     * Устанавливает идентификатор Chat.
+     * Устанавливает идентификатор чата.
+     *
+     * @param chatId идентификатор чата
      */
     public void setChatId(Long chatId) {
         this.chatId = chatId;
     }
 
     /**
-     * Возвращает идентификатор ScheduleThread.
+     * Возвращает идентификатор темы расписания.
+     *
+     * @return идентификатор темы расписания
      */
     public Integer getScheduleThreadId() {
         return scheduleThreadId;
     }
 
     /**
-     * Устанавливает идентификатор ScheduleThread.
+     * Устанавливает идентификатор темы расписания.
+     *
+     * @param scheduleThreadId идентификатор темы расписания
      */
     public void setScheduleThreadId(Integer scheduleThreadId) {
         this.scheduleThreadId = scheduleThreadId;
     }
 
     /**
-     * Возвращает идентификатор EventsThread.
+     * Возвращает идентификатор темы мероприятий.
+     *
+     * @return идентификатор темы мероприятий
      */
     public Integer getEventsThreadId() {
         return eventsThreadId;
     }
 
     /**
-     * Устанавливает идентификатор EventsThread.
+     * Устанавливает идентификатор темы мероприятий.
+     *
+     * @param eventsThreadId идентификатор темы мероприятий
      */
     public void setEventsThreadId(Integer eventsThreadId) {
         this.eventsThreadId = eventsThreadId;
     }
 
     /**
-     * Возвращает идентификатор ScheduleTwoweeksMessage.
+     * Возвращает идентификатор сообщения расписания на две недели.
+     *
+     * @return идентификатор сообщения расписания
      */
     public Integer getScheduleTwoweeksMessageId() {
         return scheduleTwoweeksMessageId;
     }
 
     /**
-     * Устанавливает идентификатор ScheduleTwoweeksMessage.
+     * Устанавливает идентификатор сообщения расписания на две недели.
+     *
+     * @param scheduleTwoweeksMessageId идентификатор сообщения расписания
      */
     public void setScheduleTwoweeksMessageId(Integer scheduleTwoweeksMessageId) {
         this.scheduleTwoweeksMessageId = scheduleTwoweeksMessageId;
     }
 
     /**
-     * Возвращает идентификатор ScheduleTwoweeksNextMessage.
+     * Возвращает идентификатор сообщения следующего двухнедельного расписания.
+     *
+     * @return идентификатор сообщения следующего расписания
      */
     public Integer getScheduleTwoweeksNextMessageId() {
         return scheduleTwoweeksNextMessageId;
     }
 
     /**
-     * Устанавливает идентификатор ScheduleTwoweeksNextMessage.
+     * Устанавливает идентификатор сообщения следующего двухнедельного расписания.
+     *
+     * @param scheduleTwoweeksNextMessageId идентификатор сообщения следующего расписания
      */
     public void setScheduleTwoweeksNextMessageId(Integer scheduleTwoweeksNextMessageId) {
         this.scheduleTwoweeksNextMessageId = scheduleTwoweeksNextMessageId;
     }
 
     /**
-     * Возвращает идентификатор EventsMessage.
+     * Возвращает идентификатор сообщения списка мероприятий.
+     *
+     * @return идентификатор сообщения мероприятий
      */
     public Integer getEventsMessageId() {
         return eventsMessageId;
     }
 
     /**
-     * Устанавливает идентификатор EventsMessage.
+     * Устанавливает идентификатор сообщения списка мероприятий.
+     *
+     * @param eventsMessageId идентификатор сообщения мероприятий
      */
     public void setEventsMessageId(Integer eventsMessageId) {
         this.eventsMessageId = eventsMessageId;
     }
 
     /**
-     * Возвращает Timezone.
+     * Возвращает часовой пояс.
+     *
+     * @return часовой пояс
      */
     public String getTimezone() {
         return timezone;
     }
 
     /**
-     * Устанавливает Timezone.
+     * Устанавливает часовой пояс.
+     *
+     * @param timezone часовой пояс
      */
     public void setTimezone(String timezone) {
         this.timezone = timezone;

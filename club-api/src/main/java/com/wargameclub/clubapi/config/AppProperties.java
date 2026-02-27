@@ -4,7 +4,7 @@ import java.time.ZoneId;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Конфигурация для App.
+ * Типизированные настройки приложения, загружаемые из префикса {@code app.*}.
  */
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
@@ -22,35 +22,43 @@ public class AppProperties {
     private final Notifications notifications = new Notifications();
 
     /**
-     * Возвращает Timezone.
+     * Возвращает часовой пояс, используемый приложением по умолчанию.
+     *
+     * @return часовой пояс приложения
      */
     public ZoneId getTimezone() {
         return timezone;
     }
 
     /**
-     * Устанавливает Timezone.
+     * Устанавливает часовой пояс, используемый приложением по умолчанию.
+     *
+     * @param timezone часовой пояс приложения
      */
     public void setTimezone(ZoneId timezone) {
         this.timezone = timezone;
     }
 
     /**
-     * Возвращает лояльность.
+     * Возвращает настройки лояльности.
+     *
+     * @return конфигурация начисления баллов
      */
     public Loyalty getLoyalty() {
         return loyalty;
     }
 
     /**
-     * Возвращает Notifications.
+     * Возвращает настройки повторных попыток уведомлений.
+     *
+     * @return конфигурация уведомлений
      */
     public Notifications getNotifications() {
         return notifications;
     }
 
     /**
-     * Конфигурация для лояльности.
+     * Настройки начисления баллов лояльности за действия пользователей.
      */
     public static class Loyalty {
 
@@ -65,28 +73,36 @@ public class AppProperties {
         private int pointsArmyShared = 5;
 
         /**
-         * Возвращает PointsArmyUsed.
+         * Возвращает количество баллов за использование армии.
+         *
+         * @return баллы за использование армии
          */
         public int getPointsArmyUsed() {
             return pointsArmyUsed;
         }
 
         /**
-         * Устанавливает PointsArmyUsed.
+         * Устанавливает количество баллов за использование армии.
+         *
+         * @param pointsArmyUsed баллы за использование армии
          */
         public void setPointsArmyUsed(int pointsArmyUsed) {
             this.pointsArmyUsed = pointsArmyUsed;
         }
 
         /**
-         * Возвращает PointsArmyShared.
+         * Возвращает количество баллов за шаринг армии.
+         *
+         * @return баллы за шаринг армии
          */
         public int getPointsArmyShared() {
             return pointsArmyShared;
         }
 
         /**
-         * Устанавливает PointsArmyShared.
+         * Устанавливает количество баллов за шаринг армии.
+         *
+         * @param pointsArmyShared баллы за шаринг армии
          */
         public void setPointsArmyShared(int pointsArmyShared) {
             this.pointsArmyShared = pointsArmyShared;
@@ -94,7 +110,7 @@ public class AppProperties {
     }
 
     /**
-     * Конфигурация для Notifications.
+     * Настройки повторных попыток отправки уведомлений.
      */
     public static class Notifications {
 
@@ -109,32 +125,39 @@ public class AppProperties {
         private int backoffSeconds = 30;
 
         /**
-         * Возвращает MaxAttempts.
+         * Возвращает максимальное число попыток отправки уведомления.
+         *
+         * @return максимальное число попыток
          */
         public int getMaxAttempts() {
             return maxAttempts;
         }
 
         /**
-         * Устанавливает MaxAttempts.
+         * Устанавливает максимальное число попыток отправки уведомления.
+         *
+         * @param maxAttempts максимальное число попыток
          */
         public void setMaxAttempts(int maxAttempts) {
             this.maxAttempts = maxAttempts;
         }
 
         /**
-         * Возвращает BackoffSeconds.
+         * Возвращает задержку между попытками отправки уведомления в секундах.
+         *
+         * @return задержка между попытками в секундах
          */
         public int getBackoffSeconds() {
             return backoffSeconds;
         }
 
         /**
-         * Устанавливает BackoffSeconds.
+         * Устанавливает задержку между попытками отправки уведомления в секундах.
+         *
+         * @param backoffSeconds задержка между попытками в секундах
          */
         public void setBackoffSeconds(int backoffSeconds) {
             this.backoffSeconds = backoffSeconds;
         }
     }
 }
-

@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Сервис для работы с сущностью OutboxEventPublisher.
+ * Публикатор уведомлений, отправляющий сообщения через outbox-очередь.
  */
 @Service
 public class OutboxEventPublisher implements EventPublisher {
@@ -16,7 +16,7 @@ public class OutboxEventPublisher implements EventPublisher {
     private static final Logger log = LoggerFactory.getLogger(OutboxEventPublisher.class);
 
     /**
-     * Сервис NotificationOutbox.
+     * Сервис outbox-уведомлений.
      */
     private final NotificationOutboxService outboxService;
 
@@ -26,7 +26,10 @@ public class OutboxEventPublisher implements EventPublisher {
     private final TelegramSettingsService settingsService;
 
     /**
-     * Конструктор OutboxEventPublisher.
+     * Создает публикатор уведомлений через outbox.
+     *
+     * @param outboxService сервис outbox
+     * @param settingsService сервис настроек Telegram
      */
     public OutboxEventPublisher(NotificationOutboxService outboxService, TelegramSettingsService settingsService) {
         this.outboxService = outboxService;
@@ -34,7 +37,9 @@ public class OutboxEventPublisher implements EventPublisher {
     }
 
     /**
-     * Публикует EventNotification.
+     * Публикует уведомление о событии, если заданы настройки Telegram.
+     *
+     * @param messageText текст уведомления
      */
     @Override
     public void publishEventNotification(String messageText) {
@@ -44,4 +49,3 @@ public class OutboxEventPublisher implements EventPublisher {
         }, () -> log.warn("Пропуск уведомления: настройки Telegram не заданы"));
     }
 }
-

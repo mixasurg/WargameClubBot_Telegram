@@ -1,10 +1,11 @@
 package com.wargameclub.clubbot.dto;
 
 /**
- * DTO запроса для NotificationFail.
+ * Запрос на фиксацию ошибки отправки уведомления.
+ *
+ * @param error текст ошибки или причина сбоя
  */
 public record NotificationFailRequest(
         String error
 ) {
 }
-

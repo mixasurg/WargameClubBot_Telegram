@@ -17,52 +17,56 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Обработчик сообщений для BookingReminder.
+ * Kafka-консьюмер, планирующий напоминания о бронированиях и запрос результата игры.
  */
 @Service
 public class BookingReminderConsumer {
 
     /**
-     * Поле состояния.
+     * Тип ссылки для напоминаний о бронировании.
      */
     private static final String REMINDER_REFERENCE = "BOOKING_REMINDER";
 
     /**
-     * Поле состояния.
+     * Тип ссылки для запроса результата игры.
      */
     private static final String RESULT_REFERENCE = "BOOKING_RESULT_PROMPT";
 
     /**
-     * Поле состояния.
+     * Команда для запроса результата игры.
      */
     private static final String RESULT_PROMPT_COMMAND = "__cmd:result_prompt__";
 
     /**
-     * Поле состояния.
+     * Задержка запроса результата после окончания бронирования (минуты).
      */
     private static final int RESULT_DELAY_MINUTES = 90;
     /**
-     * Поле состояния.
+     * Формат даты и времени в напоминании.
      */
     private static final DateTimeFormatter REMINDER_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     /**
-     * Репозиторий бронирования.
+     * Репозиторий бронирований.
      */
     private final BookingRepository bookingRepository;
 
     /**
-     * Сервис NotificationOutbox.
+     * Сервис outbox-уведомлений.
      */
     private final NotificationOutboxService outboxService;
 
     /**
-     * Параметры конфигурации App.
+     * Настройки приложения.
      */
     private final AppProperties appProperties;
 
     /**
-     * Выполняет операцию.
+     * Создает консьюмера напоминаний о бронированиях.
+     *
+     * @param bookingRepository репозиторий бронирований
+     * @param outboxService сервис outbox-уведомлений
+     * @param appProperties параметры приложения
      */
     public BookingReminderConsumer(
             BookingRepository bookingRepository,
@@ -74,15 +78,17 @@ public class BookingReminderConsumer {
         this.appProperties = appProperties;
     }
 
+    /**
+     * Обрабатывает событие создания бронирования: планирует напоминание и запрос результата.
+     *
+     * @param event событие создания бронирования
+     * @param acknowledgment подтверждение обработки сообщения
+     */
     @KafkaListener(
             topics = KafkaTopics.BOOKING_CREATED,
             groupId = "booking-reminder",
             containerFactory = "kafkaListenerContainerFactory"
     )
-
-    /**
-     * Выполняет операцию.
-     */
     @Transactional
     public void onBookingCreated(BookingCreatedEvent event, Acknowledgment acknowledgment) {
         if (event == null || event.bookingId() == null) {
@@ -112,15 +118,8 @@ public class BookingReminderConsumer {
         ZoneId zoneId = appProperties.getTimezone();
         String message = buildReminderMessage(booking, zoneId);
 
-        /**
-         * Ставит в очередь напоминание.
-         */
         enqueueReminder(booking.getUser(), message, reminderAt, booking.getId());
         if (booking.getOpponent() != null) {
-
-            /**
-             * Ставит в очередь напоминание.
-             */
             enqueueReminder(booking.getOpponent(), message, reminderAt, booking.getId());
         }
         if (booking.getOpponent() != null && booking.getEndAt() != null) {
@@ -129,29 +128,23 @@ public class BookingReminderConsumer {
                 resultAt = now;
             }
             String command = RESULT_PROMPT_COMMAND + ":" + booking.getId();
-
-            /**
-             * Ставит в очередь ResultPrompt.
-             */
             enqueueResultPrompt(booking.getUser(), command, resultAt, booking.getId());
-
-            /**
-             * Ставит в очередь ResultPrompt.
-             */
             enqueueResultPrompt(booking.getOpponent(), command, resultAt, booking.getId());
         }
         acknowledgment.acknowledge();
     }
 
+    /**
+     * Обрабатывает событие отмены бронирования: удаляет запланированные уведомления.
+     *
+     * @param event событие отмены бронирования
+     * @param acknowledgment подтверждение обработки сообщения
+     */
     @KafkaListener(
             topics = KafkaTopics.BOOKING_CANCELLED,
             groupId = "booking-reminder",
             containerFactory = "kafkaListenerContainerFactory"
     )
-
-    /**
-     * Выполняет операцию.
-     */
     @Transactional
     public void onBookingCancelled(BookingCancelledEvent event, Acknowledgment acknowledgment) {
         if (event == null || event.bookingId() == null) {
@@ -163,7 +156,12 @@ public class BookingReminderConsumer {
     }
 
     /**
-     * Ставит в очередь напоминание.
+     * Ставит в очередь напоминание пользователю.
+     *
+     * @param user пользователь
+     * @param text текст напоминания
+     * @param reminderAt время отправки напоминания
+     * @param bookingId идентификатор бронирования
      */
     private void enqueueReminder(User user, String text, OffsetDateTime reminderAt, Long bookingId) {
         if (user == null || user.getTelegramId() == null) {
@@ -181,7 +179,12 @@ public class BookingReminderConsumer {
     }
 
     /**
-     * Ставит в очередь ResultPrompt.
+     * Ставит в очередь запрос результата игры пользователю.
+     *
+     * @param user пользователь
+     * @param text команда запроса результата
+     * @param resultAt время отправки запроса
+     * @param bookingId идентификатор бронирования
      */
     private void enqueueResultPrompt(User user, String text, OffsetDateTime resultAt, Long bookingId) {
         if (user == null || user.getTelegramId() == null) {
@@ -199,7 +202,11 @@ public class BookingReminderConsumer {
     }
 
     /**
-     * Формирует ReminderMessage.
+     * Формирует текст напоминания для бронирования.
+     *
+     * @param booking бронирование
+     * @param zoneId часовой пояс
+     * @return текст напоминания
      */
     private String buildReminderMessage(Booking booking, ZoneId zoneId) {
         String game = booking.getGame() != null ? booking.getGame() : "-";

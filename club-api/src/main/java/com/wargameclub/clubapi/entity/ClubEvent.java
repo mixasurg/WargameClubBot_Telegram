@@ -16,233 +16,274 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность Club.
+ * JPA-сущность мероприятия клуба.
  */
 @Entity
 @Table(name = "club_event")
 public class ClubEvent {
 
     /**
-     * Поле состояния.
+     * Идентификатор мероприятия.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Название мероприятия.
      */
     @Column(nullable = false, length = 200)
     private String title;
 
     /**
-     * Поле состояния.
+     * Тип мероприятия.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private EventType type;
 
     /**
-     * Поле состояния.
+     * Описание мероприятия.
      */
     @Column
     private String description;
 
     /**
-     * Поле состояния.
+     * Дата и время начала.
      */
     @Column(nullable = false)
     private OffsetDateTime startAt;
 
     /**
-     * Поле состояния.
+     * Дата и время окончания.
      */
     @Column(nullable = false)
     private OffsetDateTime endAt;
 
     /**
-     * Поле состояния.
+     * Организатор мероприятия.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_user_id", nullable = false)
     private User organizer;
 
     /**
-     * Поле состояния.
+     * Максимальное число участников (опционально).
      */
     @Column
     private Integer capacity;
 
     /**
-     * Поле состояния.
+     * Текущий статус мероприятия.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EventStatus status = EventStatus.SCHEDULED;
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Поле состояния.
+     * Дата и время последнего обновления.
      */
     @Column(nullable = false)
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     /**
-     * Конструктор ClubEvent.
+     * Создает пустую сущность для JPA.
      */
     public ClubEvent() {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор мероприятия.
+     *
+     * @return идентификатор мероприятия
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает Title.
+     * Возвращает название мероприятия.
+     *
+     * @return название мероприятия
      */
     public String getTitle() {
         return title;
     }
 
     /**
-     * Устанавливает Title.
+     * Устанавливает название мероприятия.
+     *
+     * @param title название мероприятия
      */
     public void setTitle(String title) {
         this.title = title;
     }
 
     /**
-     * Возвращает Type.
+     * Возвращает тип мероприятия.
+     *
+     * @return тип мероприятия
      */
     public EventType getType() {
         return type;
     }
 
     /**
-     * Устанавливает Type.
+     * Устанавливает тип мероприятия.
+     *
+     * @param type тип мероприятия
      */
     public void setType(EventType type) {
         this.type = type;
     }
 
     /**
-     * Возвращает Description.
+     * Возвращает описание мероприятия.
+     *
+     * @return описание мероприятия
      */
     public String getDescription() {
         return description;
     }
 
     /**
-     * Устанавливает Description.
+     * Устанавливает описание мероприятия.
+     *
+     * @param description описание мероприятия
      */
     public void setDescription(String description) {
         this.description = description;
     }
 
     /**
-     * Возвращает время начала.
+     * Возвращает дату и время начала.
+     *
+     * @return дата и время начала
      */
     public OffsetDateTime getStartAt() {
         return startAt;
     }
 
     /**
-     * Устанавливает время начала.
+     * Устанавливает дату и время начала.
+     *
+     * @param startAt дата и время начала
      */
     public void setStartAt(OffsetDateTime startAt) {
         this.startAt = startAt;
     }
 
     /**
-     * Возвращает время окончания.
+     * Возвращает дату и время окончания.
+     *
+     * @return дата и время окончания
      */
     public OffsetDateTime getEndAt() {
         return endAt;
     }
 
     /**
-     * Устанавливает время окончания.
+     * Устанавливает дату и время окончания.
+     *
+     * @param endAt дата и время окончания
      */
     public void setEndAt(OffsetDateTime endAt) {
         this.endAt = endAt;
     }
 
     /**
-     * Возвращает Organizer.
+     * Возвращает организатора мероприятия.
+     *
+     * @return организатор мероприятия
      */
     public User getOrganizer() {
         return organizer;
     }
 
     /**
-     * Устанавливает Organizer.
+     * Устанавливает организатора мероприятия.
+     *
+     * @param organizer организатор мероприятия
      */
     public void setOrganizer(User organizer) {
         this.organizer = organizer;
     }
 
     /**
-     * Возвращает Capacity.
+     * Возвращает лимит по числу участников.
+     *
+     * @return лимит участников или null
      */
     public Integer getCapacity() {
         return capacity;
     }
 
     /**
-     * Устанавливает Capacity.
+     * Устанавливает лимит по числу участников.
+     *
+     * @param capacity лимит участников
      */
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
     }
 
     /**
-     * Возвращает Status.
+     * Возвращает текущий статус мероприятия.
+     *
+     * @return статус мероприятия
      */
     public EventStatus getStatus() {
         return status;
     }
 
     /**
-     * Устанавливает Status.
+     * Устанавливает текущий статус мероприятия.
+     *
+     * @param status статус мероприятия
      */
     public void setStatus(EventStatus status) {
         this.status = status;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата и время создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата и время создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
     /**
-     * Возвращает UpdatedAt.
+     * Возвращает дату и время последнего обновления.
+     *
+     * @return дата и время обновления
      */
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
 
     /**
-     * Устанавливает UpdatedAt.
+     * Устанавливает дату и время последнего обновления.
+     *
+     * @param updatedAt дата и время обновления
      */
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }
-

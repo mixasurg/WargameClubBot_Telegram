@@ -29,33 +29,33 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с бронированиями.
+ * Сервис управления бронированиями и распределением столов.
  */
 @Service
 public class BookingService {
 
     /**
-     * Поле состояния.
+     * Емкость одного стола в условных единицах.
      */
     private static final int TABLE_CAPACITY_UNITS = 2;
 
     /**
-     * Репозиторий бронирования.
+     * Репозиторий бронирований.
      */
     private final BookingRepository bookingRepository;
 
     /**
-     * Репозиторий стола клуба.
+     * Репозиторий столов клуба.
      */
     private final ClubTableRepository tableRepository;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     private final UserRepository userRepository;
 
     /**
-     * Репозиторий армии.
+     * Репозиторий армий.
      */
     private final ArmyRepository armyRepository;
 
@@ -65,17 +65,25 @@ public class BookingService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Сервис TelegramAutoRefresh.
+     * Сервис автообновления Telegram-расписания.
      */
     private final TelegramAutoRefreshService autoRefreshService;
 
     /**
-     * Поле состояния.
+     * Публикатор событий в Kafka.
      */
     private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис бронирований.
+     *
+     * @param bookingRepository репозиторий бронирований
+     * @param tableRepository репозиторий столов
+     * @param userRepository репозиторий пользователей
+     * @param armyRepository репозиторий армий
+     * @param objectMapper сериализатор JSON
+     * @param autoRefreshService сервис автообновления Telegram
+     * @param kafkaEventPublisher публикатор событий Kafka
      */
     public BookingService(
             BookingRepository bookingRepository,
@@ -96,14 +104,13 @@ public class BookingService {
     }
 
     /**
-     * Создает бронирование.
+     * Создает новое бронирование, распределяет столы и публикует событие.
+     *
+     * @param request запрос на бронирование
+     * @return созданное бронирование
      */
     @Transactional
     public Booking create(BookingCreateRequest request) {
-
-        /**
-         * Проверяет Range.
-         */
         validateRange(request.startAt(), request.endAt());
         if (request.tableUnits() == null) {
             throw new BadRequestException("Поле tableUnits обязательно");
@@ -135,9 +142,6 @@ public class BookingService {
             throw new ConflictException("Армия уже забронирована на это время");
         }
 
-        /**
-         * Выполняет операцию.
-         */
         List<TableAllocation> allocations = allocateTables(
                 overlapping,
                 request.tableUnits(),
@@ -162,14 +166,15 @@ public class BookingService {
     }
 
     /**
-     * Возвращает Overlapping.
+     * Возвращает бронирования, пересекающие интервал времени, с опциональной фильтрацией по столу.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param tableId идентификатор стола (опционально)
+     * @return список бронирований
      */
     @Transactional(readOnly = true)
     public List<Booking> findOverlapping(OffsetDateTime from, OffsetDateTime to, Long tableId) {
-
-        /**
-         * Проверяет Range.
-         */
         validateRange(from, to);
         List<Booking> bookings = bookingRepository.findOverlappingWithDetails(BookingStatus.CREATED, from, to);
         if (tableId == null) {
@@ -181,7 +186,10 @@ public class BookingService {
     }
 
     /**
-     * Проверяет возможность cel.
+     * Отменяет бронирование и публикует событие отмены.
+     *
+     * @param bookingId идентификатор бронирования
+     * @return отмененное бронирование
      */
     @Transactional
     public Booking cancel(Long bookingId) {
@@ -194,7 +202,11 @@ public class BookingService {
     }
 
     /**
-     * Проверяет наличие ArmyConflict.
+     * Проверяет наличие пересечения по клубной армии в списке бронирований.
+     *
+     * @param bookings список бронирований
+     * @param armyId идентификатор армии
+     * @return true, если армия уже используется в пересекающемся бронировании
      */
     private boolean hasArmyConflict(List<Booking> bookings, Long armyId) {
         return bookings.stream()
@@ -202,7 +214,12 @@ public class BookingService {
     }
 
     /**
-     * Выполняет операцию.
+     * Распределяет требуемые единицы столов с учетом текущих бронирований.
+     *
+     * @param overlapping пересекающиеся бронирования
+     * @param requestedUnits требуемые единицы столов
+     * @param preferredTableId предпочитаемый стол (опционально)
+     * @return список распределений по столам
      */
     private List<TableAllocation> allocateTables(List<Booking> overlapping, int requestedUnits, Long preferredTableId) {
         List<ClubTable> tables = tableRepository.findAll().stream()
@@ -253,7 +270,12 @@ public class BookingService {
     }
 
     /**
-     * Проверяет возможность Allocate.
+     * Проверяет, можно ли разместить указанное количество единиц на столе.
+     *
+     * @param tableId идентификатор стола
+     * @param usedUnits текущая занятость по столам
+     * @param units требуемые единицы
+     * @return true, если размещение возможно
      */
     private boolean canAllocate(Long tableId, Map<Long, Integer> usedUnits, int units) {
         int used = usedUnits.getOrDefault(tableId, 0);
@@ -261,7 +283,11 @@ public class BookingService {
     }
 
     /**
-     * Возвращает BestTable.
+     * Подбирает наиболее подходящий стол с учетом требуемых единиц.
+     *
+     * @param usedUnits текущая занятость по столам
+     * @param units требуемые единицы
+     * @return идентификатор стола или null, если нет доступных
      */
     private Long findBestTable(Map<Long, Integer> usedUnits, int units) {
         if (units == TABLE_CAPACITY_UNITS) {
@@ -280,7 +306,10 @@ public class BookingService {
     }
 
     /**
-     * Выполняет операцию.
+     * Разворачивает запрошенное количество единиц в список распределений по столам.
+     *
+     * @param requestedUnits запрошенные единицы столов
+     * @return список единиц для распределения
      */
     private List<Integer> expandAllocations(int requestedUnits) {
         List<Integer> allocations = new ArrayList<>();
@@ -303,7 +332,10 @@ public class BookingService {
     }
 
     /**
-     * Возвращает идентификатор TableBy.
+     * Возвращает стол по идентификатору.
+     *
+     * @param tableId идентификатор стола
+     * @return стол
      */
     private ClubTable findTableById(Long tableId) {
         return tableRepository.findById(tableId)
@@ -311,7 +343,10 @@ public class BookingService {
     }
 
     /**
-     * Разбирает Allocations.
+     * Разбирает сохраненные назначения столов из JSON.
+     *
+     * @param booking бронирование
+     * @return список назначений столов
      */
     private List<TableAllocation> parseAllocations(Booking booking) {
         if (booking.getTableAssignments() == null || booking.getTableAssignments().isBlank()) {
@@ -337,7 +372,10 @@ public class BookingService {
     }
 
     /**
-     * Выполняет операцию.
+     * Сериализует назначения столов в JSON.
+     *
+     * @param allocations список назначений
+     * @return JSON-строка
      */
     private String serializeAllocations(List<TableAllocation> allocations) {
         try {
@@ -348,7 +386,11 @@ public class BookingService {
     }
 
     /**
-     * Выполняет операцию.
+     * Проверяет, содержит ли бронирование указанный стол.
+     *
+     * @param booking бронирование
+     * @param tableId идентификатор стола
+     * @return true, если стол присутствует в назначениях
      */
     private boolean bookingHasTable(Booking booking, Long tableId) {
         return parseAllocations(booking).stream()
@@ -356,7 +398,10 @@ public class BookingService {
     }
 
     /**
-     * Проверяет Range.
+     * Проверяет корректность временного интервала.
+     *
+     * @param startAt начало интервала
+     * @param endAt конец интервала
      */
     private void validateRange(OffsetDateTime startAt, OffsetDateTime endAt) {
         if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
@@ -365,7 +410,10 @@ public class BookingService {
     }
 
     /**
-     * Сервис для работы с сущностью TableAllocation.
+     * Назначение части бронирования на конкретный стол.
+     *
+     * @param tableId идентификатор стола
+     * @param units количество единиц стола
      */
     private record TableAllocation(Long tableId, int units) {
     }

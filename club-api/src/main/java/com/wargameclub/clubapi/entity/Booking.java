@@ -17,105 +17,110 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * JPA-сущность бронирование.
+ * JPA-сущность бронирования стола для игры.
  */
 @Entity
 @Table(name = "booking")
 public class Booking {
 
     /**
-     * Поле состояния.
+     * Идентификатор бронирования.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Поле состояния.
+     * Основной стол бронирования.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "table_id", nullable = false)
     private ClubTable table;
 
     /**
-     * Поле состояния.
+     * Пользователь, создавший бронирование.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
-     * Поле состояния.
+     * Название игры/системы.
      */
     @Column(length = 120)
     private String game;
 
     /**
-     * Поле состояния.
+     * Дата и время начала бронирования.
      */
     @Column(nullable = false)
     private OffsetDateTime startAt;
 
     /**
-     * Поле состояния.
+     * Дата и время окончания бронирования.
      */
     @Column(nullable = false)
     private OffsetDateTime endAt;
 
     /**
-     * Поле состояния.
+     * Количество единиц стола, занятых бронированием.
      */
     @Column(name = "table_units", nullable = false)
     private int tableUnits = 2;
 
     /**
-     * Поле состояния.
+     * Соперник (опционально).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "opponent_user_id")
     private User opponent;
 
     /**
-     * Поле состояния.
+     * Используемая армия (опционально).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "army_id")
     private Army army;
 
     /**
-     * Поле состояния.
+     * Дополнительные примечания.
      */
     @Column(columnDefinition = "text")
     private String notes;
 
     /**
-     * Поле состояния.
+     * JSON-распределение бронирования по столам.
      */
     @Column(name = "table_assignments", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private String tableAssignments;
 
     /**
-     * Поле состояния.
+     * Статус бронирования.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BookingStatus status = BookingStatus.CREATED;
 
     /**
-     * Поле состояния.
+     * Дата и время создания бронирования.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Конструктор Booking.
+     * Создает пустую сущность для JPA.
      */
     public Booking() {
     }
 
     /**
-     * Конструктор Booking.
+     * Создает бронирование с основными параметрами.
+     *
+     * @param table забронированный стол
+     * @param user пользователь, создавший бронирование
+     * @param startAt дата и время начала
+     * @param endAt дата и время окончания
      */
     public Booking(ClubTable table, User user, OffsetDateTime startAt, OffsetDateTime endAt) {
         this.table = table;
@@ -127,91 +132,117 @@ public class Booking {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор бронирования.
+     *
+     * @return идентификатор бронирования
      */
     public Long getId() {
         return id;
     }
 
     /**
-     * Возвращает стол.
+     * Возвращает основной стол бронирования.
+     *
+     * @return стол бронирования
      */
     public ClubTable getTable() {
         return table;
     }
 
     /**
-     * Устанавливает стол.
+     * Устанавливает основной стол бронирования.
+     *
+     * @param table стол бронирования
      */
     public void setTable(ClubTable table) {
         this.table = table;
     }
 
     /**
-     * Возвращает пользователя.
+     * Возвращает пользователя, создавшего бронирование.
+     *
+     * @return пользователь
      */
     public User getUser() {
         return user;
     }
 
     /**
-     * Устанавливает пользователя.
+     * Устанавливает пользователя, создавшего бронирование.
+     *
+     * @param user пользователь
      */
     public void setUser(User user) {
         this.user = user;
     }
 
     /**
-     * Возвращает время начала.
+     * Возвращает дату и время начала бронирования.
+     *
+     * @return дата и время начала
      */
     public OffsetDateTime getStartAt() {
         return startAt;
     }
 
     /**
-     * Устанавливает время начала.
+     * Устанавливает дату и время начала бронирования.
+     *
+     * @param startAt дата и время начала
      */
     public void setStartAt(OffsetDateTime startAt) {
         this.startAt = startAt;
     }
 
     /**
-     * Возвращает время окончания.
+     * Возвращает дату и время окончания бронирования.
+     *
+     * @return дата и время окончания
      */
     public OffsetDateTime getEndAt() {
         return endAt;
     }
 
     /**
-     * Устанавливает время окончания.
+     * Устанавливает дату и время окончания бронирования.
+     *
+     * @param endAt дата и время окончания
      */
     public void setEndAt(OffsetDateTime endAt) {
         this.endAt = endAt;
     }
 
     /**
-     * Возвращает игру.
+     * Возвращает название игры/системы.
+     *
+     * @return название игры
      */
     public String getGame() {
         return game;
     }
 
     /**
-     * Устанавливает игру.
+     * Устанавливает название игры/системы.
+     *
+     * @param game название игры
      */
     public void setGame(String game) {
         this.game = game;
     }
 
     /**
-     * Возвращает количество столов.
+     * Возвращает количество единиц стола.
+     *
+     * @return количество единиц стола
      */
     public int getTableUnits() {
         return tableUnits;
     }
 
     /**
-     * Устанавливает количество столов.
+     * Устанавливает количество единиц стола.
+     *
+     * @param tableUnits количество единиц стола
      */
     public void setTableUnits(int tableUnits) {
         this.tableUnits = tableUnits;
@@ -219,6 +250,8 @@ public class Booking {
 
     /**
      * Возвращает соперника.
+     *
+     * @return соперник или null
      */
     public User getOpponent() {
         return opponent;
@@ -226,79 +259,100 @@ public class Booking {
 
     /**
      * Устанавливает соперника.
+     *
+     * @param opponent соперник
      */
     public void setOpponent(User opponent) {
         this.opponent = opponent;
     }
 
     /**
-     * Возвращает армию.
+     * Возвращает выбранную армию.
+     *
+     * @return армия или null
      */
     public Army getArmy() {
         return army;
     }
 
     /**
-     * Устанавливает армию.
+     * Устанавливает выбранную армию.
+     *
+     * @param army армия
      */
     public void setArmy(Army army) {
         this.army = army;
     }
 
     /**
-     * Возвращает Notes.
+     * Возвращает примечания к бронированию.
+     *
+     * @return примечания
      */
     public String getNotes() {
         return notes;
     }
 
     /**
-     * Устанавливает Notes.
+     * Устанавливает примечания к бронированию.
+     *
+     * @param notes примечания
      */
     public void setNotes(String notes) {
         this.notes = notes;
     }
 
     /**
-     * Возвращает TableAssignments.
+     * Возвращает JSON-распределение по столам.
+     *
+     * @return JSON распределения по столам
      */
     public String getTableAssignments() {
         return tableAssignments;
     }
 
     /**
-     * Устанавливает TableAssignments.
+     * Устанавливает JSON-распределение по столам.
+     *
+     * @param tableAssignments JSON распределения по столам
      */
     public void setTableAssignments(String tableAssignments) {
         this.tableAssignments = tableAssignments;
     }
 
     /**
-     * Возвращает Status.
+     * Возвращает статус бронирования.
+     *
+     * @return статус бронирования
      */
     public BookingStatus getStatus() {
         return status;
     }
 
     /**
-     * Устанавливает Status.
+     * Устанавливает статус бронирования.
+     *
+     * @param status статус бронирования
      */
     public void setStatus(BookingStatus status) {
         this.status = status;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания бронирования.
+     *
+     * @return дата и время создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания бронирования.
+     *
+     * @param createdAt дата и время создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }
-

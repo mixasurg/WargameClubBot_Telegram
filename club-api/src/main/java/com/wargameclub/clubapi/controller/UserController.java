@@ -35,7 +35,10 @@ public class UserController {
     private final GameResultService resultService;
 
     /**
-     * Конструктор UserController.
+     * Создает контроллер для операций с пользователями.
+     *
+     * @param userService сервис пользователей
+     * @param resultService сервис фиксации результатов игр
      */
     public UserController(UserService userService, GameResultService resultService) {
         this.userService = userService;
@@ -43,7 +46,10 @@ public class UserController {
     }
 
     /**
-     * Регистрирует пользователя.
+     * Регистрирует нового пользователя клуба.
+     *
+     * @param request данные регистрации
+     * @return зарегистрированный пользователь
      */
     @PostMapping("/register")
     public UserDto register(@Valid @RequestBody UserRegisterRequest request) {
@@ -51,7 +57,10 @@ public class UserController {
     }
 
     /**
-     * Создает или обновляет Telegram.
+     * Создает или обновляет данные пользователя Telegram.
+     *
+     * @param request данные Telegram пользователя
+     * @return обновленный пользователь
      */
     @PostMapping("/telegram")
     public UserDto upsertTelegram(@Valid @RequestBody TelegramUserUpsertRequest request) {
@@ -59,7 +68,10 @@ public class UserController {
     }
 
     /**
-     * Возвращает список пользователей.
+     * Возвращает список пользователей по поисковому запросу.
+     *
+     * @param query строка поиска по имени (опционально)
+     * @return список пользователей
      */
     @GetMapping
     public List<UserDto> list(@RequestParam(name = "query", required = false) String query) {
@@ -69,7 +81,10 @@ public class UserController {
     }
 
     /**
-     * Возвращает пользователя.
+     * Возвращает пользователя по идентификатору.
+     *
+     * @param id идентификатор пользователя
+     * @return пользователь
      */
     @GetMapping("/{id}")
     public UserDto get(@PathVariable Long id) {
@@ -77,11 +92,13 @@ public class UserController {
     }
 
     /**
-     * Возвращает статистику.
+     * Возвращает статистику результатов игр пользователя.
+     *
+     * @param id идентификатор пользователя
+     * @return статистика пользователя
      */
     @GetMapping("/{id}/stats")
     public UserGameStatsDto getStats(@PathVariable Long id) {
         return DtoMapper.toUserGameStatsDto(resultService.getStats(id));
     }
 }
-

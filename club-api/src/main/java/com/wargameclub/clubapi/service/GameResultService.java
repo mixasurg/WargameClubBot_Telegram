@@ -18,33 +18,38 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с сущностью GameResult.
+ * Сервис фиксации результатов игр и обновления статистики игроков.
  */
 @Service
 public class GameResultService {
 
     /**
-     * Репозиторий бронирования.
+     * Репозиторий бронирований.
      */
     private final BookingRepository bookingRepository;
 
     /**
-     * Репозиторий результата игры.
+     * Репозиторий результатов игр.
      */
     private final BookingResultRepository resultRepository;
 
     /**
-     * Репозиторий пользователя.
+     * Репозиторий пользователей.
      */
     private final UserRepository userRepository;
 
     /**
-     * Репозиторий статистики игрока.
+     * Репозиторий статистики игроков.
      */
     private final UserGameStatsRepository statsRepository;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис результатов игр.
+     *
+     * @param bookingRepository репозиторий бронирований
+     * @param resultRepository репозиторий результатов
+     * @param userRepository репозиторий пользователей
+     * @param statsRepository репозиторий статистики игроков
      */
     public GameResultService(
             BookingRepository bookingRepository,
@@ -59,7 +64,11 @@ public class GameResultService {
     }
 
     /**
-     * Фиксирует результат.
+     * Фиксирует результат игры по бронированию и обновляет статистику.
+     *
+     * @param bookingId идентификатор бронирования
+     * @param reporterUserId идентификатор пользователя, сообщившего результат
+     * @param outcome исход игры
      */
     @Transactional
     public void recordResult(Long bookingId, Long reporterUserId, GameOutcome outcome) {
@@ -87,15 +96,14 @@ public class GameResultService {
         }
         BookingResult result = new BookingResult(booking, reporter, outcome);
         resultRepository.save(result);
-
-        /**
-         * Обновляет статистику.
-         */
         updateStats(booking, reporter, outcome);
     }
 
     /**
-     * Возвращает статистику.
+     * Возвращает статистику игрока (создает пустую при отсутствии).
+     *
+     * @param userId идентификатор пользователя
+     * @return статистика пользователя
      */
     @Transactional(readOnly = true)
     public UserGameStats getStats(Long userId) {
@@ -105,7 +113,11 @@ public class GameResultService {
     }
 
     /**
-     * Проверяет Participant.
+     * Проверяет, является ли пользователь участником бронирования.
+     *
+     * @param booking бронирование
+     * @param user пользователь
+     * @return true, если пользователь участвует
      */
     private boolean isParticipant(Booking booking, User user) {
         if (booking == null || user == null) {
@@ -118,7 +130,11 @@ public class GameResultService {
     }
 
     /**
-     * Обновляет статистику.
+     * Обновляет статистику по результату игры.
+     *
+     * @param booking бронирование
+     * @param reporter пользователь, сообщивший результат
+     * @param outcome исход игры
      */
     private void updateStats(Booking booking, User reporter, GameOutcome outcome) {
         User opponent = booking.getUser().getId().equals(reporter.getId())
@@ -149,7 +165,10 @@ public class GameResultService {
     }
 
     /**
-     * Возвращает OrCreateStats.
+     * Возвращает статистику пользователя или создает новую запись.
+     *
+     * @param user пользователь
+     * @return статистика пользователя
      */
     private UserGameStats getOrCreateStats(User user) {
         return statsRepository.findById(user.getId()).orElseGet(() -> statsRepository.save(new UserGameStats(user)));

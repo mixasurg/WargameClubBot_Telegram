@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Сервис для работы с сущностью TelegramAutoRefresh.
+ * Сервис автообновления сообщений Telegram при изменениях расписания/мероприятий.
  */
 @Service
 public class TelegramAutoRefreshService {
@@ -17,7 +17,7 @@ public class TelegramAutoRefreshService {
     private static final Logger log = LoggerFactory.getLogger(TelegramAutoRefreshService.class);
 
     /**
-     * Сервис NotificationOutbox.
+     * Сервис outbox-уведомлений.
      */
     private final NotificationOutboxService outboxService;
 
@@ -27,7 +27,10 @@ public class TelegramAutoRefreshService {
     private final TelegramSettingsService settingsService;
 
     /**
-     * Выполняет операцию.
+     * Создает сервис автообновления Telegram.
+     *
+     * @param outboxService сервис outbox
+     * @param settingsService сервис настроек Telegram
      */
     public TelegramAutoRefreshService(
             NotificationOutboxService outboxService,
@@ -38,35 +41,31 @@ public class TelegramAutoRefreshService {
     }
 
     /**
-     * Обновляет TwoweeksIfWithinRange.
+     * Ставит задачу обновления двухнедельного расписания, если старт в пределах 2 недель.
+     *
+     * @param startAt время начала события
      */
     public void refreshTwoweeksIfWithinRange(OffsetDateTime startAt) {
         if (!isWithinTwoWeeks(startAt)) {
             return;
         }
-
-        /**
-         * Ставит в очередь ScheduleCommand.
-         */
         enqueueScheduleCommand(TelegramNotificationCommand.REFRESH_TWOWEEKS);
     }
 
     /**
-     * Обновляет EventsIfWithinRange.
+     * Обновляет список мероприятий, если старт в пределах 2 недель.
+     *
+     * @param startAt время начала события
      */
     public void refreshEventsIfWithinRange(OffsetDateTime startAt) {
         if (!isWithinTwoWeeks(startAt)) {
             return;
         }
-
-        /**
-         * Обновляет Events.
-         */
         refreshEvents();
     }
 
     /**
-     * Обновляет Events.
+     * Ставит в очередь команду обновления списка мероприятий.
      */
     public void refreshEvents() {
         settingsService.getAny().ifPresentOrElse(settings -> {
@@ -76,7 +75,9 @@ public class TelegramAutoRefreshService {
     }
 
     /**
-     * Ставит в очередь ScheduleCommand.
+     * Ставит в очередь команду обновления расписания.
+     *
+     * @param command команда обновления
      */
     private void enqueueScheduleCommand(String command) {
         settingsService.getAny().ifPresentOrElse(settings -> {
@@ -86,7 +87,10 @@ public class TelegramAutoRefreshService {
     }
 
     /**
-     * Проверяет WithinTwoWeeks.
+     * Проверяет, находится ли время события в пределах ближайших двух недель.
+     *
+     * @param startAt время начала события
+     * @return true, если в пределах 2 недель
      */
     private boolean isWithinTwoWeeks(OffsetDateTime startAt) {
         if (startAt == null) {

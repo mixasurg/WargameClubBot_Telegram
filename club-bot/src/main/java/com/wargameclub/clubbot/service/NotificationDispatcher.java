@@ -3,13 +3,15 @@ package com.wargameclub.clubbot.service;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 /**
- * Сервис для работы с сущностью NotificationDispatcher.
+ * Контракт отправки уведомлений в Telegram.
  */
 public interface NotificationDispatcher {
 
     /**
-     * Выполняет операцию.
+     * Отправляет уведомление.
+     *
+     * @param message сообщение для отправки
+     * @throws TelegramApiException при ошибке отправки в Telegram
      */
     void dispatch(NotificationMessage message) throws TelegramApiException;
 }
-

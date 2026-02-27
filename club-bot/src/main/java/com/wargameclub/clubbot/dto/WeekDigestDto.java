@@ -4,7 +4,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * DTO для WeekDigest.
+ * Представление недельного дайджеста.
+ *
+ * @param weekStart начало недели
+ * @param weekEnd конец недели
+ * @param timezone часовой пояс, в котором сформирован дайджест
+ * @param days список дней с бронированиями
+ * @param events список мероприятий недели
  */
 public record WeekDigestDto(
         OffsetDateTime weekStart,
@@ -14,4 +20,3 @@ public record WeekDigestDto(
         List<DigestEventDto> events
 ) {
 }
-

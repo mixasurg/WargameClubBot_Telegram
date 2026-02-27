@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с сущностью RequestLog.
+ * Сервис сохранения логов HTTP-запросов.
  */
 @Service
 public class RequestLogService {
@@ -19,44 +19,54 @@ public class RequestLogService {
     private static final Logger log = LoggerFactory.getLogger(RequestLogService.class);
 
     /**
-     * Поле состояния.
+     * Максимальная длина HTTP-метода.
      */
     private static final int METHOD_MAX = 10;
 
     /**
-     * Поле состояния.
+     * Максимальная длина пути запроса.
      */
     private static final int PATH_MAX = 300;
 
     /**
-     * Поле состояния.
+     * Максимальная длина query string.
      */
     private static final int QUERY_MAX = 500;
 
     /**
-     * Поле состояния.
+     * Максимальная длина IP-адреса.
      */
     private static final int REMOTE_ADDR_MAX = 100;
 
     /**
-     * Поле состояния.
+     * Максимальная длина User-Agent.
      */
     private static final int USER_AGENT_MAX = 300;
 
     /**
-     * Репозиторий RequestLog.
+     * Репозиторий логов запросов.
      */
     private final RequestLogRepository repository;
 
     /**
-     * Конструктор RequestLogService.
+     * Создает сервис логирования запросов.
+     *
+     * @param repository репозиторий логов
      */
     public RequestLogService(RequestLogRepository repository) {
         this.repository = repository;
     }
 
     /**
-     * Выполняет операцию.
+     * Сохраняет запись о запросе в отдельной транзакции.
+     *
+     * @param method HTTP-метод
+     * @param path путь запроса
+     * @param query строка запроса
+     * @param status HTTP-статус
+     * @param durationMs длительность обработки в миллисекундах
+     * @param remoteAddr IP-адрес клиента
+     * @param userAgent заголовок User-Agent
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logRequest(
@@ -69,10 +79,6 @@ public class RequestLogService {
             String userAgent
     ) {
         try {
-
-            /**
-             * Выполняет операцию.
-             */
             RequestLog entry = new RequestLog(
                     truncate(method, METHOD_MAX),
                     truncate(path, PATH_MAX),
@@ -89,7 +95,11 @@ public class RequestLogService {
     }
 
     /**
-     * Выполняет операцию.
+     * Обрезает строку до максимальной длины.
+     *
+     * @param value исходная строка
+     * @param max максимальная длина
+     * @return обрезанная строка или null
      */
     private String truncate(String value, int max) {
         if (value == null) {

@@ -17,29 +17,35 @@ import com.wargameclub.clubapi.entity.UserGameStats;
 import com.wargameclub.clubapi.entity.User;
 
 /**
- * Сервис для работы с сущностью Dto.
+ * Утилита для преобразования сущностей в DTO.
  */
 public final class DtoMapper {
     /**
-     * Сериализатор JSON.
+     * Сериализатор JSON для разбора назначений столов.
      */
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * Конструктор DtoMapper.
+     * Закрытый конструктор утилитного класса.
      */
     private DtoMapper() {
     }
 
     /**
-     * Преобразует в UserDto.
+     * Преобразует пользователя в DTO.
+     *
+     * @param user пользователь
+     * @return DTO пользователя
      */
     public static UserDto toUserDto(User user) {
         return new UserDto(user.getId(), user.getName(), user.getTelegramId(), user.getCreatedAt());
     }
 
     /**
-     * Преобразует в UserGameStatsDto.
+     * Преобразует статистику игр пользователя в DTO.
+     *
+     * @param stats статистика пользователя
+     * @return DTO статистики
      */
     public static UserGameStatsDto toUserGameStatsDto(UserGameStats stats) {
         return new UserGameStatsDto(
@@ -52,14 +58,20 @@ public final class DtoMapper {
     }
 
     /**
-     * Преобразует в TableDto.
+     * Преобразует стол в DTO.
+     *
+     * @param table стол
+     * @return DTO стола
      */
     public static TableDto toTableDto(ClubTable table) {
         return new TableDto(table.getId(), table.getName(), table.isActive(), table.getNotes());
     }
 
     /**
-     * Преобразует в BookingDto.
+     * Преобразует бронирование в DTO.
+     *
+     * @param booking бронирование
+     * @return DTO бронирования
      */
     public static BookingDto toBookingDto(Booking booking) {
         var assignments = parseAssignments(booking.getTableAssignments());
@@ -85,7 +97,10 @@ public final class DtoMapper {
     }
 
     /**
-     * Преобразует в EventDto.
+     * Преобразует мероприятие в DTO.
+     *
+     * @param event мероприятие
+     * @return DTO мероприятия
      */
     public static EventDto toEventDto(ClubEvent event) {
         return new EventDto(
@@ -105,7 +120,10 @@ public final class DtoMapper {
     }
 
     /**
-     * Преобразует в ArmyDto.
+     * Преобразует армию в DTO.
+     *
+     * @param army армия
+     * @return DTO армии
      */
     public static ArmyDto toArmyDto(Army army) {
         return new ArmyDto(
@@ -120,6 +138,12 @@ public final class DtoMapper {
         );
     }
 
+    /**
+     * Разбирает JSON-назначения столов в список DTO.
+     *
+     * @param json JSON-строка назначений
+     * @return список назначений столов
+     */
     private static java.util.List<BookingTableAllocationDto> parseAssignments(String json) {
         if (json == null || json.isBlank()) {
             return java.util.List.of();
@@ -137,9 +161,11 @@ public final class DtoMapper {
     }
 
     /**
-     * Сервис для работы с сущностью TableAssignment.
+     * Внутренняя модель назначения столов для разбора JSON.
+     *
+     * @param tableId идентификатор стола
+     * @param units количество единиц стола
      */
     private record TableAssignment(Long tableId, int units) {
     }
 }
-

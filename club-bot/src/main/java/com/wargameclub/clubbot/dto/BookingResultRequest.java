@@ -1,7 +1,10 @@
 package com.wargameclub.clubbot.dto;
 
 /**
- * DTO запроса на фиксацию результата бронирования.
+ * Запрос на фиксацию результата бронирования.
+ *
+ * @param reporterUserId идентификатор пользователя, сообщившего результат
+ * @param outcome исход игры (строковое значение)
  */
 public record BookingResultRequest(
         Long reporterUserId,

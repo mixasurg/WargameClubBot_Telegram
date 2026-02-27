@@ -24,18 +24,22 @@ public class DigestController {
     private final DigestService digestService;
 
     /**
-     * Конструктор DigestController.
+     * Создает контроллер для работы с дайджестами.
+     *
+     * @param digestService сервис дайджестов
      */
     public DigestController(DigestService digestService) {
         this.digestService = digestService;
     }
 
     /**
-     * Выполняет операцию.
+     * Возвращает недельный дайджест по смещению относительно текущей недели.
+     *
+     * @param offset смещение недели (0 — текущая, 1 — следующая)
+     * @return недельный дайджест
      */
     @GetMapping("/week")
     public WeekDigestDto week(@RequestParam(name = "offset", defaultValue = "0") @Min(0) @Max(1) int offset) {
         return digestService.getWeekDigest(offset);
     }
 }
-

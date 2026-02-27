@@ -12,94 +12,99 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность NotificationOutbox.
+ * JPA-сущность записи в outbox-очереди уведомлений.
  */
 @Entity
 @Table(name = "notification_outbox")
 public class NotificationOutbox {
 
     /**
-     * Поле состояния.
+     * Идентификатор уведомления.
      */
     @Id
     private UUID id;
 
     /**
-     * Поле состояния.
+     * Целевой канал доставки уведомления.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NotificationTarget target;
 
     /**
-     * Поле состояния.
+     * Маршрут/идентификатор получателя (например, chatId).
      */
     @Column(nullable = false, columnDefinition = "text")
     private String chatRouting;
 
     /**
-     * Поле состояния.
+     * Текст уведомления.
      */
     @Column(nullable = false, columnDefinition = "text")
     private String text;
 
     /**
-     * Поле состояния.
+     * Текущий статус отправки.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NotificationStatus status = NotificationStatus.PENDING;
 
     /**
-     * Поле состояния.
+     * Количество попыток отправки.
      */
     @Column(nullable = false)
     private int attempts = 0;
 
     /**
-     * Поле состояния.
+     * Дата и время следующей попытки отправки.
      */
     @Column(nullable = false)
     private OffsetDateTime nextAttemptAt = OffsetDateTime.now();
 
     /**
-     * Поле состояния.
+     * Дата и время создания записи.
      */
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
     /**
-     * Поле состояния.
+     * Дата и время успешной отправки (если отправлено).
      */
     @Column
     private OffsetDateTime sentAt;
 
     /**
-     * Поле состояния.
+     * Последняя ошибка отправки (если была).
      */
     @Column(columnDefinition = "text")
     private String lastError;
 
     /**
-     * Поле состояния.
+     * Тип связанной сущности (опционально).
      */
     @Column(name = "reference_type", length = 50)
     private String referenceType;
 
     /**
-     * Поле состояния.
+     * Идентификатор связанной сущности (опционально).
      */
     @Column(name = "reference_id")
     private Long referenceId;
 
     /**
-     * Конструктор NotificationOutbox.
+     * Создает пустую сущность для JPA.
      */
     public NotificationOutbox() {
     }
 
     /**
-     * Конструктор NotificationOutbox.
+     * Создает запись outbox для отправки уведомления.
+     *
+     * @param id идентификатор уведомления
+     * @param target целевой канал доставки
+     * @param chatRouting маршрут/идентификатор получателя
+     * @param text текст уведомления
      */
     public NotificationOutbox(UUID id, NotificationTarget target, String chatRouting, String text) {
         this.id = id;
@@ -113,171 +118,218 @@ public class NotificationOutbox {
     }
 
     /**
-     * Возвращает идентификатор.
+     * Возвращает идентификатор уведомления.
+     *
+     * @return идентификатор уведомления
      */
     public UUID getId() {
         return id;
     }
 
     /**
-     * Устанавливает идентификатор.
+     * Устанавливает идентификатор уведомления.
+     *
+     * @param id идентификатор уведомления
      */
     public void setId(UUID id) {
         this.id = id;
     }
 
     /**
-     * Возвращает Target.
+     * Возвращает целевой канал доставки.
+     *
+     * @return целевой канал доставки
      */
     public NotificationTarget getTarget() {
         return target;
     }
 
     /**
-     * Устанавливает Target.
+     * Устанавливает целевой канал доставки.
+     *
+     * @param target целевой канал доставки
      */
     public void setTarget(NotificationTarget target) {
         this.target = target;
     }
 
     /**
-     * Возвращает ChatRouting.
+     * Возвращает маршрут/идентификатор получателя.
+     *
+     * @return маршрут получателя
      */
     public String getChatRouting() {
         return chatRouting;
     }
 
     /**
-     * Устанавливает ChatRouting.
+     * Устанавливает маршрут/идентификатор получателя.
+     *
+     * @param chatRouting маршрут получателя
      */
     public void setChatRouting(String chatRouting) {
         this.chatRouting = chatRouting;
     }
 
     /**
-     * Возвращает Text.
+     * Возвращает текст уведомления.
+     *
+     * @return текст уведомления
      */
     public String getText() {
         return text;
     }
 
     /**
-     * Устанавливает Text.
+     * Устанавливает текст уведомления.
+     *
+     * @param text текст уведомления
      */
     public void setText(String text) {
         this.text = text;
     }
 
     /**
-     * Возвращает Status.
+     * Возвращает статус отправки.
+     *
+     * @return статус отправки
      */
     public NotificationStatus getStatus() {
         return status;
     }
 
     /**
-     * Устанавливает Status.
+     * Устанавливает статус отправки.
+     *
+     * @param status статус отправки
      */
     public void setStatus(NotificationStatus status) {
         this.status = status;
     }
 
     /**
-     * Возвращает Attempts.
+     * Возвращает число попыток отправки.
+     *
+     * @return число попыток
      */
     public int getAttempts() {
         return attempts;
     }
 
     /**
-     * Устанавливает Attempts.
+     * Устанавливает число попыток отправки.
+     *
+     * @param attempts число попыток
      */
     public void setAttempts(int attempts) {
         this.attempts = attempts;
     }
 
     /**
-     * Возвращает NextAttemptAt.
+     * Возвращает дату следующей попытки отправки.
+     *
+     * @return дата следующей попытки
      */
     public OffsetDateTime getNextAttemptAt() {
         return nextAttemptAt;
     }
 
     /**
-     * Устанавливает NextAttemptAt.
+     * Устанавливает дату следующей попытки отправки.
+     *
+     * @param nextAttemptAt дата следующей попытки
      */
     public void setNextAttemptAt(OffsetDateTime nextAttemptAt) {
         this.nextAttemptAt = nextAttemptAt;
     }
 
     /**
-     * Возвращает CreatedAt.
+     * Возвращает дату и время создания записи.
+     *
+     * @return дата и время создания
      */
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Устанавливает CreatedAt.
+     * Устанавливает дату и время создания записи.
+     *
+     * @param createdAt дата и время создания
      */
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
     /**
-     * Возвращает SentAt.
+     * Возвращает дату и время успешной отправки.
+     *
+     * @return дата отправки или null
      */
     public OffsetDateTime getSentAt() {
         return sentAt;
     }
 
     /**
-     * Устанавливает SentAt.
+     * Устанавливает дату и время успешной отправки.
+     *
+     * @param sentAt дата отправки
      */
     public void setSentAt(OffsetDateTime sentAt) {
         this.sentAt = sentAt;
     }
 
     /**
-     * Возвращает LastError.
+     * Возвращает последнюю ошибку отправки.
+     *
+     * @return последняя ошибка
      */
     public String getLastError() {
         return lastError;
     }
 
     /**
-     * Устанавливает LastError.
+     * Устанавливает последнюю ошибку отправки.
+     *
+     * @param lastError последняя ошибка
      */
     public void setLastError(String lastError) {
         this.lastError = lastError;
     }
 
     /**
-     * Возвращает ReferenceType.
+     * Возвращает тип связанной сущности.
+     *
+     * @return тип связанной сущности
      */
     public String getReferenceType() {
         return referenceType;
     }
 
     /**
-     * Устанавливает ReferenceType.
+     * Устанавливает тип связанной сущности.
+     *
+     * @param referenceType тип связанной сущности
      */
     public void setReferenceType(String referenceType) {
         this.referenceType = referenceType;
     }
 
     /**
-     * Возвращает идентификатор Reference.
+     * Возвращает идентификатор связанной сущности.
+     *
+     * @return идентификатор связанной сущности
      */
     public Long getReferenceId() {
         return referenceId;
     }
 
     /**
-     * Устанавливает идентификатор Reference.
+     * Устанавливает идентификатор связанной сущности.
+     *
+     * @param referenceId идентификатор связанной сущности
      */
     public void setReferenceId(Long referenceId) {
         this.referenceId = referenceId;
     }
 }
-

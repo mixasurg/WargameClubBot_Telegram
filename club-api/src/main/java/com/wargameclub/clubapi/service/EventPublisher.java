@@ -1,13 +1,14 @@
 package com.wargameclub.clubapi.service;
 
 /**
- * Сервис для работы с сущностью EventPublisher.
+ * Контракт публикации уведомлений о событиях клуба.
  */
 public interface EventPublisher {
 
     /**
-     * Публикует EventNotification.
+     * Публикует уведомление о событии.
+     *
+     * @param messageText текст уведомления
      */
     void publishEventNotification(String messageText);
 }
-

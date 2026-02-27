@@ -15,21 +15,21 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
- * JPA-сущность результат игры.
+ * JPA-сущность результата игры, связанного с бронированием.
  */
 @Entity
 @Table(name = "booking_result")
 public class BookingResult {
 
     /**
-     * Поле состояния.
+     * Идентификатор бронирования (также первичный ключ результата).
      */
     @Id
     @Column(name = "booking_id")
     private Long bookingId;
 
     /**
-     * Поле состояния.
+     * Связанное бронирование.
      */
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
@@ -37,33 +37,37 @@ public class BookingResult {
     private Booking booking;
 
     /**
-     * Поле состояния.
+     * Пользователь, сообщивший результат.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_user_id", nullable = false)
     private User reporter;
 
     /**
-     * Поле состояния.
+     * Исход игры.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private GameOutcome outcome;
 
     /**
-     * Поле состояния.
+     * Дата и время фиксации результата.
      */
     @Column(nullable = false)
     private OffsetDateTime recordedAt = OffsetDateTime.now();
 
     /**
-     * Конструктор BookingResult.
+     * Создает пустую сущность для JPA.
      */
     public BookingResult() {
     }
 
     /**
-     * Конструктор BookingResult.
+     * Создает результат игры для указанного бронирования.
+     *
+     * @param booking бронирование
+     * @param reporter пользователь, сообщивший результат
+     * @param outcome исход игры
      */
     public BookingResult(Booking booking, User reporter, GameOutcome outcome) {
         this.booking = booking;
@@ -75,34 +79,44 @@ public class BookingResult {
 
     /**
      * Возвращает идентификатор бронирования.
+     *
+     * @return идентификатор бронирования
      */
     public Long getBookingId() {
         return bookingId;
     }
 
     /**
-     * Возвращает бронирование.
+     * Возвращает связанное бронирование.
+     *
+     * @return бронирование
      */
     public Booking getBooking() {
         return booking;
     }
 
     /**
-     * Возвращает Reporter.
+     * Возвращает пользователя, сообщившего результат.
+     *
+     * @return пользователь-репортер
      */
     public User getReporter() {
         return reporter;
     }
 
     /**
-     * Возвращает Outcome.
+     * Возвращает исход игры.
+     *
+     * @return исход игры
      */
     public GameOutcome getOutcome() {
         return outcome;
     }
 
     /**
-     * Возвращает RecordedAt.
+     * Возвращает дату и время фиксации результата.
+     *
+     * @return дата и время фиксации
      */
     public OffsetDateTime getRecordedAt() {
         return recordedAt;

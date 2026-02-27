@@ -8,25 +8,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис для работы с настройками Telegram.
+ * Сервис управления настройками Telegram для клуба.
  */
 @Service
 public class TelegramSettingsService {
 
     /**
-     * Репозиторий ClubTelegramSettings.
+     * Репозиторий настроек Telegram.
      */
     private final ClubTelegramSettingsRepository repository;
 
     /**
-     * Конструктор TelegramSettingsService.
+     * Создает сервис настроек Telegram.
+     *
+     * @param repository репозиторий настроек Telegram
      */
     public TelegramSettingsService(ClubTelegramSettingsRepository repository) {
         this.repository = repository;
     }
 
     /**
-     * Возвращает Any.
+     * Возвращает любые существующие настройки Telegram (если есть).
+     *
+     * @return настройки Telegram
      */
     @Transactional(readOnly = true)
     public Optional<ClubTelegramSettings> getAny() {
@@ -34,7 +38,10 @@ public class TelegramSettingsService {
     }
 
     /**
-     * Возвращает настройки Telegram.
+     * Возвращает настройки Telegram по идентификатору чата.
+     *
+     * @param chatId идентификатор чата
+     * @return настройки Telegram
      */
     @Transactional(readOnly = true)
     public ClubTelegramSettings getByChatId(Long chatId) {
@@ -44,6 +51,15 @@ public class TelegramSettingsService {
 
     /**
      * Создает или обновляет настройки Telegram.
+     *
+     * @param chatId идентификатор чата
+     * @param scheduleThreadId идентификатор темы расписания
+     * @param eventsThreadId идентификатор темы мероприятий
+     * @param scheduleTwoweeksMessageId идентификатор сообщения расписания на две недели
+     * @param scheduleTwoweeksNextMessageId идентификатор следующего двухнедельного расписания
+     * @param eventsMessageId идентификатор сообщения списка мероприятий
+     * @param timezone часовой пояс
+     * @return сохраненные настройки
      */
     @Transactional
     public ClubTelegramSettings upsert(
@@ -86,4 +102,3 @@ public class TelegramSettingsService {
         return repository.save(settings);
     }
 }
-

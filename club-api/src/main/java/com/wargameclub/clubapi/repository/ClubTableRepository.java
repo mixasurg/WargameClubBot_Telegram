@@ -4,8 +4,7 @@ import com.wargameclub.clubapi.entity.ClubTable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для стола клуба.
+ * JPA-репозиторий для игровых столов клуба.
  */
 public interface ClubTableRepository extends JpaRepository<ClubTable, Long> {
 }
-

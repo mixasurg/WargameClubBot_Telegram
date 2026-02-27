@@ -5,18 +5,22 @@ import com.wargameclub.clubapi.entity.ClubTelegramSettings;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * JPA-репозиторий для ClubTelegramSettings.
+ * JPA-репозиторий для настроек Telegram клуба.
  */
 public interface ClubTelegramSettingsRepository extends JpaRepository<ClubTelegramSettings, Long> {
 
     /**
-     * Возвращает FirstByOrderByChatIdAsc.
+     * Возвращает любую запись настроек (первую по chatId).
+     *
+     * @return настройки Telegram, если есть
      */
     Optional<ClubTelegramSettings> findFirstByOrderByChatIdAsc();
 
     /**
-     * Возвращает ClubTelegramSettings.
+     * Возвращает настройки по идентификатору чата.
+     *
+     * @param chatId идентификатор чата
+     * @return настройки Telegram, если найдены
      */
     Optional<ClubTelegramSettings> findByChatId(Long chatId);
 }
-
