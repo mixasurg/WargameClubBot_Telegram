@@ -53,4 +53,13 @@ public class ApiProperties {
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
     }
+
+    /**
+     * Обратная совместимость: поддержка legacy-свойства {@code api.key}.
+     *
+     * @param key API-ключ
+     */
+    public void setKey(String key) {
+        this.apiKey = key;
+    }
 }

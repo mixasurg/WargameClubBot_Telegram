@@ -42,6 +42,10 @@ public class RequestLogService {
      * Максимальная длина User-Agent.
      */
     private static final int USER_AGENT_MAX = 300;
+    /**
+     * Нижняя граница HTTP-статуса, который считается ошибочным.
+     */
+    private static final int ERROR_STATUS_THRESHOLD = 400;
 
     /**
      * Репозиторий логов запросов.
@@ -78,6 +82,9 @@ public class RequestLogService {
             String remoteAddr,
             String userAgent
     ) {
+        if (status < ERROR_STATUS_THRESHOLD) {
+            return;
+        }
         try {
             RequestLog entry = new RequestLog(
                     truncate(method, METHOD_MAX),

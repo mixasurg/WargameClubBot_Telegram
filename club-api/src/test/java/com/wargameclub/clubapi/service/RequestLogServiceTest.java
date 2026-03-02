@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +32,7 @@ class RequestLogServiceTest {
     void logRequestTruncatesFields() {
         String longValue = "x".repeat(500);
 
-        service.logRequest(longValue, longValue, longValue, 200, 123, longValue, longValue);
+        service.logRequest(longValue, longValue, longValue, 500, 123, longValue, longValue);
 
         ArgumentCaptor<RequestLog> captor = ArgumentCaptor.forClass(RequestLog.class);
         verify(repository).save(captor.capture());
@@ -47,8 +48,15 @@ class RequestLogServiceTest {
     void logRequestSwallowsRepositoryErrors() {
         doThrow(new RuntimeException("boom")).when(repository).save(any(RequestLog.class));
 
-        service.logRequest("GET", "/", null, 200, 1, null, null);
+        service.logRequest("GET", "/", null, 500, 1, null, null);
 
         verify(repository).save(any(RequestLog.class));
+    }
+
+    @Test
+    void logRequestSkipsSuccessfulStatuses() {
+        service.logRequest("GET", "/", null, 200, 1, null, null);
+
+        verify(repository, never()).save(any(RequestLog.class));
     }
 }

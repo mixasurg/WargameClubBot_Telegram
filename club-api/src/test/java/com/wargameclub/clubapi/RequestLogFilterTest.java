@@ -12,13 +12,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Интеграционные тесты фильтра логирования HTTP-запросов.
+ * Интеграционные тесты фильтра логирования ошибочных HTTP-запросов.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -38,23 +37,37 @@ public class RequestLogFilterTest {
     private RequestLogRepository requestLogRepository;
 
     /**
-     * Проверяет, что выполненный HTTP-запрос записывается в базу логов.
+     * Проверяет, что успешный HTTP-запрос не записывается в базу логов.
      */
     @Test
-    void logsRequestToDatabase() throws Exception {
+    void doesNotLogSuccessfulRequest() throws Exception {
         int before = requestLogRepository.findAll().size();
 
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
 
+        int after = requestLogRepository.findAll().size();
+        assertEquals(before, after);
+    }
+
+    /**
+     * Проверяет, что ошибочный HTTP-запрос записывается в базу логов.
+     */
+    @Test
+    void logsErrorRequestToDatabase() throws Exception {
+        int before = requestLogRepository.findAll().size();
+
+        mockMvc.perform(get("/actuator/does-not-exist"))
+                .andExpect(status().isInternalServerError());
+
         List<RequestLog> logs = requestLogRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
 
         assertFalse(logs.isEmpty());
-        assertTrue(logs.size() >= before + 1);
+        assertEquals(before + 1, logs.size());
 
         RequestLog last = logs.get(0);
         assertEquals("GET", last.getMethod());
-        assertEquals("/actuator/health", last.getPath());
-        assertEquals(200, last.getStatus());
+        assertEquals("/actuator/does-not-exist", last.getPath());
+        assertEquals(500, last.getStatus());
     }
 }

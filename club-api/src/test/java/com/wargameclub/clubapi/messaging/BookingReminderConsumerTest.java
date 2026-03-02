@@ -95,4 +95,40 @@ class BookingReminderConsumerTest {
         verify(outboxService).deletePendingByReference("BOOKING_RESULT_PROMPT", 7L);
         verify(acknowledgment).acknowledge();
     }
+
+    @Test
+    void onBookingCreatedForPastGameSchedulesOnlyResultPrompts() {
+        User user = new User("User");
+        user.setTelegramId(100L);
+        User opponent = new User("Opponent");
+        opponent.setTelegramId(200L);
+        OffsetDateTime startAt = OffsetDateTime.now().minusHours(3);
+        OffsetDateTime endAt = OffsetDateTime.now().minusHours(1);
+        Booking booking = new Booking(new ClubTable("T1", true, null), user, startAt, endAt);
+        booking.setStatus(BookingStatus.CREATED);
+        booking.setOpponent(opponent);
+        booking.setGame("Game");
+        ReflectionTestUtils.setField(booking, "id", 9L);
+
+        when(bookingRepository.findById(9L)).thenReturn(Optional.of(booking));
+
+        consumer.onBookingCreated(new BookingCreatedEvent(9L), acknowledgment);
+
+        verify(outboxService).deletePendingByReference("BOOKING_REMINDER", 9L);
+        verify(outboxService).deletePendingByReference("BOOKING_RESULT_PROMPT", 9L);
+        ArgumentCaptor<String> refTypeCaptor = ArgumentCaptor.forClass(String.class);
+        verify(outboxService, times(2)).enqueueAt(
+                eq(NotificationTarget.TELEGRAM),
+                any(ChatRouting.class),
+                anyString(),
+                any(OffsetDateTime.class),
+                refTypeCaptor.capture(),
+                eq(9L)
+        );
+        assertThat(refTypeCaptor.getAllValues()).containsExactlyInAnyOrder(
+                "BOOKING_RESULT_PROMPT",
+                "BOOKING_RESULT_PROMPT"
+        );
+        verify(acknowledgment).acknowledge();
+    }
 }

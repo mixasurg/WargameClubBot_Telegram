@@ -31,6 +31,7 @@ import com.wargameclub.clubbot.dto.GameCreateRequest;
 import com.wargameclub.clubbot.dto.TelegramSettingsDto;
 import com.wargameclub.clubbot.dto.TelegramSettingsUpdateRequest;
 import com.wargameclub.clubbot.dto.UserDto;
+import com.wargameclub.clubbot.dto.UserPrivateStatsDto;
 import com.wargameclub.clubbot.dto.WeekDigestDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,6 +133,16 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
      * Текст кнопки "Помощь".
      */
     private static final String BTN_HELP = "Помощь";
+
+    /**
+     * Текст кнопки "Моя статистика".
+     */
+    private static final String BTN_STATS = "Моя статистика";
+
+    /**
+     * Текст кнопки "Мои армии".
+     */
+    private static final String BTN_ARMIES = "Мои армии";
 
     /**
      * Команда обновления расписания на две недели.
@@ -381,6 +392,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             case "/start", "/help" -> sendPrivateHelp(message);
             case "/book" -> startBooking(message);
             case "/event" -> startEvent(message);
+            case "/stats" -> sendPrivateStats(message);
+            case "/armies" -> sendOwnArmies(message);
+            case "/result" -> handleManualResultCommand(message, text);
             case "/cancel" -> {
                 conversations.remove(message.getFrom().getId());
 
@@ -1091,10 +1105,7 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return;
         }
         state.setOpponentFaction(null);
-        List<ArmyDto> armies = null;
-        if (state.getGame() != null && !state.getGame().isBlank()) {
-            armies = apiClient.getArmies(state.getGame(), null, null, true);
-        }
+        List<ArmyDto> armies = loadOpponentAndClubArmies(state);
         List<String> factions = extractFactions(armies);
         state.setAvailableFactions(factions.isEmpty() ? null : factions);
         state.setStep(ConversationState.Step.PICK_OPPONENT_FACTION);
@@ -1113,6 +1124,28 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                  * Формирует FactionKeyboard.
                  */
                 buildFactionKeyboard(factions));
+    }
+
+    /**
+     * Загружает армии соперника и клубные армии для текущей игры бронирования.
+     *
+     * @param state текущее состояние бронирования
+     * @return объединенный список армий соперника и клуба
+     */
+    private List<ArmyDto> loadOpponentAndClubArmies(ConversationState state) {
+        if (state.getOpponentUserId() == null) {
+            return List.of();
+        }
+        List<ArmyDto> merged = new ArrayList<>();
+        List<ArmyDto> opponentArmies = apiClient.getArmies(state.getGame(), false, state.getOpponentUserId(), true);
+        if (opponentArmies != null) {
+            merged.addAll(opponentArmies);
+        }
+        List<ArmyDto> clubArmies = apiClient.getArmies(state.getGame(), true, null, true);
+        if (clubArmies != null) {
+            merged.addAll(clubArmies);
+        }
+        return merged;
     }
 
     /**
@@ -1784,6 +1817,9 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return "Личные действия:\n"
                 + BTN_BOOK + " - записаться на игру\n"
                 + BTN_EVENT + " - создать мероприятие\n"
+                + BTN_STATS + " - показать вашу статистику\n"
+                + BTN_ARMIES + " - управление своими армиями\n"
+                + "/result <id> - вручную открыть выбор результата для игры\n"
                 + BTN_CANCEL + " - отменить диалог\n"
                 + BTN_HELP + " - показать это сообщение";
     }
@@ -1797,6 +1833,58 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
          * Отправляет Text.
          */
         sendText(message.getChatId(), null, privateHelp(), buildPrivateMenuKeyboard());
+    }
+
+    /**
+     * Отправляет персональную статистику пользователя в личный чат.
+     *
+     * @param message входящее сообщение пользователя
+     */
+    private void sendPrivateStats(Message message) {
+        try {
+            UserDto user = upsertPrivateUser(message);
+            UserPrivateStatsDto stats = apiClient.getUserPrivateStats(user.id());
+            sendText(message.getChatId(), null, buildPrivateStatsText(stats), buildPrivateMenuKeyboard());
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null,
+                    "Не удалось загрузить статистику: " + ex.getRawStatusCode(),
+                    buildPrivateMenuKeyboard());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null,
+                    "Не удалось загрузить статистику: нет соединения с API.",
+                    buildPrivateMenuKeyboard());
+        }
+    }
+
+    /**
+     * Отправляет сообщение для управления армиями пользователя.
+     *
+     * @param message входящее сообщение пользователя
+     */
+    private void sendOwnArmies(Message message) {
+        try {
+            UserDto user = upsertPrivateUser(message);
+            List<ArmyDto> armies = loadOwnActiveArmies(user.id());
+            sendText(message.getChatId(), null, buildOwnArmiesText(armies, null), buildOwnArmiesKeyboard(armies));
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null,
+                    "Не удалось загрузить армии: " + ex.getRawStatusCode(),
+                    buildPrivateMenuKeyboard());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null,
+                    "Не удалось загрузить армии: нет соединения с API.",
+                    buildPrivateMenuKeyboard());
+        }
+    }
+
+    /**
+     * Создает или обновляет профиль пользователя Telegram в API.
+     *
+     * @param message входящее сообщение пользователя
+     * @return пользователь в системе клуба
+     */
+    private UserDto upsertPrivateUser(Message message) {
+        return apiClient.upsertTelegramUser(message.getFrom().getId(), resolveUserName(message.getFrom()));
     }
 
     /**
@@ -1818,6 +1906,14 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                  * Запускает мероприятие.
                  */
                 startEvent(message);
+                yield true;
+            }
+            case BTN_STATS -> {
+                sendPrivateStats(message);
+                yield true;
+            }
+            case BTN_ARMIES -> {
+                sendOwnArmies(message);
                 yield true;
             }
             case BTN_CANCEL -> {
@@ -1855,12 +1951,17 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         row1.add(BTN_EVENT);
 
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(BTN_CANCEL);
-        row2.add(BTN_HELP);
+        row2.add(BTN_STATS);
+        row2.add(BTN_ARMIES);
+
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(BTN_CANCEL);
+        row3.add(BTN_HELP);
 
         List<KeyboardRow> rows = new ArrayList<>();
         rows.add(row1);
         rows.add(row2);
+        rows.add(row3);
         keyboard.setKeyboard(rows);
         return keyboard;
     }
@@ -2236,6 +2337,136 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Формирует текст персональной статистики пользователя.
+     *
+     * @param stats статистика пользователя
+     * @return текст для личного чата
+     */
+    private String buildPrivateStatsText(UserPrivateStatsDto stats) {
+        if (stats == null) {
+            return "Ваша статистика пока недоступна. Попробуйте позже.";
+        }
+        if (stats.totalGames() <= 0) {
+            return "Ваша статистика:\n"
+                    + "Очки лояльности: " + stats.loyaltyPoints() + "\n"
+                    + "Пока нет сыгранных игр.\n"
+                    + "Запишитесь на первую игру, и статистика появится автоматически.";
+        }
+        return "Ваша статистика:\n"
+                + "Очки лояльности: " + stats.loyaltyPoints() + "\n"
+                + "Игр всего: " + stats.totalGames() + "\n"
+                + "Игр за последние 30 дней: " + stats.gamesLastMonth() + "\n"
+                + "Процент побед (всего): " + formatWinRate(stats.winRateTotal(), stats.totalGames()) + "\n"
+                + "Процент побед (за 30 дней): " + formatWinRate(stats.winRateLastMonth(), stats.gamesLastMonth());
+    }
+
+    /**
+     * Форматирует процент побед с учетом наличия сыгранных игр.
+     *
+     * @param winRate процент побед
+     * @param games количество игр за период
+     * @return форматированный процент или прочерк, если игр не было
+     */
+    private String formatWinRate(double winRate, int games) {
+        if (games <= 0) {
+            return "-";
+        }
+        return formatPercent(winRate);
+    }
+
+    /**
+     * Загружает активные армии пользователя и сортирует их по игре/фракции.
+     *
+     * @param userId идентификатор пользователя
+     * @return список армий пользователя
+     */
+    private List<ArmyDto> loadOwnActiveArmies(Long userId) {
+        List<ArmyDto> armies = apiClient.getArmies(null, null, userId, true);
+        if (armies == null || armies.isEmpty()) {
+            return List.of();
+        }
+        return armies.stream()
+                .filter(army -> army != null)
+                .sorted(Comparator
+                        .comparing((ArmyDto army) -> army.game() == null ? "" : army.game(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(army -> army.faction() == null ? "" : army.faction(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    /**
+     * Обновляет или отправляет сообщение управления армиями пользователя.
+     *
+     * @param chatId идентификатор чата
+     * @param messageId идентификатор сообщения для редактирования (или null, если нужно отправить новое)
+     * @param user пользователь клуба
+     * @param statusText текст статуса обновления (опционально)
+     */
+    private void refreshOwnArmiesView(Long chatId, Integer messageId, UserDto user, String statusText) {
+        List<ArmyDto> armies = loadOwnActiveArmies(user.id());
+        String text = buildOwnArmiesText(armies, statusText);
+        InlineKeyboardMarkup keyboard = buildOwnArmiesKeyboard(armies);
+        if (messageId == null) {
+            sendText(chatId, null, text, keyboard);
+            return;
+        }
+        editMessage(chatId, messageId, text, keyboard);
+    }
+
+    /**
+     * Формирует текст экрана управления армиями.
+     *
+     * @param armies список активных армий пользователя
+     * @param statusText текст состояния последней операции (опционально)
+     * @return текст сообщения
+     */
+    private String buildOwnArmiesText(List<ArmyDto> armies, String statusText) {
+        StringBuilder sb = new StringBuilder("Управление своими армиями:\n");
+        if (statusText != null && !statusText.isBlank()) {
+            sb.append(statusText).append("\n\n");
+        }
+        if (armies == null || armies.isEmpty()) {
+            sb.append("У вас пока нет активных армий.\n")
+                    .append("Армия создается автоматически при записи на игру со своей фракцией.");
+            return sb.toString();
+        }
+        sb.append("Нажмите кнопку рядом с армией, чтобы открыть или скрыть ее для использования клубом.\n\n");
+        for (int i = 0; i < armies.size(); i++) {
+            ArmyDto army = armies.get(i);
+            sb.append(i + 1)
+                    .append(". ")
+                    .append(formatArmyLabel(army))
+                    .append(army.isClubShared() ? " [Клубная]" : " [Личная]")
+                    .append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Формирует label армии.
+     *
+     * @param army армия
+     * @return человекочитаемая строка игры/фракции
+     */
+    private String formatArmyLabel(ArmyDto army) {
+        if (army == null) {
+            return "-";
+        }
+        String game = army.game() == null || army.game().isBlank() ? "Игра не указана" : army.game();
+        String faction = army.faction() == null || army.faction().isBlank() ? "Фракция не указана" : army.faction();
+        return game + " / " + faction;
+    }
+
+    /**
+     * Форматирует процентное значение с точностью до одного знака.
+     *
+     * @param value значение процента
+     * @return форматированная строка процента
+     */
+    private String formatPercent(double value) {
+        return String.format(Locale.ROOT, "%.1f%%", value);
+    }
+
+    /**
      * Формирует BookingSummary.
      */
     private String buildBookingSummary(ConversationState state) {
@@ -2354,22 +2585,13 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         if (opponentFaction == null || opponentFaction.isBlank()) {
             return true;
         }
-        List<ArmyDto> armies = null;
-        if (state.getGame() != null && !state.getGame().isBlank()) {
-            armies = apiClient.getArmies(state.getGame(), false, state.getOpponentUserId(), true);
+        List<ArmyDto> opponentArmies = apiClient.getArmies(state.getGame(), false, state.getOpponentUserId(), true);
+        if (hasArmyWithFaction(opponentArmies, opponentFaction, state.getOpponentUserId(), false)) {
+            return true;
         }
-        if (armies != null) {
-            for (ArmyDto army : armies) {
-                if (army == null || army.isClubShared()) {
-                    continue;
-                }
-                if (army.ownerUserId() == null || !army.ownerUserId().equals(state.getOpponentUserId())) {
-                    continue;
-                }
-                if (army.faction() != null && army.faction().equalsIgnoreCase(opponentFaction)) {
-                    return true;
-                }
-            }
+        List<ArmyDto> clubArmies = apiClient.getArmies(state.getGame(), true, null, true);
+        if (hasArmyWithFaction(clubArmies, opponentFaction, null, true)) {
+            return true;
         }
         try {
             apiClient.createArmy(new ArmyCreateRequest(
@@ -2396,6 +2618,109 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             sendText(message.getChatId(), null, "Ошибка сохранения армии соперника: не удалось связаться с API.");
             return false;
         }
+    }
+
+    /**
+     * Проверяет наличие армии с заданной фракцией в списке.
+     *
+     * @param armies список армий
+     * @param faction фракция
+     * @return true, если найдена армия с совпадающей фракцией
+     */
+    private boolean hasArmyWithFaction(List<ArmyDto> armies, String faction, Long ownerUserId, boolean clubShared) {
+        if (armies == null || faction == null || faction.isBlank()) {
+            return false;
+        }
+        for (ArmyDto army : armies) {
+            if (army == null || army.faction() == null) {
+                continue;
+            }
+            if (army.isClubShared() != clubShared) {
+                continue;
+            }
+            if (!clubShared && ownerUserId != null) {
+                if (army.ownerUserId() == null || !army.ownerUserId().equals(ownerUserId)) {
+                    continue;
+                }
+            }
+            if (army.faction().equalsIgnoreCase(faction)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Обрабатывает ручную команду фиксации результата.
+     *
+     * Поддержка:
+     * /result <bookingId>
+     * /result <bookingId> <win|loss|draw>
+     *
+     * @param message сообщение пользователя
+     * @param text полный текст команды
+     */
+    private void handleManualResultCommand(Message message, String text) {
+        String[] parts = text == null ? new String[0] : text.trim().split("\\s+");
+        if (parts.length < 2) {
+            sendText(message.getChatId(), null,
+                    "Использование:\n/result <id>\nили\n/result <id> <win|loss|draw>");
+            return;
+        }
+        Long bookingId;
+        try {
+            bookingId = Long.parseLong(parts[1]);
+        } catch (NumberFormatException ex) {
+            sendText(message.getChatId(), null, "Некорректный id бронирования.");
+            return;
+        }
+        if (parts.length == 2) {
+            sendText(message.getChatId(), null, "Выберите результат игры:", buildResultKeyboard(bookingId));
+            return;
+        }
+
+        String outcome = parseManualOutcome(parts[2]);
+        if (outcome == null) {
+            sendText(message.getChatId(), null, "Укажите результат: win, loss или draw.");
+            return;
+        }
+        UserDto user = apiClient.upsertTelegramUser(message.getFrom().getId(), resolveUserName(message.getFrom()));
+        BookingResultRequest request = new BookingResultRequest(user.id(), outcome);
+        try {
+            apiClient.submitBookingResult(bookingId, request);
+            String label = switch (outcome) {
+                case "WIN" -> "победа";
+                case "LOSS" -> "поражение";
+                case "DRAW" -> "ничья";
+                default -> "записано";
+            };
+            sendText(message.getChatId(), null, "Результат записан: " + label);
+        } catch (HttpClientErrorException.Conflict ex) {
+            sendText(message.getChatId(), null, "Результат уже записан.");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Ошибка записи результата: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Ошибка записи результата: не удалось связаться с API.");
+        }
+    }
+
+    /**
+     * Разбирает исход игры для ручной команды /result.
+     *
+     * @param token строковый код результата
+     * @return WIN/LOSS/DRAW или null
+     */
+    private String parseManualOutcome(String token) {
+        if (token == null) {
+            return null;
+        }
+        String normalized = token.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "win", "w", "победа", "победил", "выиграл" -> "WIN";
+            case "loss", "l", "поражение", "проиграл", "луз" -> "LOSS";
+            case "draw", "d", "ничья", "ничья." -> "DRAW";
+            default -> null;
+        };
     }
 
     /**
@@ -2728,6 +3053,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
              * Обрабатывает ResultCallback.
              */
             handleResultCallback(query, data);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith("am:")) {
+            handleArmyManagementCallback(query, data);
             answerCallback(query.getId());
             return;
         }
@@ -3251,6 +3581,71 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Обрабатывает callback из меню управления армиями.
+     *
+     * @param query callback-запрос Telegram
+     * @param data payload callback
+     */
+    private void handleArmyManagementCallback(CallbackQuery query, String data) {
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        User from = query.getFrom();
+        if (from == null) {
+            return;
+        }
+        UserDto user;
+        try {
+            user = apiClient.upsertTelegramUser(from.getId(), resolveUserName(from));
+        } catch (RestClientResponseException ex) {
+            editMessage(message.getChatId(), message.getMessageId(),
+                    "Ошибка: не удалось определить пользователя (" + ex.getRawStatusCode() + ").", null);
+            return;
+        } catch (RestClientException ex) {
+            editMessage(message.getChatId(), message.getMessageId(),
+                    "Ошибка: не удалось определить пользователя (API недоступен).", null);
+            return;
+        }
+
+        try {
+            if ("am:r".equals(data)) {
+                refreshOwnArmiesView(message.getChatId(), message.getMessageId(), user, null);
+                return;
+            }
+            String[] parts = data.split(":");
+            if (parts.length != 4 || !"am".equals(parts[0]) || !"s".equals(parts[1])) {
+                return;
+            }
+            Long armyId;
+            try {
+                armyId = Long.parseLong(parts[2]);
+            } catch (NumberFormatException ex) {
+                return;
+            }
+            Boolean clubShared = switch (parts[3]) {
+                case "1" -> Boolean.TRUE;
+                case "0" -> Boolean.FALSE;
+                default -> null;
+            };
+            if (clubShared == null) {
+                return;
+            }
+            ArmyDto updated = apiClient.updateArmyClubShare(armyId, user.id(), clubShared);
+            String statusText = clubShared
+                    ? "Армия открыта для использования клубом: " + formatArmyLabel(updated)
+                    : "Армия скрыта из общего использования клуба: " + formatArmyLabel(updated);
+            refreshOwnArmiesView(message.getChatId(), message.getMessageId(), user, statusText);
+        } catch (RestClientResponseException ex) {
+            refreshOwnArmiesView(message.getChatId(), message.getMessageId(), user,
+                    "Ошибка обновления армии: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            refreshOwnArmiesView(message.getChatId(), message.getMessageId(), user,
+                    "Ошибка обновления армии: нет соединения с API.");
+        }
+    }
+
+    /**
      * Обрабатывает EventTypeCallback.
      */
     private void handleEventTypeCallback(ConversationState state, CallbackQuery query, String data) {
@@ -3716,6 +4111,39 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Формирует клавиатуру управления собственными армиями.
+     *
+     * @param armies список активных армий пользователя
+     * @return inline-клавиатура управления
+     */
+    private InlineKeyboardMarkup buildOwnArmiesKeyboard(List<ArmyDto> armies) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        if (armies != null) {
+            for (ArmyDto army : armies) {
+                if (army == null || army.id() == null) {
+                    continue;
+                }
+                InlineKeyboardButton toggle = new InlineKeyboardButton();
+                String action = army.isClubShared() ? "Скрыть из клуба: " : "Открыть клубу: ";
+                toggle.setText(action + shortenButtonLabel(formatArmyLabel(army), 22));
+                toggle.setCallbackData("am:s:" + army.id() + ":" + (army.isClubShared() ? "0" : "1"));
+                List<InlineKeyboardButton> row = new ArrayList<>();
+                row.add(toggle);
+                rows.add(row);
+            }
+        }
+        InlineKeyboardButton refresh = new InlineKeyboardButton();
+        refresh.setText("Обновить список");
+        refresh.setCallbackData("am:r");
+        List<InlineKeyboardButton> refreshRow = new ArrayList<>();
+        refreshRow.add(refresh);
+        rows.add(refreshRow);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    /**
      * Формирует FactionKeyboard.
      */
     private InlineKeyboardMarkup buildFactionKeyboard(List<String> factions) {
@@ -3820,6 +4248,26 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
         return markup;
+    }
+
+    /**
+     * Сокращает подпись для inline-кнопки до заданной длины.
+     *
+     * @param value исходная подпись
+     * @param maxLength максимальная длина
+     * @return сокращенная подпись
+     */
+    private String shortenButtonLabel(String value, int maxLength) {
+        if (value == null) {
+            return "-";
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        if (maxLength <= 3) {
+            return value.substring(0, maxLength);
+        }
+        return value.substring(0, maxLength - 3) + "...";
     }
 
     /**

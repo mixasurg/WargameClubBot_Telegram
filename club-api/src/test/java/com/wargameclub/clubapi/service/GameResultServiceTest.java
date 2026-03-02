@@ -24,6 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -129,5 +130,46 @@ class GameResultServiceTest {
 
         assertThatThrownBy(() -> service.getStats(7L))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void getResultSnapshotUsesUnfilteredQueryWhenFromIsNull() {
+        User user = new User("Player");
+        ReflectionTestUtils.setField(user, "id", 11L);
+        when(userRepository.findById(11L)).thenReturn(Optional.of(user));
+        when(resultRepository.findByUserId(11L)).thenReturn(java.util.List.of());
+
+        GameResultService.ResultSnapshot snapshot = service.getResultSnapshot(11L, null);
+
+        assertThat(snapshot.games()).isEqualTo(0);
+        verify(resultRepository).findByUserId(11L);
+    }
+
+    @Test
+    void getResultSnapshotUsesFilteredQueryWhenFromIsProvided() {
+        User user = new User("Player");
+        ReflectionTestUtils.setField(user, "id", 12L);
+        when(userRepository.findById(12L)).thenReturn(Optional.of(user));
+        java.time.OffsetDateTime from = java.time.OffsetDateTime.now().minusDays(30);
+        when(resultRepository.findByUserIdAndRecordedAtFrom(eq(12L), eq(from))).thenReturn(java.util.List.of());
+
+        GameResultService.ResultSnapshot snapshot = service.getResultSnapshot(12L, from);
+
+        assertThat(snapshot.games()).isEqualTo(0);
+        verify(resultRepository).findByUserIdAndRecordedAtFrom(12L, from);
+    }
+
+    @Test
+    void getResultSnapshotReturnsZeroWhenRepositoryReturnsNull() {
+        User user = new User("Player");
+        ReflectionTestUtils.setField(user, "id", 13L);
+        when(userRepository.findById(13L)).thenReturn(Optional.of(user));
+        when(resultRepository.findByUserId(13L)).thenReturn(null);
+
+        GameResultService.ResultSnapshot snapshot = service.getResultSnapshot(13L, null);
+
+        assertThat(snapshot.games()).isEqualTo(0);
+        assertThat(snapshot.winRate()).isEqualTo(0.0);
+        verify(resultRepository).findByUserId(13L);
     }
 }

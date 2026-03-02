@@ -7,7 +7,7 @@ bot:
 
 api:
   base-url: ${API_BASE_URL:http://localhost:8080}
-  key: ${API_KEY:}
+  api-key: ${API_KEY:}
 
 spring:
   main:

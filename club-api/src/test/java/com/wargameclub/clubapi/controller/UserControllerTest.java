@@ -8,6 +8,7 @@ import com.wargameclub.clubapi.dto.UserRegisterRequest;
 import com.wargameclub.clubapi.entity.User;
 import com.wargameclub.clubapi.entity.UserGameStats;
 import com.wargameclub.clubapi.service.GameResultService;
+import com.wargameclub.clubapi.service.LoyaltyService;
 import com.wargameclub.clubapi.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,12 +29,14 @@ class UserControllerTest {
     private UserService userService;
     @Mock
     private GameResultService resultService;
+    @Mock
+    private LoyaltyService loyaltyService;
 
     private UserController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController(userService, resultService);
+        controller = new UserController(userService, resultService, loyaltyService);
     }
 
     @Test
@@ -80,5 +84,25 @@ class UserControllerTest {
         UserGameStatsDto dto = controller.getStats(4L);
 
         assertThat(dto.userId()).isEqualTo(4L);
+    }
+
+    @Test
+    void getPrivateStatsReturnsAggregatedDto() {
+        when(resultService.getResultSnapshot(5L, null)).thenReturn(new GameResultService.ResultSnapshot(6, 2, 2));
+        when(resultService.getResultSnapshot(org.mockito.ArgumentMatchers.eq(5L), notNull()))
+                .thenReturn(new GameResultService.ResultSnapshot(2, 1, 1));
+        when(loyaltyService.getPoints(5L)).thenReturn(120);
+
+        var dto = controller.getPrivateStats(5L);
+
+        assertThat(dto.userId()).isEqualTo(5L);
+        assertThat(dto.loyaltyPoints()).isEqualTo(120);
+        assertThat(dto.totalGames()).isEqualTo(10);
+        assertThat(dto.gamesLastMonth()).isEqualTo(4);
+        assertThat(dto.winRateTotal()).isEqualTo(60.0);
+        assertThat(dto.winRateLastMonth()).isEqualTo(50.0);
+        verify(resultService).getResultSnapshot(5L, null);
+        verify(resultService).getResultSnapshot(org.mockito.ArgumentMatchers.eq(5L), notNull());
+        verify(loyaltyService).getPoints(5L);
     }
 }

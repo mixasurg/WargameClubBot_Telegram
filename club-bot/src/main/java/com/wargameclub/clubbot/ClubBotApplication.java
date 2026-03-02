@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import com.wargameclub.clubbot.config.ApiProperties;
 import com.wargameclub.clubbot.config.BotProperties;
 
 /**
@@ -13,7 +14,7 @@ import com.wargameclub.clubbot.config.BotProperties;
 @SpringBootApplication
 @EnableScheduling
 @ConfigurationPropertiesScan
-@EnableConfigurationProperties(BotProperties.class)
+@EnableConfigurationProperties({BotProperties.class, ApiProperties.class})
 public class ClubBotApplication {
 
     /**
@@ -23,4 +24,3 @@ public class ClubBotApplication {
         SpringApplication.run(ClubBotApplication.class, args);
     }
 }
-

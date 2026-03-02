@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.wargameclub.clubbot.config.ApiProperties;
 import com.wargameclub.clubbot.dto.ArmyCreateRequest;
 import com.wargameclub.clubbot.dto.ArmyDto;
+import com.wargameclub.clubbot.dto.ArmyClubShareUpdateRequest;
 import com.wargameclub.clubbot.dto.BookingCreateRequest;
 import com.wargameclub.clubbot.dto.BookingResultRequest;
 import com.wargameclub.clubbot.dto.EventCreateRequest;
@@ -18,6 +19,7 @@ import com.wargameclub.clubbot.dto.TelegramSettingsDto;
 import com.wargameclub.clubbot.dto.TelegramSettingsUpdateRequest;
 import com.wargameclub.clubbot.dto.TelegramUserUpsertRequest;
 import com.wargameclub.clubbot.dto.UserDto;
+import com.wargameclub.clubbot.dto.UserPrivateStatsDto;
 import com.wargameclub.clubbot.dto.WeekDigestDto;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -198,6 +200,16 @@ public class ClubApiClient {
     }
 
     /**
+     * Возвращает расширенную статистику пользователя для личного меню.
+     *
+     * @param userId идентификатор пользователя
+     * @return статистика пользователя
+     */
+    public UserPrivateStatsDto getUserPrivateStats(Long userId) {
+        return restTemplate.getForObject(baseUrl() + "/api/users/" + userId + "/private-stats", UserPrivateStatsDto.class);
+    }
+
+    /**
      * Выполняет поиск пользователей по имени.
      *
      * @param query строка поиска (опционально)
@@ -301,8 +313,25 @@ public class ClubApiClient {
                 new ParameterizedTypeReference<>() {
                 }
         );
-        System.out.println(response);
-        System.out.println(response.getBody());
+        return response.getBody();
+    }
+
+    /**
+     * Обновляет доступность армии для использования клубом.
+     *
+     * @param armyId идентификатор армии
+     * @param ownerUserId идентификатор владельца армии
+     * @param clubShared новый признак доступности для клуба
+     * @return обновленная армия
+     */
+    public ArmyDto updateArmyClubShare(Long armyId, Long ownerUserId, boolean clubShared) {
+        ArmyClubShareUpdateRequest request = new ArmyClubShareUpdateRequest(ownerUserId, clubShared);
+        ResponseEntity<ArmyDto> response = restTemplate.exchange(
+                baseUrl() + "/api/armies/" + armyId + "/club-share",
+                HttpMethod.POST,
+                new HttpEntity<>(request),
+                ArmyDto.class
+        );
         return response.getBody();
     }
 

@@ -1,14 +1,17 @@
 package com.wargameclub.clubapi.controller;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import com.wargameclub.clubapi.dto.TelegramUserUpsertRequest;
 import com.wargameclub.clubapi.dto.UserDto;
 import com.wargameclub.clubapi.dto.UserGameStatsDto;
+import com.wargameclub.clubapi.dto.UserPrivateStatsDto;
 import com.wargameclub.clubapi.dto.UserRegisterRequest;
-import com.wargameclub.clubapi.dto.TelegramUserUpsertRequest;
 import com.wargameclub.clubapi.service.DtoMapper;
 import com.wargameclub.clubapi.service.GameResultService;
+import com.wargameclub.clubapi.service.LoyaltyService;
 import com.wargameclub.clubapi.service.UserService;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,14 +38,21 @@ public class UserController {
     private final GameResultService resultService;
 
     /**
+     * Сервис лояльности.
+     */
+    private final LoyaltyService loyaltyService;
+
+    /**
      * Создает контроллер для операций с пользователями.
      *
      * @param userService сервис пользователей
      * @param resultService сервис фиксации результатов игр
+     * @param loyaltyService сервис лояльности
      */
-    public UserController(UserService userService, GameResultService resultService) {
+    public UserController(UserService userService, GameResultService resultService, LoyaltyService loyaltyService) {
         this.userService = userService;
         this.resultService = resultService;
+        this.loyaltyService = loyaltyService;
     }
 
     /**
@@ -100,5 +110,25 @@ public class UserController {
     @GetMapping("/{id}/stats")
     public UserGameStatsDto getStats(@PathVariable Long id) {
         return DtoMapper.toUserGameStatsDto(resultService.getStats(id));
+    }
+
+    /**
+     * Возвращает расширенную статистику пользователя для личного меню.
+     *
+     * @param id идентификатор пользователя
+     * @return персональная статистика пользователя
+     */
+    @GetMapping("/{id}/private-stats")
+    public UserPrivateStatsDto getPrivateStats(@PathVariable Long id) {
+        GameResultService.ResultSnapshot total = resultService.getResultSnapshot(id, null);
+        GameResultService.ResultSnapshot month = resultService.getResultSnapshot(id, OffsetDateTime.now().minusDays(30));
+        return new UserPrivateStatsDto(
+                id,
+                loyaltyService.getPoints(id),
+                total.games(),
+                month.games(),
+                total.winRate(),
+                month.winRate()
+        );
     }
 }

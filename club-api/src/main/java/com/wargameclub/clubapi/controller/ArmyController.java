@@ -3,6 +3,7 @@ package com.wargameclub.clubapi.controller;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import com.wargameclub.clubapi.dto.ArmyClubShareUpdateRequest;
 import com.wargameclub.clubapi.dto.ArmyCreateRequest;
 import com.wargameclub.clubapi.dto.ArmyDto;
 import com.wargameclub.clubapi.dto.ArmyUsageRequest;
@@ -105,6 +106,18 @@ public class ArmyController {
     @PostMapping("/{id}/deactivate")
     public ArmyDto deactivate(@PathVariable Long id) {
         return DtoMapper.toArmyDto(armyService.deactivate(id));
+    }
+
+    /**
+     * Обновляет признак доступности армии для клуба.
+     *
+     * @param id идентификатор армии
+     * @param request параметры обновления доступа
+     * @return обновленная армия
+     */
+    @PostMapping("/{id}/club-share")
+    public ArmyDto updateClubShare(@PathVariable Long id, @Valid @RequestBody ArmyClubShareUpdateRequest request) {
+        return DtoMapper.toArmyDto(armyService.updateClubShared(id, request.ownerUserId(), request.clubShared()));
     }
 
     /**

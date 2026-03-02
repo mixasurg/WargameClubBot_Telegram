@@ -1,6 +1,7 @@
 package com.wargameclub.clubapi.service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import com.wargameclub.clubapi.entity.Booking;
 import com.wargameclub.clubapi.entity.BookingResult;
 import com.wargameclub.clubapi.entity.User;
@@ -107,9 +108,53 @@ public class GameResultService {
      */
     @Transactional(readOnly = true)
     public UserGameStats getStats(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + userId));
+        User user = findUser(userId);
         return statsRepository.findById(userId).orElseGet(() -> new UserGameStats(user));
+    }
+
+    /**
+     * Возвращает агрегированную статистику результатов пользователя.
+     *
+     * @param userId идентификатор пользователя
+     * @param from включительная нижняя граница по времени фиксации результата (опционально)
+     * @return агрегированная статистика результатов
+     */
+    @Transactional(readOnly = true)
+    public ResultSnapshot getResultSnapshot(Long userId, OffsetDateTime from) {
+        findUser(userId);
+        List<BookingResult> results = from == null
+                ? resultRepository.findByUserId(userId)
+                : resultRepository.findByUserIdAndRecordedAtFrom(userId, from);
+        if (results == null || results.isEmpty()) {
+            return new ResultSnapshot(0, 0, 0);
+        }
+        int wins = 0;
+        int losses = 0;
+        int draws = 0;
+        for (BookingResult result : results) {
+            if (result == null || result.getBooking() == null || result.getReporter() == null || result.getOutcome() == null) {
+                continue;
+            }
+            boolean isReporter = userId.equals(result.getReporter().getId());
+            switch (result.getOutcome()) {
+                case WIN -> {
+                    if (isReporter) {
+                        wins++;
+                    } else {
+                        losses++;
+                    }
+                }
+                case LOSS -> {
+                    if (isReporter) {
+                        losses++;
+                    } else {
+                        wins++;
+                    }
+                }
+                case DRAW -> draws++;
+            }
+        }
+        return new ResultSnapshot(wins, losses, draws);
     }
 
     /**
@@ -172,5 +217,50 @@ public class GameResultService {
      */
     private UserGameStats getOrCreateStats(User user) {
         return statsRepository.findById(user.getId()).orElseGet(() -> statsRepository.save(new UserGameStats(user)));
+    }
+
+    /**
+     * Возвращает пользователя по идентификатору.
+     *
+     * @param userId идентификатор пользователя
+     * @return пользователь
+     */
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + userId));
+    }
+
+    /**
+     * Снимок результатов пользователя.
+     *
+     * @param wins количество побед
+     * @param losses количество поражений
+     * @param draws количество ничьих
+     */
+    public record ResultSnapshot(
+            int wins,
+            int losses,
+            int draws
+    ) {
+        /**
+         * Возвращает общее количество игр.
+         *
+         * @return количество игр
+         */
+        public int games() {
+            return wins + losses + draws;
+        }
+
+        /**
+         * Возвращает процент побед.
+         *
+         * @return процент побед в диапазоне 0..100
+         */
+        public double winRate() {
+            if (games() == 0) {
+                return 0.0;
+            }
+            return wins * 100.0 / games();
+        }
     }
 }

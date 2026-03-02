@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +32,7 @@ class RequestLogFilterUnitTest {
     }
 
     @Test
-    void logsStatusFromResponse() throws Exception {
+    void doesNotLogSuccessfulStatus() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
         request.setRemoteAddr("127.0.0.1");
         request.addHeader("User-Agent", "JUnit");
@@ -40,11 +41,32 @@ class RequestLogFilterUnitTest {
 
         filter.doFilter(request, response, chain);
 
-        verify(requestLogService).logRequest(
+        verify(requestLogService, never()).logRequest(
                 eq("GET"),
                 eq("/api/test"),
                 isNull(),
                 eq(201),
+                anyLong(),
+                eq("127.0.0.1"),
+                eq("JUnit")
+        );
+    }
+
+    @Test
+    void logsErrorStatusFromResponse() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
+        request.setRemoteAddr("127.0.0.1");
+        request.addHeader("User-Agent", "JUnit");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = (req, res) -> ((HttpServletResponse) res).setStatus(404);
+
+        filter.doFilter(request, response, chain);
+
+        verify(requestLogService).logRequest(
+                eq("GET"),
+                eq("/api/test"),
+                isNull(),
+                eq(404),
                 anyLong(),
                 eq("127.0.0.1"),
                 eq("JUnit")

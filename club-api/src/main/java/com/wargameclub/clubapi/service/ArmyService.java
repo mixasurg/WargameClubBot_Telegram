@@ -140,6 +140,28 @@ public class ArmyService {
     }
 
     /**
+     * Обновляет признак доступности армии для клуба.
+     *
+     * @param armyId идентификатор армии
+     * @param ownerUserId идентификатор владельца, выполняющего изменение
+     * @param clubShared новый признак доступности армии для клуба
+     * @return обновленная армия
+     */
+    @Transactional
+    public Army updateClubShared(Long armyId, Long ownerUserId, boolean clubShared) {
+        Army army = armyRepository.findById(armyId)
+                .orElseThrow(() -> new NotFoundException("Армия не найдена: " + armyId));
+        if (!army.isActive()) {
+            throw new BadRequestException("Армия неактивна");
+        }
+        if (ownerUserId == null || !army.getOwner().getId().equals(ownerUserId)) {
+            throw new BadRequestException("Изменять доступность может только владелец армии");
+        }
+        army.setClubShared(clubShared);
+        return army;
+    }
+
+    /**
      * Фиксирует использование армии пользователем и начисляет баллы владельцу.
      *
      * @param armyId идентификатор армии

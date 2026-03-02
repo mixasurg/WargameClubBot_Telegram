@@ -40,7 +40,7 @@ public class BookingReminderConsumer {
     /**
      * Задержка запроса результата после окончания бронирования (минуты).
      */
-    private static final int RESULT_DELAY_MINUTES = 90;
+    private static final int RESULT_DELAY_MINUTES = 0;
     /**
      * Формат даты и времени в напоминании.
      */
@@ -105,22 +105,20 @@ public class BookingReminderConsumer {
             throw new IllegalArgumentException("У бронирования отсутствует startAt");
         }
         OffsetDateTime now = OffsetDateTime.now();
-        if (startAt.isBefore(now)) {
-            acknowledgment.acknowledge();
-            return;
-        }
-        OffsetDateTime reminderAt = startAt.minusDays(1);
-        if (reminderAt.isBefore(now)) {
-            reminderAt = now;
-        }
         outboxService.deletePendingByReference(REMINDER_REFERENCE, booking.getId());
         outboxService.deletePendingByReference(RESULT_REFERENCE, booking.getId());
         ZoneId zoneId = appProperties.getTimezone();
         String message = buildReminderMessage(booking, zoneId);
 
-        enqueueReminder(booking.getUser(), message, reminderAt, booking.getId());
-        if (booking.getOpponent() != null) {
-            enqueueReminder(booking.getOpponent(), message, reminderAt, booking.getId());
+        if (!startAt.isBefore(now)) {
+            OffsetDateTime reminderAt = startAt.minusDays(1);
+            if (reminderAt.isBefore(now)) {
+                reminderAt = now;
+            }
+            enqueueReminder(booking.getUser(), message, reminderAt, booking.getId());
+            if (booking.getOpponent() != null) {
+                enqueueReminder(booking.getOpponent(), message, reminderAt, booking.getId());
+            }
         }
         if (booking.getOpponent() != null && booking.getEndAt() != null) {
             OffsetDateTime resultAt = booking.getEndAt().plusMinutes(RESULT_DELAY_MINUTES);

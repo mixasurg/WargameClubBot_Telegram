@@ -13,39 +13,39 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter that validates an API key for protected endpoints.
+ * Фильтр, проверяющий API-ключ для защищенных эндпоинтов.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiKeyFilter extends OncePerRequestFilter {
 
     /**
-     * Header that carries the API key.
+     * HTTP-заголовок с API-ключом.
      */
     private static final String API_KEY_HEADER = "X-API-KEY";
 
     /**
-     * Application settings.
+     * Настройки приложения.
      */
     private final AppProperties appProperties;
 
     /**
-     * Creates the API key filter.
+     * Создает фильтр проверки API-ключа.
      *
-     * @param appProperties application settings
+     * @param appProperties настройки приложения
      */
     public ApiKeyFilter(AppProperties appProperties) {
         this.appProperties = appProperties;
     }
 
     /**
-     * Validates the API key and returns 401 if it is missing or invalid.
+     * Проверяет API-ключ и возвращает 401, если он отсутствует или неверен.
      *
-     * @param request HTTP request
-     * @param response HTTP response
-     * @param filterChain filter chain
-     * @throws ServletException servlet error
-     * @throws IOException I/O error
+     * @param request HTTP-запрос
+     * @param response HTTP-ответ
+     * @param filterChain цепочка фильтров
+     * @throws ServletException ошибка сервлета
+     * @throws IOException ошибка ввода-вывода
      */
     @Override
     protected void doFilterInternal(
@@ -69,10 +69,10 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Skips API key checks for technical endpoints and OPTIONS requests.
+     * Пропускает проверку API-ключа для технических эндпоинтов и OPTIONS-запросов.
      *
-     * @param request HTTP request
-     * @return true if the filter should be skipped
+     * @param request HTTP-запрос
+     * @return true, если фильтр нужно пропустить
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

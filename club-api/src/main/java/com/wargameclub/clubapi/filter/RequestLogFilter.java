@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Фильтр, логирующий HTTP-запросы и ответы через {@link RequestLogService}.
+ * Фильтр, логирующий только ошибочные HTTP-запросы через {@link RequestLogService}.
  */
 @Component
 public class RequestLogFilter extends OncePerRequestFilter {
@@ -20,6 +20,10 @@ public class RequestLogFilter extends OncePerRequestFilter {
      * Сервис записи логов запросов.
      */
     private final RequestLogService requestLogService;
+    /**
+     * Нижняя граница HTTP-статуса, который считается ошибочным.
+     */
+    private static final int ERROR_STATUS_THRESHOLD = 400;
 
     /**
      * Создает фильтр логирования запросов.
@@ -54,15 +58,18 @@ public class RequestLogFilter extends OncePerRequestFilter {
             throw ex;
         } finally {
             long durationMs = System.currentTimeMillis() - start;
-            requestLogService.logRequest(
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    request.getQueryString(),
-                    responseWrapper.getStatus(),
-                    durationMs,
-                    request.getRemoteAddr(),
-                    request.getHeader("User-Agent")
-            );
+            int status = responseWrapper.getStatus();
+            if (status >= ERROR_STATUS_THRESHOLD) {
+                requestLogService.logRequest(
+                        request.getMethod(),
+                        request.getRequestURI(),
+                        request.getQueryString(),
+                        status,
+                        durationMs,
+                        request.getRemoteAddr(),
+                        request.getHeader("User-Agent")
+                );
+            }
         }
     }
 
