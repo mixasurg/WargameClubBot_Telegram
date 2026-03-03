@@ -104,7 +104,7 @@ public class ArmyController {
      * @return обновленная армия
      */
     @PostMapping("/{id}/deactivate")
-    public ArmyDto deactivate(@PathVariable Long id) {
+    public ArmyDto deactivate(@PathVariable("id") Long id) {
         return DtoMapper.toArmyDto(armyService.deactivate(id));
     }
 
@@ -116,7 +116,7 @@ public class ArmyController {
      * @return обновленная армия
      */
     @PostMapping("/{id}/club-share")
-    public ArmyDto updateClubShare(@PathVariable Long id, @Valid @RequestBody ArmyClubShareUpdateRequest request) {
+    public ArmyDto updateClubShare(@PathVariable("id") Long id, @Valid @RequestBody ArmyClubShareUpdateRequest request) {
         return DtoMapper.toArmyDto(armyService.updateClubShared(id, request.ownerUserId(), request.clubShared()));
     }
 
@@ -127,7 +127,7 @@ public class ArmyController {
      * @param request данные об использовании
      */
     @PostMapping("/{id}/use")
-    public void use(@PathVariable Long id, @Valid @RequestBody ArmyUsageRequest request) {
+    public void use(@PathVariable("id") Long id, @Valid @RequestBody ArmyUsageRequest request) {
         armyService.useArmy(id, request.usedByUserId(), request.usedAt(), request.notes());
     }
 }

@@ -43,6 +43,8 @@ public class ConversationState {
         PICK_DURATION,
         /** Выбор количества единиц стола. */
         PICK_TABLE_UNITS,
+        /** Выбор режима бронирования (фикс/ищу соперника). */
+        PICK_BOOKING_MODE,
         /** Выбор соперника. */
         PICK_OPPONENT,
         /** Ввод фракции соперника. */
@@ -139,6 +141,11 @@ public class ConversationState {
      * Признак пользовательского названия игры.
      */
     private boolean customGame;
+
+    /**
+     * Признак открытого бронирования (ищу соперника).
+     */
+    private boolean openBooking;
 
     /**
      * Идентификатор соперника.
@@ -457,6 +464,24 @@ public class ConversationState {
      */
     public void setCustomGame(boolean customGame) {
         this.customGame = customGame;
+    }
+
+    /**
+     * Проверяет, что бронь создается в режиме "ищу соперника".
+     *
+     * @return true, если бронирование открытое
+     */
+    public boolean isOpenBooking() {
+        return openBooking;
+    }
+
+    /**
+     * Устанавливает признак открытого бронирования.
+     *
+     * @param openBooking признак открытого бронирования
+     */
+    public void setOpenBooking(boolean openBooking) {
+        this.openBooking = openBooking;
     }
 
     /**

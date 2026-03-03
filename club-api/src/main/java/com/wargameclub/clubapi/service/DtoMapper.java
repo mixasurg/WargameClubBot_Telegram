@@ -91,7 +91,10 @@ public final class DtoMapper {
                 booking.getArmy() != null ? booking.getArmy().getId() : null,
                 booking.getArmy() != null ? booking.getArmy().getGame() + " / " + booking.getArmy().getFaction() : null,
                 booking.getNotes(),
+                booking.getBookingMode(),
+                booking.getJoinDeadlineAt(),
                 booking.getStatus(),
+                booking.getCancelReason(),
                 booking.getCreatedAt()
         );
     }

@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
  * @param id идентификатор мероприятия
  * @param title название мероприятия
  * @param type тип мероприятия
+ * @param description описание мероприятия
  * @param startAt дата и время начала
  * @param endAt дата и время окончания
  * @param organizerName имя организатора
@@ -17,6 +18,7 @@ public record DigestEventDto(
         Long id,
         String title,
         String type,
+        String description,
         OffsetDateTime startAt,
         OffsetDateTime endAt,
         String organizerName,

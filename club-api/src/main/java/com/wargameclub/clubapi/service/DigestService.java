@@ -162,6 +162,7 @@ public class DigestService {
         bookings.sort(Comparator.comparing(Booking::getStartAt));
         List<DigestBookingDto> bookingDtos = bookings.stream()
                 .map(booking -> new DigestBookingDto(
+                        booking.getId(),
                         booking.getStartAt(),
                         booking.getEndAt(),
                         booking.getUser().getName(),
@@ -169,7 +170,8 @@ public class DigestService {
                         resolveUserFaction(booking),
                         resolveOpponentFaction(booking),
                         booking.getGame(),
-                        booking.getTableUnits()
+                        booking.getTableUnits(),
+                        booking.getBookingMode()
                 ))
                 .collect(Collectors.toList());
         String tableName = tableNames.getOrDefault(tableId, "Стол-" + tableId);
@@ -187,6 +189,7 @@ public class DigestService {
                 event.getId(),
                 event.getTitle(),
                 event.getType(),
+                event.getDescription(),
                 event.getStartAt(),
                 event.getEndAt(),
                 event.getOrganizer().getName(),

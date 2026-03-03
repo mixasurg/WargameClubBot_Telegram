@@ -3,6 +3,7 @@ package com.wargameclub.clubbot.service;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import com.wargameclub.clubbot.dto.BookingMode;
 import com.wargameclub.clubbot.dto.DigestBookingDto;
 import com.wargameclub.clubbot.dto.DigestDayDto;
 import com.wargameclub.clubbot.dto.DigestEventDto;
@@ -64,6 +65,11 @@ public class DigestFormatter {
                         if (booking.opponentName() != null && !booking.opponentName().isBlank()) {
                             String opponentLabel = formatPlayer(booking.opponentName(), booking.opponentFaction());
                             sb.append(" vs ").append(opponentLabel);
+                        } else if (booking.bookingMode() == BookingMode.OPEN) {
+                            sb.append(" - ищет соперника");
+                            if (booking.bookingId() != null) {
+                                sb.append(" (#").append(booking.bookingId()).append(")");
+                            }
                         }
                         if (booking.game() != null && !booking.game().isBlank()) {
                             sb.append(" - ").append(booking.game());
@@ -93,9 +99,11 @@ public class DigestFormatter {
                 );
                 String typeLabel = formatEventTypeLabel(event.type());
                 String statusLabel = formatEventStatus(event.status());
+                String descriptionLabel = formatEventDescription(event.description());
                 sb.append("- ").append(start).append("-").append(end)
                         .append(" | ").append(event.title())
                         .append(" (").append(typeLabel).append(")")
+                        .append(" | Описание: ").append(descriptionLabel)
                         .append(" | Организатор: ").append(event.organizerName())
                         .append(" | Статус: ").append(statusLabel)
                         .append("\n");
@@ -208,5 +216,18 @@ public class DigestFormatter {
             case "CANCELLED" -> "Отменено";
             default -> status;
         };
+    }
+
+    /**
+     * Форматирует описание мероприятия в одну строку.
+     *
+     * @param description описание мероприятия
+     * @return строковое представление описания
+     */
+    private String formatEventDescription(String description) {
+        if (description == null || description.isBlank()) {
+            return "-";
+        }
+        return description.replaceAll("\\s+", " ").trim();
     }
 }

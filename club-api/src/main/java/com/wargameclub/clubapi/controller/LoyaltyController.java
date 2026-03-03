@@ -35,7 +35,7 @@ public class LoyaltyController {
      * @return DTO с балансом лояльности
      */
     @GetMapping("/{userId}")
-    public LoyaltyDto get(@PathVariable Long userId) {
+    public LoyaltyDto get(@PathVariable("userId") Long userId) {
         return new LoyaltyDto(userId, loyaltyService.getPoints(userId));
     }
 }

@@ -2,6 +2,7 @@ package com.wargameclub.clubapi.dto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.wargameclub.clubapi.enums.BookingMode;
 import com.wargameclub.clubapi.enums.BookingStatus;
 
 /**
@@ -22,7 +23,10 @@ import com.wargameclub.clubapi.enums.BookingStatus;
  * @param armyId идентификатор выбранной армии
  * @param armyName название армии
  * @param notes дополнительные примечания
+ * @param bookingMode режим бронирования
+ * @param joinDeadlineAt дедлайн присоединения к открытой игре
  * @param status статус бронирования
+ * @param cancelReason причина отмены
  * @param createdAt дата и время создания
  */
 public record BookingDto(
@@ -41,7 +45,10 @@ public record BookingDto(
         Long armyId,
         String armyName,
         String notes,
+        BookingMode bookingMode,
+        OffsetDateTime joinDeadlineAt,
         BookingStatus status,
+        String cancelReason,
         OffsetDateTime createdAt
 ) {
 }

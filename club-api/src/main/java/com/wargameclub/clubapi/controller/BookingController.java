@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import com.wargameclub.clubapi.dto.BookingCreateRequest;
 import com.wargameclub.clubapi.dto.BookingDto;
+import com.wargameclub.clubapi.dto.BookingJoinRequest;
 import com.wargameclub.clubapi.dto.BookingResultRequest;
 import com.wargameclub.clubapi.service.BookingService;
 import com.wargameclub.clubapi.service.DtoMapper;
@@ -79,13 +80,44 @@ public class BookingController {
     }
 
     /**
+     * Возвращает открытые бронирования для присоединения.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param game фильтр по игре (опционально)
+     * @return список открытых бронирований
+     */
+    @GetMapping("/open")
+    public List<BookingDto> listOpen(
+            @RequestParam(name = "from") @NotNull OffsetDateTime from,
+            @RequestParam(name = "to") @NotNull OffsetDateTime to,
+            @RequestParam(name = "game", required = false) String game
+    ) {
+        return bookingService.findOpen(from, to, game).stream()
+                .map(DtoMapper::toBookingDto)
+                .toList();
+    }
+
+    /**
+     * Присоединяет пользователя к открытой игре.
+     *
+     * @param id идентификатор бронирования
+     * @param request данные присоединения
+     * @return обновленное бронирование
+     */
+    @PostMapping("/{id}/join")
+    public BookingDto join(@PathVariable("id") Long id, @Valid @RequestBody BookingJoinRequest request) {
+        return DtoMapper.toBookingDto(bookingService.join(id, request));
+    }
+
+    /**
      * Отменяет бронирование по идентификатору.
      *
      * @param id идентификатор бронирования
      * @return отмененное бронирование
      */
     @PostMapping("/{id}/cancel")
-    public BookingDto cancel(@PathVariable Long id) {
+    public BookingDto cancel(@PathVariable("id") Long id) {
         return DtoMapper.toBookingDto(bookingService.cancel(id));
     }
 
@@ -96,7 +128,7 @@ public class BookingController {
      * @param request данные о результате
      */
     @PostMapping("/{id}/result")
-    public void result(@PathVariable Long id, @Valid @RequestBody BookingResultRequest request) {
+    public void result(@PathVariable("id") Long id, @Valid @RequestBody BookingResultRequest request) {
         resultService.recordResult(id, request.reporterUserId(), request.outcome());
     }
 }

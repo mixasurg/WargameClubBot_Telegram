@@ -23,6 +23,9 @@ import com.wargameclub.clubbot.config.BotProperties;
 import com.wargameclub.clubbot.dto.ArmyDto;
 import com.wargameclub.clubbot.dto.ArmyCreateRequest;
 import com.wargameclub.clubbot.dto.BookingCreateRequest;
+import com.wargameclub.clubbot.dto.BookingDto;
+import com.wargameclub.clubbot.dto.BookingJoinRequest;
+import com.wargameclub.clubbot.dto.BookingMode;
 import com.wargameclub.clubbot.dto.BookingResultRequest;
 import com.wargameclub.clubbot.dto.EventCreateRequest;
 import com.wargameclub.clubbot.dto.EventDto;
@@ -125,6 +128,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     private static final String BTN_EVENT = "Создать мероприятие";
 
     /**
+     * Текст кнопки "Открытые игры".
+     */
+    private static final String BTN_OPEN = "Открытые игры";
+
+    /**
      * Текст кнопки "Отменить".
      */
     private static final String BTN_CANCEL = "Отменить";
@@ -163,6 +171,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
      * Максимальное число кнопок соперников в клавиатуре.
      */
     private static final int MAX_OPPONENT_BUTTONS = 20;
+
+    /**
+     * Максимальное число кнопок join в списке открытых игр.
+     */
+    private static final int MAX_OPEN_JOIN_BUTTONS = 20;
 
     /**
      * Параметры конфигурации бота.
@@ -391,6 +404,8 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         switch (command) {
             case "/start", "/help" -> sendPrivateHelp(message);
             case "/book" -> startBooking(message);
+            case "/open" -> sendOpenBookings(message);
+            case "/join" -> handleManualJoinCommand(message, text);
             case "/event" -> startEvent(message);
             case "/stats" -> sendPrivateStats(message);
             case "/armies" -> sendOwnArmies(message);
@@ -474,6 +489,7 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             case PICK_CUSTOM_GAME -> handleCustomGame(state, message, text);
             case PICK_DURATION -> handleDuration(state, message, text);
             case PICK_TABLE_UNITS -> handleTableUnits(state, message, text);
+            case PICK_BOOKING_MODE -> handleBookingMode(state, message, text);
             case PICK_OPPONENT -> handleOpponent(state, message, text);
             case PICK_OPPONENT_FACTION -> handleOpponentFaction(state, message, text);
             case PICK_ARMY_TYPE -> handleArmyType(state, message, text);
@@ -754,12 +770,33 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         state.setTableUnits(units);
         state.setEndAt(state.getStartAt().plusMinutes(state.getDurationMinutes()));
-        state.setStep(ConversationState.Step.PICK_OPPONENT);
+        state.setStep(ConversationState.Step.PICK_BOOKING_MODE);
+        sendText(message.getChatId(), null, "Выберите режим бронирования:", buildBookingModeKeyboard());
+    }
 
-        /**
-         * Отправляет OpponentPrompt.
-         */
-        sendOpponentPrompt(state, message.getChatId());
+    /**
+     * Обрабатывает выбор режима бронирования.
+     */
+    private void handleBookingMode(ConversationState state, Message message, String text) {
+        String normalized = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+        if ("1".equals(normalized) || normalized.contains("указать") || normalized.contains("фикс")
+                || normalized.contains("обыч")) {
+            state.setOpenBooking(false);
+            state.setStep(ConversationState.Step.PICK_OPPONENT);
+            sendOpponentPrompt(state, message.getChatId());
+            return;
+        }
+        if ("2".equals(normalized) || normalized.contains("ищу") || normalized.contains("open")) {
+            state.setOpenBooking(true);
+            state.setOpponentUserId(null);
+            state.setOpponentName(null);
+            state.setOpponentFaction(null);
+            state.setFoundUsers(null);
+            state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+            sendText(message.getChatId(), null, "Режим: ищу соперника.\nВыберите тип армии:", buildArmyTypeKeyboard());
+            return;
+        }
+        sendText(message.getChatId(), null, "Выберите режим бронирования:", buildBookingModeKeyboard());
     }
 
     /**
@@ -1410,8 +1447,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                     state.getEndAt(),
                     state.getGame(),
                     state.getTableUnits(),
-                    state.getOpponentUserId(),
+                    state.isOpenBooking() ? null : state.getOpponentUserId(),
                     state.getArmyId(),
+                    state.isOpenBooking() ? BookingMode.OPEN : BookingMode.FIXED,
+                    null,
                     notes
             );
             try {
@@ -1512,6 +1551,8 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                     "Мероприятие: " + state.getEventTitle(),
                     6,
                     null,
+                    null,
+                    BookingMode.FIXED,
                     null,
                     "Зарезервировано под мероприятие " + created.id()
             );
@@ -1816,9 +1857,12 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     private String privateHelp() {
         return "Личные действия:\n"
                 + BTN_BOOK + " - записаться на игру\n"
+                + BTN_OPEN + " - список открытых игр\n"
                 + BTN_EVENT + " - создать мероприятие\n"
                 + BTN_STATS + " - показать вашу статистику\n"
                 + BTN_ARMIES + " - управление своими армиями\n"
+                + "/open - показать список открытых игр\n"
+                + "/join <id> - присоединиться к открытой игре\n"
                 + "/result <id> - вручную открыть выбор результата для игры\n"
                 + BTN_CANCEL + " - отменить диалог\n"
                 + BTN_HELP + " - показать это сообщение";
@@ -1908,6 +1952,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 startEvent(message);
                 yield true;
             }
+            case BTN_OPEN -> {
+                sendOpenBookings(message);
+                yield true;
+            }
             case BTN_STATS -> {
                 sendPrivateStats(message);
                 yield true;
@@ -1948,6 +1996,7 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
 
         KeyboardRow row1 = new KeyboardRow();
         row1.add(BTN_BOOK);
+        row1.add(BTN_OPEN);
         row1.add(BTN_EVENT);
 
         KeyboardRow row2 = new KeyboardRow();
@@ -2475,14 +2524,50 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 + "Время: " + formatTime(state.getStartTime()) + " - " + formatTime(state.getEndAt().toLocalTime()) + "\n"
                 + "Игра: " + state.getGame() + "\n"
                 + "Столы: " + formatTableUnits(state.getTableUnits()) + "\n"
+                + (state.isOpenBooking()
+                ? "Режим: ищу соперника\n"
+                : "Режим: соперник указан\n")
                 + (state.getOpponentName() != null
                 ? "Соперник: " + formatPlayerLabel(state.getOpponentName(), state.getOpponentFaction()) + "\n"
-                : "")
+                : (state.isOpenBooking() ? "Соперник: ищем\n" : ""))
                 + (state.isClubArmy()
                 ? "Армия: " + (state.getArmyLabel() != null ? state.getArmyLabel() : "клубная") + "\n"
                 : "Армия: своя\n")
                 + (!state.isClubArmy() && state.getFaction() != null ? "Фракция: " + state.getFaction() + "\n" : "")
                 + "Отправьте 'да' или 'нет'.";
+    }
+
+    /**
+     * Формирует текст списка открытых игр.
+     *
+     * @param bookings список открытых игр
+     * @param zoneId часовой пояс вывода
+     * @return форматированный текст
+     */
+    private String buildOpenBookingsText(List<BookingDto> bookings, ZoneId zoneId) {
+        StringBuilder sb = new StringBuilder("Открытые игры (на 14 дней):\n");
+        for (BookingDto booking : bookings) {
+            if (booking == null || booking.id() == null || booking.startAt() == null || booking.endAt() == null) {
+                continue;
+            }
+            String start = booking.startAt().atZoneSameInstant(zoneId).format(DateTimeFormatter.ofPattern("dd.MM HH:mm"));
+            String end = booking.endAt().atZoneSameInstant(zoneId).format(DateTimeFormatter.ofPattern("HH:mm"));
+            String deadline = booking.joinDeadlineAt() != null
+                    ? booking.joinDeadlineAt().atZoneSameInstant(zoneId).format(DateTimeFormatter.ofPattern("dd.MM HH:mm"))
+                    : "-";
+            String game = booking.game() == null || booking.game().isBlank() ? "-" : booking.game();
+            String owner = booking.userName() == null || booking.userName().isBlank() ? "-" : booking.userName();
+            String tableUnits = booking.tableUnits() != null ? formatTableUnits(booking.tableUnits()) : "-";
+            sb.append("#").append(booking.id())
+                    .append(" | ").append(start).append("-").append(end)
+                    .append(" | ").append(game)
+                    .append(" | автор: ").append(owner)
+                    .append(" | столы: ").append(tableUnits)
+                    .append(" | join до: ").append(deadline)
+                    .append("\n");
+        }
+        sb.append("\nЧтобы присоединиться: /join <id>");
+        return sb.toString().trim();
     }
 
     /**
@@ -2648,6 +2733,94 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             }
         }
         return false;
+    }
+
+    /**
+     * Отправляет список открытых игр, доступных для присоединения.
+     */
+    private void sendOpenBookings(Message message) {
+        ZoneId zoneId;
+        try {
+            zoneId = resolveTimezone();
+        } catch (RestClientException ex) {
+            zoneId = ZoneId.of("Europe/Moscow");
+        }
+        OffsetDateTime from = OffsetDateTime.now(zoneId);
+        OffsetDateTime to = from.plusDays(14);
+        try {
+            List<BookingDto> bookings = apiClient.getOpenBookings(from, to, null);
+            if (bookings == null || bookings.isEmpty()) {
+                sendText(message.getChatId(), null, "Открытых игр пока нет.");
+                return;
+            }
+            bookings = bookings.stream()
+                    .filter(booking -> booking != null && booking.id() != null)
+                    .sorted(Comparator.comparing(BookingDto::startAt))
+                    .toList();
+            sendText(message.getChatId(), null, buildOpenBookingsText(bookings, zoneId), buildOpenBookingsKeyboard(bookings));
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось получить открытые игры: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось получить открытые игры: API недоступен.");
+        }
+    }
+
+    /**
+     * Обрабатывает ручную команду присоединения к открытой игре.
+     *
+     * Поддержка:
+     * /join <bookingId>
+     * /join <bookingId> <faction>
+     *
+     * @param message сообщение пользователя
+     * @param text полный текст команды
+     */
+    private void handleManualJoinCommand(Message message, String text) {
+        String[] parts = text == null ? new String[0] : text.trim().split("\\s+", 3);
+        if (parts.length < 2) {
+            sendText(message.getChatId(), null, "Использование:\n/join <id>\nили\n/join <id> <фракция>");
+            return;
+        }
+        Long bookingId;
+        try {
+            bookingId = Long.parseLong(parts[1]);
+        } catch (NumberFormatException ex) {
+            sendText(message.getChatId(), null, "Некорректный id бронирования.");
+            return;
+        }
+        String faction = parts.length >= 3 ? parts[2].trim() : null;
+        if (faction != null && faction.isBlank()) {
+            faction = null;
+        }
+        try {
+            UserDto user = apiClient.upsertTelegramUser(message.getFrom().getId(), resolveUserName(message.getFrom()));
+            BookingJoinRequest request = new BookingJoinRequest(user.id(), null, faction);
+            BookingDto joined = apiClient.joinBooking(bookingId, request);
+            String label = joined != null && joined.game() != null ? joined.game() : "-";
+            sendText(message.getChatId(), null, "Вы присоединились к игре #" + bookingId + " (" + label + ").");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось присоединиться: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось присоединиться: API недоступен.");
+        }
+    }
+
+    /**
+     * Разбирает идентификатор бронирования из callback join.
+     *
+     * @param data payload callback
+     * @return идентификатор бронирования или null
+     */
+    private Long parseJoinBookingId(String data) {
+        if (data == null || !data.startsWith("jb:")) {
+            return null;
+        }
+        String raw = data.substring(3).trim();
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     /**
@@ -3061,6 +3234,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             answerCallback(query.getId());
             return;
         }
+        if (data.startsWith("jb:")) {
+            handleJoinBookingCallback(query, data);
+            answerCallback(query.getId());
+            return;
+        }
         ConversationState state = conversations.get(from.getId());
         if (state == null) {
             answerCallback(query.getId());
@@ -3099,6 +3277,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
              * Обрабатывает TableUnitsCallback.
              */
             handleTableUnitsCallback(state, query, data);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith("bm:")) {
+            handleBookingModeCallback(state, query, data);
             answerCallback(query.getId());
             return;
         }
@@ -3382,13 +3565,40 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         state.setTableUnits(units);
         state.setEndAt(state.getStartAt().plusMinutes(state.getDurationMinutes()));
-        state.setStep(ConversationState.Step.PICK_OPPONENT);
+        state.setStep(ConversationState.Step.PICK_BOOKING_MODE);
         editMessage(message.getChatId(), message.getMessageId(), "Столы выбраны: " + formatTableUnits(units), null);
 
-        /**
-         * Отправляет OpponentPrompt.
-         */
-        sendOpponentPrompt(state, message.getChatId());
+        sendText(message.getChatId(), null, "Выберите режим бронирования:", buildBookingModeKeyboard());
+    }
+
+    /**
+     * Обрабатывает callback выбора режима бронирования.
+     */
+    private void handleBookingModeCallback(ConversationState state, CallbackQuery query, String data) {
+        if (state.getStep() != ConversationState.Step.PICK_BOOKING_MODE) {
+            return;
+        }
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        if ("bm:fixed".equals(data)) {
+            state.setOpenBooking(false);
+            state.setStep(ConversationState.Step.PICK_OPPONENT);
+            editMessage(message.getChatId(), message.getMessageId(), "Режим: соперник указан сразу", null);
+            sendOpponentPrompt(state, message.getChatId());
+            return;
+        }
+        if ("bm:open".equals(data)) {
+            state.setOpenBooking(true);
+            state.setOpponentUserId(null);
+            state.setOpponentName(null);
+            state.setOpponentFaction(null);
+            state.setFoundUsers(null);
+            state.setStep(ConversationState.Step.PICK_ARMY_TYPE);
+            editMessage(message.getChatId(), message.getMessageId(), "Режим: ищу соперника", null);
+            sendText(message.getChatId(), null, "Выберите тип армии:", buildArmyTypeKeyboard());
+        }
     }
 
     /**
@@ -3794,6 +4004,39 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Обрабатывает callback присоединения к открытой игре.
+     */
+    private void handleJoinBookingCallback(CallbackQuery query, String data) {
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        Long bookingId = parseJoinBookingId(data);
+        if (bookingId == null) {
+            return;
+        }
+        User from = query.getFrom();
+        if (from == null) {
+            return;
+        }
+        try {
+            UserDto user = apiClient.upsertTelegramUser(from.getId(), resolveUserName(from));
+            BookingJoinRequest request = new BookingJoinRequest(user.id(), null, null);
+            apiClient.joinBooking(bookingId, request);
+            editMessage(message.getChatId(), message.getMessageId(),
+                    "Вы присоединились к игре #" + bookingId + ".", null);
+            sendText(message.getChatId(), null,
+                    "Готово: вы присоединились к игре #" + bookingId + ". Используйте /open для актуального списка.");
+        } catch (RestClientResponseException ex) {
+            editMessage(message.getChatId(), message.getMessageId(),
+                    "Не удалось присоединиться (#" + bookingId + "): " + ex.getRawStatusCode(), null);
+        } catch (RestClientException ex) {
+            editMessage(message.getChatId(), message.getMessageId(),
+                    "Не удалось присоединиться: API недоступен.", null);
+        }
+    }
+
+    /**
      * Формирует CalendarKeyboard.
      */
     private InlineKeyboardMarkup buildCalendarKeyboard(YearMonth month, String target) {
@@ -4065,6 +4308,26 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Формирует BookingModeKeyboard.
+     */
+    private InlineKeyboardMarkup buildBookingModeKeyboard() {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        InlineKeyboardButton fixed = new InlineKeyboardButton();
+        fixed.setText("Указать соперника");
+        fixed.setCallbackData("bm:fixed");
+        InlineKeyboardButton open = new InlineKeyboardButton();
+        open.setText("Ищу соперника");
+        open.setCallbackData("bm:open");
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        row.add(fixed);
+        row.add(open);
+        rows.add(row);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    /**
      * Формирует ArmyTypeKeyboard.
      */
     private InlineKeyboardMarkup buildArmyTypeKeyboard() {
@@ -4214,6 +4477,40 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         row2.add(draw);
         rows.add(row1);
         rows.add(row2);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    /**
+     * Формирует клавиатуру присоединения к открытым играм.
+     *
+     * @param bookings список открытых игр
+     * @return inline-клавиатура join
+     */
+    private InlineKeyboardMarkup buildOpenBookingsKeyboard(List<BookingDto> bookings) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        if (bookings == null) {
+            InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+            markup.setKeyboard(rows);
+            return markup;
+        }
+        int added = 0;
+        for (BookingDto booking : bookings) {
+            if (booking == null || booking.id() == null) {
+                continue;
+            }
+            if (added >= MAX_OPEN_JOIN_BUTTONS) {
+                break;
+            }
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText("Присоединиться #" + booking.id());
+            button.setCallbackData("jb:" + booking.id());
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            row.add(button);
+            rows.add(row);
+            added++;
+        }
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
         return markup;

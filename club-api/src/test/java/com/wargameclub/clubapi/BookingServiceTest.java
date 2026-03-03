@@ -68,6 +68,8 @@ public class BookingServiceTest {
                 2,
                 null,
                 null,
+                null,
+                null,
                 null
         );
         bookingService.create(request);
@@ -79,6 +81,8 @@ public class BookingServiceTest {
                 end.plusHours(1),
                 "Test game",
                 2,
+                null,
+                null,
                 null,
                 null,
                 null

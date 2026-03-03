@@ -1,6 +1,7 @@
 package com.wargameclub.clubapi.entity;
 
 import java.time.OffsetDateTime;
+import com.wargameclub.clubapi.enums.BookingMode;
 import com.wargameclub.clubapi.enums.BookingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -101,6 +102,25 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BookingStatus status = BookingStatus.CREATED;
+
+    /**
+     * Режим бронирования.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booking_mode", nullable = false, length = 20)
+    private BookingMode bookingMode = BookingMode.FIXED;
+
+    /**
+     * Срок, до которого можно присоединиться к открытой игре.
+     */
+    @Column(name = "join_deadline_at")
+    private OffsetDateTime joinDeadlineAt;
+
+    /**
+     * Причина отмены бронирования.
+     */
+    @Column(name = "cancel_reason", length = 50)
+    private String cancelReason;
 
     /**
      * Дата и время создания бронирования.
@@ -336,6 +356,60 @@ public class Booking {
      */
     public void setStatus(BookingStatus status) {
         this.status = status;
+    }
+
+    /**
+     * Возвращает режим бронирования.
+     *
+     * @return режим бронирования
+     */
+    public BookingMode getBookingMode() {
+        return bookingMode;
+    }
+
+    /**
+     * Устанавливает режим бронирования.
+     *
+     * @param bookingMode режим бронирования
+     */
+    public void setBookingMode(BookingMode bookingMode) {
+        this.bookingMode = bookingMode;
+    }
+
+    /**
+     * Возвращает срок присоединения к открытой игре.
+     *
+     * @return срок присоединения или null
+     */
+    public OffsetDateTime getJoinDeadlineAt() {
+        return joinDeadlineAt;
+    }
+
+    /**
+     * Устанавливает срок присоединения к открытой игре.
+     *
+     * @param joinDeadlineAt срок присоединения
+     */
+    public void setJoinDeadlineAt(OffsetDateTime joinDeadlineAt) {
+        this.joinDeadlineAt = joinDeadlineAt;
+    }
+
+    /**
+     * Возвращает причину отмены бронирования.
+     *
+     * @return причина отмены или null
+     */
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    /**
+     * Устанавливает причину отмены бронирования.
+     *
+     * @param cancelReason причина отмены
+     */
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 
     /**

@@ -1,20 +1,27 @@
 package com.wargameclub.clubapi.service;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wargameclub.clubapi.config.AppProperties;
 import com.wargameclub.clubapi.dto.BookingCreateRequest;
+import com.wargameclub.clubapi.dto.BookingJoinRequest;
 import com.wargameclub.clubapi.entity.Army;
 import com.wargameclub.clubapi.entity.Booking;
 import com.wargameclub.clubapi.entity.ClubTable;
 import com.wargameclub.clubapi.entity.User;
+import com.wargameclub.clubapi.enums.BookingMode;
 import com.wargameclub.clubapi.enums.BookingStatus;
+import com.wargameclub.clubapi.enums.NotificationTarget;
 import com.wargameclub.clubapi.exception.BadRequestException;
 import com.wargameclub.clubapi.exception.ConflictException;
 import com.wargameclub.clubapi.exception.NotFoundException;
@@ -38,6 +45,27 @@ public class BookingService {
      * Емкость одного стола в условных единицах.
      */
     private static final int TABLE_CAPACITY_UNITS = 2;
+
+    /**
+     * Дедлайн join для открытых броней по умолчанию: за 12 часов до старта.
+     */
+    private static final int OPEN_JOIN_DEADLINE_HOURS = 12;
+
+    /**
+     * Код причины автоотмены открытой брони.
+     */
+    private static final String OPEN_JOIN_TIMEOUT_REASON = "OPEN_JOIN_TIMEOUT";
+
+    /**
+     * Регулярное выражение для обновления фракции соперника в notes.
+     */
+    private static final Pattern OPPONENT_FACTION_NOTES_PATTERN =
+            Pattern.compile("(?i)соперник\\s+фракция\\s*:\\s*[^;\\n]+;?\\s*");
+
+    /**
+     * Формат даты и времени в пользовательских уведомлениях.
+     */
+    private static final DateTimeFormatter NOTIFY_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     /**
      * Репозиторий бронирований.
@@ -75,6 +103,16 @@ public class BookingService {
     private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
+     * Outbox-сервис уведомлений.
+     */
+    private final NotificationOutboxService outboxService;
+
+    /**
+     * Настройки приложения.
+     */
+    private final AppProperties appProperties;
+
+    /**
      * Создает сервис бронирований.
      *
      * @param bookingRepository репозиторий бронирований
@@ -84,6 +122,8 @@ public class BookingService {
      * @param objectMapper сериализатор JSON
      * @param autoRefreshService сервис автообновления Telegram
      * @param kafkaEventPublisher публикатор событий Kafka
+     * @param outboxService сервис outbox-уведомлений
+     * @param appProperties настройки приложения
      */
     public BookingService(
             BookingRepository bookingRepository,
@@ -92,7 +132,9 @@ public class BookingService {
             ArmyRepository armyRepository,
             ObjectMapper objectMapper,
             TelegramAutoRefreshService autoRefreshService,
-            KafkaEventPublisher kafkaEventPublisher
+            KafkaEventPublisher kafkaEventPublisher,
+            NotificationOutboxService outboxService,
+            AppProperties appProperties
     ) {
         this.bookingRepository = bookingRepository;
         this.tableRepository = tableRepository;
@@ -101,6 +143,8 @@ public class BookingService {
         this.objectMapper = objectMapper;
         this.autoRefreshService = autoRefreshService;
         this.kafkaEventPublisher = kafkaEventPublisher;
+        this.outboxService = outboxService;
+        this.appProperties = appProperties;
     }
 
     /**
@@ -118,6 +162,10 @@ public class BookingService {
         if (request.tableUnits() < 1 || request.tableUnits() > 6) {
             throw new BadRequestException("tableUnits должен быть в диапазоне от 1 до 6");
         }
+        BookingMode mode = request.bookingMode() != null ? request.bookingMode() : BookingMode.FIXED;
+        if (mode == BookingMode.OPEN && request.opponentUserId() != null) {
+            throw new BadRequestException("Для OPEN-бронирования соперник не указывается при создании");
+        }
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + request.userId()));
         User opponent = null;
@@ -128,14 +176,7 @@ public class BookingService {
             opponent = userRepository.findById(request.opponentUserId())
                     .orElseThrow(() -> new NotFoundException("Соперник не найден: " + request.opponentUserId()));
         }
-        Army army = null;
-        if (request.armyId() != null) {
-            army = armyRepository.findById(request.armyId())
-                    .orElseThrow(() -> new NotFoundException("Армия не найдена: " + request.armyId()));
-            if (!army.isActive()) {
-                throw new BadRequestException("Армия неактивна");
-            }
-        }
+        Army army = resolveBookingArmy(request.armyId());
         List<Booking> overlapping = bookingRepository.findOverlappingWithDetails(
                 BookingStatus.CREATED, request.startAt(), request.endAt());
         if (army != null && army.isClubShared() && hasArmyConflict(overlapping, army.getId())) {
@@ -150,6 +191,7 @@ public class BookingService {
 
         String allocationsJson = serializeAllocations(allocations);
         ClubTable primaryTable = findTableById(allocations.get(0).tableId());
+        OffsetDateTime joinDeadline = resolveJoinDeadline(request, mode);
 
         Booking booking = new Booking(primaryTable, user, request.startAt(), request.endAt());
         booking.setGame(request.game());
@@ -158,6 +200,9 @@ public class BookingService {
         booking.setArmy(army);
         booking.setNotes(request.notes());
         booking.setTableAssignments(allocationsJson);
+        booking.setBookingMode(mode);
+        booking.setJoinDeadlineAt(joinDeadline);
+        booking.setCancelReason(null);
 
         Booking saved = bookingRepository.save(booking);
         autoRefreshService.refreshTwoweeksIfWithinRange(saved.getStartAt());
@@ -186,6 +231,90 @@ public class BookingService {
     }
 
     /**
+     * Возвращает открытые бронирования, к которым можно присоединиться.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param game фильтр по игре (опционально)
+     * @return список открытых бронирований
+     */
+    @Transactional(readOnly = true)
+    public List<Booking> findOpen(OffsetDateTime from, OffsetDateTime to, String game) {
+        validateRange(from, to);
+        String gameFilter = game == null || game.isBlank() ? null : game.trim();
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Booking> openBookings;
+        if (gameFilter == null) {
+            openBookings = bookingRepository.findOpenWithDetails(
+                    BookingStatus.CREATED,
+                    BookingMode.OPEN,
+                    from,
+                    to
+            );
+        } else {
+            openBookings = bookingRepository.findOpenWithDetailsByGame(
+                    BookingStatus.CREATED,
+                    BookingMode.OPEN,
+                    from,
+                    to,
+                    gameFilter
+            );
+        }
+        return openBookings.stream()
+                .filter(booking -> isOpenJoinAvailable(booking, now))
+                .sorted(Comparator.comparing(Booking::getStartAt))
+                .toList();
+    }
+
+    /**
+     * Присоединяет пользователя к открытой игре.
+     *
+     * @param bookingId идентификатор бронирования
+     * @param request данные присоединения
+     * @return обновленное бронирование
+     */
+    @Transactional
+    public Booking join(Long bookingId, BookingJoinRequest request) {
+        if (request == null || request.userId() == null) {
+            throw new BadRequestException("Поле userId обязательно");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        User joiner = userRepository.findById(request.userId())
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + request.userId()));
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(() -> new NotFoundException("Бронирование не найдено: " + bookingId));
+        validateJoinAllowed(booking, joiner, now);
+        Army opponentArmy = resolveJoinArmy(request.armyId(), joiner);
+        if (opponentArmy != null && opponentArmy.isClubShared()) {
+            List<Booking> overlapping = bookingRepository.findOverlappingWithDetails(
+                    BookingStatus.CREATED,
+                    booking.getStartAt(),
+                    booking.getEndAt()
+            );
+            if (hasArmyConflict(overlapping, opponentArmy.getId())) {
+                throw new ConflictException("Армия уже забронирована на это время");
+            }
+        }
+
+        booking.setOpponent(joiner);
+        booking.setBookingMode(BookingMode.FIXED);
+        booking.setJoinDeadlineAt(null);
+        booking.setCancelReason(null);
+        String opponentFaction = request.faction();
+        if ((opponentFaction == null || opponentFaction.isBlank()) && opponentArmy != null) {
+            opponentFaction = opponentArmy.getFaction();
+        }
+        if (opponentFaction != null && !opponentFaction.isBlank()) {
+            booking.setNotes(upsertOpponentFactionInNotes(booking.getNotes(), opponentFaction));
+        }
+
+        autoRefreshService.refreshTwoweeksIfWithinRange(booking.getStartAt());
+        kafkaEventPublisher.publishBookingCreated(new BookingCreatedEvent(booking.getId()));
+        enqueueJoinNotifications(booking, joiner);
+        return booking;
+    }
+
+    /**
      * Отменяет бронирование и публикует событие отмены.
      *
      * @param bookingId идентификатор бронирования
@@ -196,9 +325,38 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено: " + bookingId));
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelReason(null);
         autoRefreshService.refreshTwoweeksIfWithinRange(booking.getStartAt());
         kafkaEventPublisher.publishBookingCancelled(new BookingCancelledEvent(booking.getId()));
         return booking;
+    }
+
+    /**
+     * Автоматически снимает открытые бронирования с истекшим дедлайном.
+     *
+     * @return число отмененных бронирований
+     */
+    @Transactional
+    public int cancelExpiredOpenBookings() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Booking> expired = bookingRepository.findExpiredOpenForUpdate(
+                BookingStatus.CREATED,
+                BookingMode.OPEN,
+                now
+        );
+        int cancelled = 0;
+        for (Booking booking : expired) {
+            if (booking.getOpponent() != null || booking.getStatus() != BookingStatus.CREATED) {
+                continue;
+            }
+            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setCancelReason(OPEN_JOIN_TIMEOUT_REASON);
+            autoRefreshService.refreshTwoweeksIfWithinRange(booking.getStartAt());
+            kafkaEventPublisher.publishBookingCancelled(new BookingCancelledEvent(booking.getId()));
+            enqueueOpenAutoCancelNotification(booking);
+            cancelled++;
+        }
+        return cancelled;
     }
 
     /**
@@ -211,6 +369,202 @@ public class BookingService {
     private boolean hasArmyConflict(List<Booking> bookings, Long armyId) {
         return bookings.stream()
                 .anyMatch(booking -> booking.getArmy() != null && armyId.equals(booking.getArmy().getId()));
+    }
+
+    /**
+     * Разрешает армию для создания бронирования.
+     *
+     * @param armyId идентификатор армии
+     * @return армия или null
+     */
+    private Army resolveBookingArmy(Long armyId) {
+        if (armyId == null) {
+            return null;
+        }
+        Army army = armyRepository.findById(armyId)
+                .orElseThrow(() -> new NotFoundException("Армия не найдена: " + armyId));
+        if (!army.isActive()) {
+            throw new BadRequestException("Армия неактивна");
+        }
+        return army;
+    }
+
+    /**
+     * Вычисляет дедлайн join для бронирования.
+     *
+     * @param request запрос на создание
+     * @param mode режим бронирования
+     * @return дедлайн join или null
+     */
+    private OffsetDateTime resolveJoinDeadline(BookingCreateRequest request, BookingMode mode) {
+        if (mode != BookingMode.OPEN) {
+            return null;
+        }
+        OffsetDateTime deadline = request.joinDeadlineAt() != null
+                ? request.joinDeadlineAt()
+                : request.startAt().minusHours(OPEN_JOIN_DEADLINE_HOURS);
+        if (!deadline.isBefore(request.startAt())) {
+            throw new BadRequestException("joinDeadlineAt должен быть раньше startAt");
+        }
+        if (!deadline.isAfter(OffsetDateTime.now())) {
+            throw new BadRequestException("Срок присоединения уже истек");
+        }
+        return deadline;
+    }
+
+    /**
+     * Валидирует возможность присоединения к открытой игре.
+     *
+     * @param booking бронирование
+     * @param joiner пользователь, который присоединяется
+     * @param now текущий момент
+     */
+    private void validateJoinAllowed(Booking booking, User joiner, OffsetDateTime now) {
+        if (booking.getStatus() != BookingStatus.CREATED) {
+            throw new ConflictException("Бронирование неактивно");
+        }
+        if (booking.getBookingMode() != BookingMode.OPEN) {
+            throw new ConflictException("Бронирование не находится в режиме OPEN");
+        }
+        if (booking.getOpponent() != null) {
+            throw new ConflictException("К бронированию уже присоединились");
+        }
+        if (booking.getUser() != null && booking.getUser().getId().equals(joiner.getId())) {
+            throw new BadRequestException("Нельзя присоединиться к собственной игре");
+        }
+        if (!isOpenJoinAvailable(booking, now)) {
+            throw new ConflictException("Время присоединения к бронированию истекло");
+        }
+    }
+
+    /**
+     * Разрешает армию для присоединения к открытой игре.
+     *
+     * @param armyId идентификатор армии
+     * @param joiner пользователь, который присоединяется
+     * @return армия или null
+     */
+    private Army resolveJoinArmy(Long armyId, User joiner) {
+        if (armyId == null) {
+            return null;
+        }
+        Army army = armyRepository.findById(armyId)
+                .orElseThrow(() -> new NotFoundException("Армия не найдена: " + armyId));
+        if (!army.isActive()) {
+            throw new BadRequestException("Армия неактивна");
+        }
+        if (!army.isClubShared()) {
+            if (army.getOwner() == null || army.getOwner().getId() == null
+                    || !army.getOwner().getId().equals(joiner.getId())) {
+                throw new BadRequestException("Нельзя выбрать чужую личную армию");
+            }
+        }
+        return army;
+    }
+
+    /**
+     * Проверяет доступность join для открытой брони.
+     *
+     * @param booking бронирование
+     * @param now текущий момент
+     * @return true, если присоединение допустимо
+     */
+    private boolean isOpenJoinAvailable(Booking booking, OffsetDateTime now) {
+        if (booking == null || booking.getStartAt() == null) {
+            return false;
+        }
+        if (!booking.getStartAt().isAfter(now)) {
+            return false;
+        }
+        if (booking.getJoinDeadlineAt() != null && !booking.getJoinDeadlineAt().isAfter(now)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Встраивает или обновляет фракцию соперника в поле notes.
+     *
+     * @param notes исходный текст заметок
+     * @param faction фракция соперника
+     * @return обновленные заметки
+     */
+    private String upsertOpponentFactionInNotes(String notes, String faction) {
+        String normalizedFaction = faction == null ? null : faction.trim();
+        if (normalizedFaction == null || normalizedFaction.isBlank()) {
+            return notes;
+        }
+        String existing = notes == null ? "" : notes.trim();
+        String cleaned = OPPONENT_FACTION_NOTES_PATTERN.matcher(existing).replaceAll("").trim();
+        String suffix = "Соперник фракция: " + normalizedFaction + ";";
+        if (cleaned.isBlank()) {
+            return suffix;
+        }
+        if (!cleaned.endsWith(";")) {
+            cleaned = cleaned + ";";
+        }
+        return (cleaned + " " + suffix).trim();
+    }
+
+    /**
+     * Ставит личное уведомление о присоединении к игре.
+     *
+     * @param booking обновленное бронирование
+     * @param joiner присоединившийся пользователь
+     */
+    private void enqueueJoinNotifications(Booking booking, User joiner) {
+        User owner = booking.getUser();
+        String game = booking.getGame() == null || booking.getGame().isBlank() ? "-" : booking.getGame();
+        String when = formatBookingStart(booking);
+        enqueuePrivateTelegram(owner, "К вашей открытой игре присоединился "
+                + joiner.getName() + ".\nИгра: " + game + "\nКогда: " + when + "\nБронь #" + booking.getId());
+        enqueuePrivateTelegram(joiner, "Вы присоединились к игре #" + booking.getId()
+                + ".\nАвтор: " + owner.getName() + "\nИгра: " + game + "\nКогда: " + when);
+    }
+
+    /**
+     * Ставит личное уведомление об автоотмене открытой игры.
+     *
+     * @param booking отмененное бронирование
+     */
+    private void enqueueOpenAutoCancelNotification(Booking booking) {
+        User owner = booking.getUser();
+        String game = booking.getGame() == null || booking.getGame().isBlank() ? "-" : booking.getGame();
+        String when = formatBookingStart(booking);
+        enqueuePrivateTelegram(owner,
+                "Открытая заявка #" + booking.getId() + " автоматически снята: соперник не найден до дедлайна.\n"
+                        + "Игра: " + game + "\nКогда: " + when);
+    }
+
+    /**
+     * Ставит личное Telegram-уведомление пользователю.
+     *
+     * @param user пользователь
+     * @param text текст уведомления
+     */
+    private void enqueuePrivateTelegram(User user, String text) {
+        if (user == null || user.getTelegramId() == null || text == null || text.isBlank()) {
+            return;
+        }
+        outboxService.enqueue(
+                NotificationTarget.TELEGRAM,
+                new ChatRouting(user.getTelegramId(), null),
+                text
+        );
+    }
+
+    /**
+     * Форматирует старт бронирования для уведомления.
+     *
+     * @param booking бронирование
+     * @return форматированная дата и время
+     */
+    private String formatBookingStart(Booking booking) {
+        if (booking == null || booking.getStartAt() == null) {
+            return "-";
+        }
+        ZoneId zoneId = appProperties.getTimezone() != null ? appProperties.getTimezone() : ZoneId.of("Europe/Moscow");
+        return booking.getStartAt().atZoneSameInstant(zoneId).format(NOTIFY_TIME_FORMAT);
     }
 
     /**

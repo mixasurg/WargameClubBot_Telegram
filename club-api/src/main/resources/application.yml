@@ -43,6 +43,8 @@ app:
   notifications:
     max-attempts: ${NOTIFICATIONS_MAX_ATTEMPTS:5}
     backoff-seconds: ${NOTIFICATIONS_BACKOFF_SECONDS:30}
+  booking:
+    open-cleanup-cron: '${BOOKING_OPEN_CLEANUP_CRON:0 */5 * * * *}'
   analytics:
     file: ${ANALYTICS_FILE:}
 

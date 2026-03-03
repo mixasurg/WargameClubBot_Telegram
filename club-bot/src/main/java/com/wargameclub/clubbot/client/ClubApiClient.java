@@ -8,6 +8,8 @@ import com.wargameclub.clubbot.dto.ArmyCreateRequest;
 import com.wargameclub.clubbot.dto.ArmyDto;
 import com.wargameclub.clubbot.dto.ArmyClubShareUpdateRequest;
 import com.wargameclub.clubbot.dto.BookingCreateRequest;
+import com.wargameclub.clubbot.dto.BookingDto;
+import com.wargameclub.clubbot.dto.BookingJoinRequest;
 import com.wargameclub.clubbot.dto.BookingResultRequest;
 import com.wargameclub.clubbot.dto.EventCreateRequest;
 import com.wargameclub.clubbot.dto.EventDto;
@@ -121,10 +123,12 @@ public class ClubApiClient {
      * @return список мероприятий
      */
     public List<EventDto> getEvents(OffsetDateTime from, OffsetDateTime to) {
+        String fromParam = from != null ? from.toInstant().toString() : null;
+        String toParam = to != null ? to.toInstant().toString() : null;
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl())
                 .path("/api/events")
-                .queryParam("from", from)
-                .queryParam("to", to)
+                .queryParam("from", fromParam)
+                .queryParam("to", toParam)
                 .toUriString();
         ResponseEntity<List<EventDto>> response = restTemplate.exchange(
                 url,
@@ -352,6 +356,51 @@ public class ClubApiClient {
      */
     public void createBooking(BookingCreateRequest request) {
         restTemplate.postForLocation(baseUrl() + "/api/bookings", request);
+    }
+
+    /**
+     * Возвращает открытые бронирования, доступные для join.
+     *
+     * @param from начало интервала
+     * @param to конец интервала
+     * @param game фильтр по игре (опционально)
+     * @return список открытых бронирований
+     */
+    public List<BookingDto> getOpenBookings(OffsetDateTime from, OffsetDateTime to, String game) {
+        String fromParam = from != null ? from.toInstant().toString() : null;
+        String toParam = to != null ? to.toInstant().toString() : null;
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl())
+                .path("/api/bookings/open")
+                .queryParam("from", fromParam)
+                .queryParam("to", toParam);
+        if (game != null && !game.isBlank()) {
+            builder.queryParam("game", game);
+        }
+        ResponseEntity<List<BookingDto>> response = restTemplate.exchange(
+                builder.toUriString(),
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {
+                }
+        );
+        return response.getBody();
+    }
+
+    /**
+     * Присоединяет пользователя к открытому бронированию.
+     *
+     * @param bookingId идентификатор бронирования
+     * @param request запрос присоединения
+     * @return обновленное бронирование
+     */
+    public BookingDto joinBooking(Long bookingId, BookingJoinRequest request) {
+        ResponseEntity<BookingDto> response = restTemplate.exchange(
+                baseUrl() + "/api/bookings/" + bookingId + "/join",
+                HttpMethod.POST,
+                new HttpEntity<>(request),
+                BookingDto.class
+        );
+        return response.getBody();
     }
 
     /**

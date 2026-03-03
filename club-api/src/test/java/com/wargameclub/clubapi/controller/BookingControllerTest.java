@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import com.wargameclub.clubapi.dto.BookingCreateRequest;
 import com.wargameclub.clubapi.dto.BookingDto;
+import com.wargameclub.clubapi.dto.BookingJoinRequest;
 import com.wargameclub.clubapi.dto.BookingResultRequest;
 import com.wargameclub.clubapi.entity.Booking;
 import com.wargameclub.clubapi.entity.ClubTable;
@@ -58,6 +59,8 @@ class BookingControllerTest {
                 2,
                 null,
                 null,
+                null,
+                null,
                 null
         ));
 
@@ -75,6 +78,34 @@ class BookingControllerTest {
         List<BookingDto> result = controller.list(OffsetDateTime.now(), OffsetDateTime.now().plusHours(2), null);
 
         assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void listOpenDelegatesToService() {
+        Booking booking = new Booking(new ClubTable("T1", true, null), new User("Alice"),
+                OffsetDateTime.now(), OffsetDateTime.now().plusHours(2));
+        ReflectionTestUtils.setField(booking, "id", 2L);
+        when(bookingService.findOpen(any(), any(), any())).thenReturn(List.of(booking));
+
+        List<BookingDto> result = controller.listOpen(OffsetDateTime.now(), OffsetDateTime.now().plusHours(2), null);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void joinDelegatesToService() {
+        ClubTable table = new ClubTable("T1", true, null);
+        ReflectionTestUtils.setField(table, "id", 1L);
+        User owner = new User("Owner");
+        ReflectionTestUtils.setField(owner, "id", 2L);
+        Booking booking = new Booking(table, owner, OffsetDateTime.now(), OffsetDateTime.now().plusHours(2));
+        ReflectionTestUtils.setField(booking, "id", 10L);
+        when(bookingService.join(any(), any())).thenReturn(booking);
+
+        BookingDto dto = controller.join(10L, new BookingJoinRequest(3L, null, null));
+
+        assertThat(dto.id()).isEqualTo(10L);
+        verify(bookingService).join(10L, new BookingJoinRequest(3L, null, null));
     }
 
     @Test

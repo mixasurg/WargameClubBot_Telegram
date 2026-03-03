@@ -13,6 +13,8 @@ import java.time.OffsetDateTime;
  * @param tableUnits требуемое количество единиц стола
  * @param opponentUserId идентификатор соперника (опционально)
  * @param armyId идентификатор армии (опционально)
+ * @param bookingMode режим бронирования
+ * @param joinDeadlineAt дедлайн присоединения к открытой игре (опционально)
  * @param notes дополнительные примечания (опционально)
  */
 public record BookingCreateRequest(
@@ -24,6 +26,8 @@ public record BookingCreateRequest(
         Integer tableUnits,
         Long opponentUserId,
         Long armyId,
+        BookingMode bookingMode,
+        OffsetDateTime joinDeadlineAt,
         String notes
 ) {
 }

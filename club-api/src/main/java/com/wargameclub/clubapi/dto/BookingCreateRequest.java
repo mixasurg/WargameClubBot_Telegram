@@ -1,6 +1,7 @@
 package com.wargameclub.clubapi.dto;
 
 import java.time.OffsetDateTime;
+import com.wargameclub.clubapi.enums.BookingMode;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +19,8 @@ import jakarta.validation.constraints.Positive;
  * @param tableUnits требуемое количество единиц стола
  * @param opponentUserId идентификатор соперника (опционально)
  * @param armyId идентификатор выбранной армии (опционально)
+ * @param bookingMode режим бронирования (опционально, по умолчанию FIXED)
+ * @param joinDeadlineAt дедлайн присоединения к открытой игре (опционально)
  * @param notes дополнительные примечания (опционально)
  */
 public record BookingCreateRequest(
@@ -29,6 +32,8 @@ public record BookingCreateRequest(
         @NotNull @Min(1) @Max(6) Integer tableUnits,
         @Positive Long opponentUserId,
         @Positive Long armyId,
+        BookingMode bookingMode,
+        OffsetDateTime joinDeadlineAt,
         String notes
 ) {
 }

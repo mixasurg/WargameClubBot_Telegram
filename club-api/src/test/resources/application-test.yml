@@ -26,4 +26,5 @@ app:
   notifications:
     max-attempts: 5
     backoff-seconds: 1
-
+  booking:
+    open-cleanup-cron: "0 0 0 1 1 *"

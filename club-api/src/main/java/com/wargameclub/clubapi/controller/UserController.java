@@ -97,7 +97,7 @@ public class UserController {
      * @return пользователь
      */
     @GetMapping("/{id}")
-    public UserDto get(@PathVariable Long id) {
+    public UserDto get(@PathVariable("id") Long id) {
         return DtoMapper.toUserDto(userService.getById(id));
     }
 
@@ -108,7 +108,7 @@ public class UserController {
      * @return статистика пользователя
      */
     @GetMapping("/{id}/stats")
-    public UserGameStatsDto getStats(@PathVariable Long id) {
+    public UserGameStatsDto getStats(@PathVariable("id") Long id) {
         return DtoMapper.toUserGameStatsDto(resultService.getStats(id));
     }
 
@@ -119,7 +119,7 @@ public class UserController {
      * @return персональная статистика пользователя
      */
     @GetMapping("/{id}/private-stats")
-    public UserPrivateStatsDto getPrivateStats(@PathVariable Long id) {
+    public UserPrivateStatsDto getPrivateStats(@PathVariable("id") Long id) {
         GameResultService.ResultSnapshot total = resultService.getResultSnapshot(id, null);
         GameResultService.ResultSnapshot month = resultService.getResultSnapshot(id, OffsetDateTime.now().minusDays(30));
         return new UserPrivateStatsDto(

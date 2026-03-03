@@ -79,7 +79,7 @@ public class EventController {
      * @return обновленное мероприятие
      */
     @PutMapping("/{id}")
-    public EventDto update(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest request) {
+    public EventDto update(@PathVariable("id") Long id, @Valid @RequestBody EventUpdateRequest request) {
         return DtoMapper.toEventDto(eventService.update(id, request));
     }
 
@@ -120,7 +120,7 @@ public class EventController {
      * @param request данные регистрации
      */
     @PostMapping("/{id}/register")
-    public void register(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
+    public void register(@PathVariable("id") Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.register(id, request.userId(), request.count(), request.amount());
     }
 
@@ -131,7 +131,7 @@ public class EventController {
      * @param request данные отмены регистрации
      */
     @PostMapping("/{id}/unregister")
-    public void unregister(@PathVariable Long id, @Valid @RequestBody EventRegistrationRequest request) {
+    public void unregister(@PathVariable("id") Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.unregister(id, request.userId(), request.count(), request.amount());
     }
 }

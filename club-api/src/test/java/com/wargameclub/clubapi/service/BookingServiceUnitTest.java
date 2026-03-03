@@ -6,11 +6,14 @@ import java.util.Map;
 import java.util.Optional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wargameclub.clubapi.config.AppProperties;
 import com.wargameclub.clubapi.dto.BookingCreateRequest;
+import com.wargameclub.clubapi.dto.BookingJoinRequest;
 import com.wargameclub.clubapi.entity.Army;
 import com.wargameclub.clubapi.entity.Booking;
 import com.wargameclub.clubapi.entity.ClubTable;
 import com.wargameclub.clubapi.entity.User;
+import com.wargameclub.clubapi.enums.BookingMode;
 import com.wargameclub.clubapi.enums.BookingStatus;
 import com.wargameclub.clubapi.exception.BadRequestException;
 import com.wargameclub.clubapi.exception.ConflictException;
@@ -33,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +55,8 @@ class BookingServiceUnitTest {
     private TelegramAutoRefreshService autoRefreshService;
     @Mock
     private KafkaEventPublisher kafkaEventPublisher;
+    @Mock
+    private NotificationOutboxService outboxService;
 
     private ObjectMapper objectMapper;
     private BookingService bookingService;
@@ -65,7 +71,9 @@ class BookingServiceUnitTest {
                 armyRepository,
                 objectMapper,
                 autoRefreshService,
-                kafkaEventPublisher
+                kafkaEventPublisher,
+                outboxService,
+                new AppProperties()
         );
     }
 
@@ -100,6 +108,8 @@ class BookingServiceUnitTest {
                 2,
                 null,
                 null,
+                null,
+                null,
                 null
         );
 
@@ -122,6 +132,42 @@ class BookingServiceUnitTest {
     }
 
     @Test
+    void createOpenBookingSetsModeAndDeadline() {
+        ClubTable table1 = new ClubTable("T1", true, null);
+        ReflectionTestUtils.setField(table1, "id", 1L);
+        User user = new User("Alice");
+        ReflectionTestUtils.setField(user, "id", 10L);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(tableRepository.findAll()).thenReturn(List.of(table1));
+        when(tableRepository.findById(1L)).thenReturn(Optional.of(table1));
+        when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
+                .thenReturn(List.of());
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OffsetDateTime start = OffsetDateTime.now().plusDays(1);
+        OffsetDateTime end = start.plusHours(2);
+        BookingCreateRequest request = new BookingCreateRequest(
+                table1.getId(),
+                user.getId(),
+                start,
+                end,
+                "Game",
+                2,
+                null,
+                null,
+                BookingMode.OPEN,
+                null,
+                null
+        );
+
+        Booking saved = bookingService.create(request);
+
+        assertThat(saved.getBookingMode()).isEqualTo(BookingMode.OPEN);
+        assertThat(saved.getJoinDeadlineAt()).isEqualTo(start.minusHours(12));
+    }
+
+    @Test
     void createRejectsClubArmyConflict() {
         ClubTable table1 = new ClubTable("T1", true, null);
         ReflectionTestUtils.setField(table1, "id", 1L);
@@ -137,7 +183,6 @@ class BookingServiceUnitTest {
         when(armyRepository.findById(9L)).thenReturn(Optional.of(army));
         when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
                 .thenReturn(List.of(overlapping));
-        when(tableRepository.findAll()).thenReturn(List.of(table1));
 
         BookingCreateRequest request = new BookingCreateRequest(
                 null,
@@ -148,6 +193,8 @@ class BookingServiceUnitTest {
                 2,
                 null,
                 army.getId(),
+                null,
+                null,
                 null
         );
 
@@ -174,6 +221,8 @@ class BookingServiceUnitTest {
                 OffsetDateTime.now().plusDays(1).plusHours(2),
                 "Game",
                 2,
+                null,
+                null,
                 null,
                 null,
                 null
@@ -206,6 +255,8 @@ class BookingServiceUnitTest {
                 OffsetDateTime.now().plusDays(1).plusHours(2),
                 "Game",
                 2,
+                null,
+                null,
                 null,
                 null,
                 null
@@ -241,6 +292,50 @@ class BookingServiceUnitTest {
     }
 
     @Test
+    void findOpenWithoutGameUsesBaseQuery() {
+        ClubTable table = new ClubTable("T1", true, null);
+        User user = new User("Alice");
+        Booking booking = new Booking(table, user, OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(1).plusHours(2));
+        booking.setBookingMode(BookingMode.OPEN);
+        booking.setStatus(BookingStatus.CREATED);
+
+        when(bookingRepository.findOpenWithDetails(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any()))
+                .thenReturn(List.of(booking));
+
+        List<Booking> result = bookingService.findOpen(
+                OffsetDateTime.now(),
+                OffsetDateTime.now().plusDays(14),
+                null
+        );
+
+        assertThat(result).containsExactly(booking);
+        verify(bookingRepository).findOpenWithDetails(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any());
+        verify(bookingRepository, never()).findOpenWithDetailsByGame(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any(), any());
+    }
+
+    @Test
+    void findOpenWithGameUsesFilteredQuery() {
+        ClubTable table = new ClubTable("T1", true, null);
+        User user = new User("Alice");
+        Booking booking = new Booking(table, user, OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(1).plusHours(2));
+        booking.setBookingMode(BookingMode.OPEN);
+        booking.setStatus(BookingStatus.CREATED);
+
+        when(bookingRepository.findOpenWithDetailsByGame(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any(), eq("Warhammer")))
+                .thenReturn(List.of(booking));
+
+        List<Booking> result = bookingService.findOpen(
+                OffsetDateTime.now(),
+                OffsetDateTime.now().plusDays(14),
+                " Warhammer "
+        );
+
+        assertThat(result).containsExactly(booking);
+        verify(bookingRepository).findOpenWithDetailsByGame(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any(), eq("Warhammer"));
+        verify(bookingRepository, never()).findOpenWithDetails(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any(), any());
+    }
+
+    @Test
     void cancelUpdatesStatusAndPublishesEvent() {
         ClubTable table = new ClubTable("T1", true, null);
         User user = new User("Alice");
@@ -256,5 +351,80 @@ class BookingServiceUnitTest {
         ArgumentCaptor<BookingCancelledEvent> eventCaptor = ArgumentCaptor.forClass(BookingCancelledEvent.class);
         verify(kafkaEventPublisher).publishBookingCancelled(eventCaptor.capture());
         assertThat(eventCaptor.getValue().bookingId()).isEqualTo(44L);
+    }
+
+    @Test
+    void joinOpenBookingSetsOpponentAndPublishesCreatedEvent() {
+        ClubTable table = new ClubTable("T1", true, null);
+        ReflectionTestUtils.setField(table, "id", 1L);
+        User owner = new User("Owner");
+        ReflectionTestUtils.setField(owner, "id", 10L);
+        User joiner = new User("Joiner");
+        ReflectionTestUtils.setField(joiner, "id", 20L);
+        Booking booking = new Booking(table, owner, OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(1).plusHours(2));
+        ReflectionTestUtils.setField(booking, "id", 99L);
+        booking.setBookingMode(BookingMode.OPEN);
+        booking.setJoinDeadlineAt(booking.getStartAt().minusHours(12));
+        booking.setStatus(BookingStatus.CREATED);
+
+        when(userRepository.findById(20L)).thenReturn(Optional.of(joiner));
+        when(bookingRepository.findByIdForUpdate(99L)).thenReturn(Optional.of(booking));
+
+        Booking updated = bookingService.join(99L, new BookingJoinRequest(20L, null, null));
+
+        assertThat(updated.getOpponent()).isSameAs(joiner);
+        assertThat(updated.getBookingMode()).isEqualTo(BookingMode.FIXED);
+        verify(autoRefreshService).refreshTwoweeksIfWithinRange(booking.getStartAt());
+        ArgumentCaptor<BookingCreatedEvent> eventCaptor = ArgumentCaptor.forClass(BookingCreatedEvent.class);
+        verify(kafkaEventPublisher).publishBookingCreated(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().bookingId()).isEqualTo(99L);
+    }
+
+    @Test
+    void joinRejectsWhenOpponentAlreadyExists() {
+        ClubTable table = new ClubTable("T1", true, null);
+        User owner = new User("Owner");
+        ReflectionTestUtils.setField(owner, "id", 10L);
+        User joiner = new User("Joiner");
+        ReflectionTestUtils.setField(joiner, "id", 20L);
+        User existingOpponent = new User("Existing");
+        ReflectionTestUtils.setField(existingOpponent, "id", 30L);
+        Booking booking = new Booking(table, owner, OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(1).plusHours(2));
+        ReflectionTestUtils.setField(booking, "id", 99L);
+        booking.setBookingMode(BookingMode.OPEN);
+        booking.setJoinDeadlineAt(booking.getStartAt().minusHours(12));
+        booking.setStatus(BookingStatus.CREATED);
+        booking.setOpponent(existingOpponent);
+
+        when(userRepository.findById(20L)).thenReturn(Optional.of(joiner));
+        when(bookingRepository.findByIdForUpdate(99L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.join(99L, new BookingJoinRequest(20L, null, null)))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void cancelExpiredOpenBookingsCancelsAndPublishesEvents() {
+        ClubTable table = new ClubTable("T1", true, null);
+        User owner = new User("Owner");
+        ReflectionTestUtils.setField(owner, "id", 10L);
+        Booking booking = new Booking(table, owner, OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(1).plusHours(2));
+        ReflectionTestUtils.setField(booking, "id", 77L);
+        booking.setBookingMode(BookingMode.OPEN);
+        booking.setJoinDeadlineAt(OffsetDateTime.now().minusMinutes(1));
+        booking.setStatus(BookingStatus.CREATED);
+
+        when(bookingRepository.findExpiredOpenForUpdate(eq(BookingStatus.CREATED), eq(BookingMode.OPEN), any()))
+                .thenReturn(List.of(booking));
+
+        int cancelled = bookingService.cancelExpiredOpenBookings();
+
+        assertThat(cancelled).isEqualTo(1);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(booking.getCancelReason()).isEqualTo("OPEN_JOIN_TIMEOUT");
+        verify(autoRefreshService).refreshTwoweeksIfWithinRange(booking.getStartAt());
+        ArgumentCaptor<BookingCancelledEvent> eventCaptor = ArgumentCaptor.forClass(BookingCancelledEvent.class);
+        verify(kafkaEventPublisher).publishBookingCancelled(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().bookingId()).isEqualTo(77L);
     }
 }
