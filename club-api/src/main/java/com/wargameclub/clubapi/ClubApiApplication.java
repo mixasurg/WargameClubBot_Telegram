@@ -14,7 +14,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class ClubApiApplication {
 
     /**
-     * Выполняет операцию.
+     * Запускает Spring Boot приложение `club-api`.
+     *
+     * @param args аргументы командной строки
      */
     public static void main(String[] args) {
         SpringApplication.run(ClubApiApplication.class, args);

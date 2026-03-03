@@ -18,7 +18,9 @@ import com.wargameclub.clubbot.config.BotProperties;
 public class ClubBotApplication {
 
     /**
-     * Выполняет операцию.
+     * Запускает Spring Boot приложение `club-bot`.
+     *
+     * @param args аргументы командной строки
      */
     public static void main(String[] args) {
         SpringApplication.run(ClubBotApplication.class, args);

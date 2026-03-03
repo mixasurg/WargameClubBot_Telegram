@@ -9,19 +9,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
     /**
-     * Поле состояния.
+     * Часовой пояс приложения по умолчанию.
      */
     private ZoneId timezone = ZoneId.of("Europe/Moscow");
     /**
-     * Поле состояния.
+     * Настройки безопасности API.
      */
     private final Security security = new Security();
     /**
-     * Поле состояния.
+     * Настройки начисления баллов лояльности.
      */
     private final Loyalty loyalty = new Loyalty();
     /**
-     * Поле состояния.
+     * Настройки ретраев уведомлений.
      */
     private final Notifications notifications = new Notifications();
 
@@ -76,7 +76,7 @@ public class AppProperties {
     public static class Security {
 
         /**
-         * Поле состояния.
+         * API-ключ для защищенных эндпоинтов.
          */
         private String apiKey;
 
@@ -105,12 +105,12 @@ public class AppProperties {
     public static class Loyalty {
 
         /**
-         * Поле состояния.
+         * Баллы за использование армии.
          */
         private int pointsArmyUsed = 10;
 
         /**
-         * Поле состояния.
+         * Баллы за предоставление армии клубу.
          */
         private int pointsArmyShared = 5;
 
@@ -157,12 +157,12 @@ public class AppProperties {
     public static class Notifications {
 
         /**
-         * Поле состояния.
+         * Максимальное число попыток отправки уведомления.
          */
         private int maxAttempts = 5;
 
         /**
-         * Поле состояния.
+         * Задержка между попытками отправки в секундах.
          */
         private int backoffSeconds = 30;
 
