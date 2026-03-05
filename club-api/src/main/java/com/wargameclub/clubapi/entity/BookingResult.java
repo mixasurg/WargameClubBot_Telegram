@@ -71,7 +71,6 @@ public class BookingResult {
      */
     public BookingResult(Booking booking, User reporter, GameOutcome outcome) {
         this.booking = booking;
-        this.bookingId = booking != null ? booking.getId() : null;
         this.reporter = reporter;
         this.outcome = outcome;
         this.recordedAt = OffsetDateTime.now();

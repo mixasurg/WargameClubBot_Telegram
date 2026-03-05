@@ -1,6 +1,7 @@
 package com.wargameclub.clubapi.messaging;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,11 +11,13 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class KafkaEventPublisherTest {
@@ -27,6 +30,7 @@ class KafkaEventPublisherTest {
     @BeforeEach
     void setUp() {
         publisher = new KafkaEventPublisher(kafkaTemplate);
+        when(kafkaTemplate.send(anyString(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
     }
 
     @Test
@@ -53,6 +57,38 @@ class KafkaEventPublisherTest {
             syncs.forEach(TransactionSynchronization::afterCommit);
 
             verify(kafkaTemplate).send(KafkaTopics.BOOKING_CREATED, "20", event);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+
+    @Test
+    void publishBookingCreatedIgnoresKafkaExceptionWithoutTransaction() {
+        when(kafkaTemplate.send(anyString(), any(), any()))
+                .thenThrow(new RuntimeException("Kafka is unavailable"));
+
+        assertThatCode(() -> publisher.publishBookingCreated(new BookingCreatedEvent(30L)))
+                .doesNotThrowAnyException();
+        verify(kafkaTemplate).send(KafkaTopics.BOOKING_CREATED, "30", new BookingCreatedEvent(30L));
+    }
+
+    @Test
+    void publishBookingCreatedIgnoresKafkaExceptionAfterCommit() {
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            when(kafkaTemplate.send(anyString(), any(), any()))
+                    .thenThrow(new RuntimeException("Kafka is unavailable"));
+            BookingCreatedEvent event = new BookingCreatedEvent(40L);
+
+            publisher.publishBookingCreated(event);
+
+            List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+            assertThat(syncs).hasSize(1);
+            assertThatCode(() -> syncs.forEach(TransactionSynchronization::afterCommit))
+                    .doesNotThrowAnyException();
+            verify(kafkaTemplate).send(KafkaTopics.BOOKING_CREATED, "40", event);
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
             TransactionSynchronizationManager.setActualTransactionActive(false);

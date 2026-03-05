@@ -2,6 +2,7 @@ package com.wargameclub.clubapi.service;
 
 import java.util.Optional;
 import com.wargameclub.clubapi.entity.Booking;
+import com.wargameclub.clubapi.entity.BookingResult;
 import com.wargameclub.clubapi.entity.ClubTable;
 import com.wargameclub.clubapi.entity.User;
 import com.wargameclub.clubapi.entity.UserGameStats;
@@ -17,6 +18,7 @@ import com.wargameclub.clubapi.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -71,7 +73,10 @@ class GameResultServiceTest {
 
         assertThat(reporterStats.getWins()).isEqualTo(1);
         assertThat(opponentStats.getLosses()).isEqualTo(1);
-        verify(resultRepository).save(any());
+        ArgumentCaptor<BookingResult> resultCaptor = ArgumentCaptor.forClass(BookingResult.class);
+        verify(resultRepository).save(resultCaptor.capture());
+        assertThat(resultCaptor.getValue().getBooking()).isSameAs(booking);
+        assertThat(resultCaptor.getValue().getBookingId()).isNull();
     }
 
     @Test
