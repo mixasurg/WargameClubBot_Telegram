@@ -51,3 +51,32 @@ app:
 logging:
   level:
     org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+
+lab:
+  resilience:
+    payment:
+      mode: ${LAB_PAYMENT_MODE:NORMAL}
+      slow-delay-ms: ${LAB_PAYMENT_SLOW_DELAY_MS:5000}
+      error-probability: ${LAB_PAYMENT_ERROR_PROBABILITY:0.5}
+    notification:
+      mode: ${LAB_NOTIFICATION_MODE:NORMAL}
+      slow-delay-ms: ${LAB_NOTIFICATION_SLOW_DELAY_MS:5000}
+      error-probability: ${LAB_NOTIFICATION_ERROR_PROBABILITY:0.5}
+    timeout:
+      timeout-ms: ${LAB_PAYMENT_TIMEOUT_MS:2000}
+    retry:
+      max-attempts: ${LAB_PAYMENT_RETRY_MAX_ATTEMPTS:3}
+      initial-delay-ms: ${LAB_PAYMENT_RETRY_INITIAL_DELAY_MS:100}
+      multiplier: ${LAB_PAYMENT_RETRY_MULTIPLIER:2}
+    circuit-breaker:
+      failure-rate-threshold: ${LAB_CIRCUIT_FAILURE_RATE_THRESHOLD:50}
+      sliding-window-size: ${LAB_CIRCUIT_SLIDING_WINDOW_SIZE:10}
+      minimum-number-of-calls: ${LAB_CIRCUIT_MINIMUM_NUMBER_OF_CALLS:5}
+      open-state-duration-ms: ${LAB_CIRCUIT_OPEN_STATE_DURATION_MS:10000}
+      half-open-permitted-calls: ${LAB_CIRCUIT_HALF_OPEN_PERMITTED_CALLS:5}
+    bulkhead:
+      max-concurrent-calls: ${LAB_NOTIFICATION_BULKHEAD_MAX_CONCURRENT_CALLS:2}
+      queue-capacity: ${LAB_NOTIFICATION_BULKHEAD_QUEUE_CAPACITY:0}
+    rate-limiter:
+      max-requests-per-minute: ${LAB_RATE_LIMIT_MAX_REQUESTS_PER_MINUTE:5}
+      window-ms: ${LAB_RATE_LIMIT_WINDOW_MS:60000}

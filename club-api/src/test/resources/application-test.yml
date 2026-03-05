@@ -28,3 +28,32 @@ app:
     backoff-seconds: 1
   booking:
     open-cleanup-cron: "0 0 0 1 1 *"
+
+lab:
+  resilience:
+    payment:
+      mode: NORMAL
+      slow-delay-ms: 5000
+      error-probability: 0.5
+    notification:
+      mode: NORMAL
+      slow-delay-ms: 5000
+      error-probability: 0.5
+    timeout:
+      timeout-ms: 2000
+    retry:
+      max-attempts: 3
+      initial-delay-ms: 100
+      multiplier: 2
+    circuit-breaker:
+      failure-rate-threshold: 50
+      sliding-window-size: 10
+      minimum-number-of-calls: 5
+      open-state-duration-ms: 10000
+      half-open-permitted-calls: 5
+    bulkhead:
+      max-concurrent-calls: 2
+      queue-capacity: 0
+    rate-limiter:
+      max-requests-per-minute: 5
+      window-ms: 60000

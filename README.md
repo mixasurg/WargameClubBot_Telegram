@@ -206,6 +206,36 @@ Base URL: `http://localhost:8080`
 - `GET /api/telegram/settings`
 - `PUT /api/telegram/settings`
 
+Лабораторный контур отказоустойчивости:
+- `POST /api/lab/tickets/purchase` — основной сценарий `Timeout/Retry/CircuitBreaker/Bulkhead/Fallback`.
+- `POST /api/lab/tickets/purchase/limited` — тот же сценарий, но с `Rate Limiting` (5 req/min по IP).
+- `GET /api/lab/resilience/stats` — текущее состояние (`circuit state`, счетчики вызовов, размер fallback-очереди).
+- `POST /api/lab/resilience/reset` — сброс состояния перед проверками.
+- В роли `Payment` в этом контуре используется существующий `LoyaltyService` (начисление баллов после успешного вызова).
+
+Параметры эмуляции сбоев (query params для `purchase` и `purchase/limited`):
+- `paymentMode`, `notificationMode`: `NORMAL | SLOW | ERROR | DOWN`
+- `paymentDelayMs`, `notificationDelayMs`
+- `paymentErrorProbability`, `notificationErrorProbability`
+- `paymentFailAttempts`, `notificationFailAttempts`
+
+Переменные окружения для дефолтной конфигурации лабораторного контура:
+- `LAB_PAYMENT_MODE`, `LAB_PAYMENT_SLOW_DELAY_MS`, `LAB_PAYMENT_ERROR_PROBABILITY`
+- `LAB_NOTIFICATION_MODE`, `LAB_NOTIFICATION_SLOW_DELAY_MS`, `LAB_NOTIFICATION_ERROR_PROBABILITY`
+- `LAB_PAYMENT_TIMEOUT_MS` (по умолчанию `2000`)
+- `LAB_PAYMENT_RETRY_MAX_ATTEMPTS` (по умолчанию `3`)
+- `LAB_PAYMENT_RETRY_INITIAL_DELAY_MS` (по умолчанию `100`)
+- `LAB_PAYMENT_RETRY_MULTIPLIER` (по умолчанию `2`)
+- `LAB_CIRCUIT_FAILURE_RATE_THRESHOLD` (по умолчанию `50`)
+- `LAB_CIRCUIT_SLIDING_WINDOW_SIZE` (по умолчанию `10`)
+- `LAB_CIRCUIT_MINIMUM_NUMBER_OF_CALLS` (по умолчанию `5`)
+- `LAB_CIRCUIT_OPEN_STATE_DURATION_MS` (по умолчанию `10000`)
+- `LAB_CIRCUIT_HALF_OPEN_PERMITTED_CALLS` (по умолчанию `5`)
+- `LAB_NOTIFICATION_BULKHEAD_MAX_CONCURRENT_CALLS` (по умолчанию `2`)
+- `LAB_NOTIFICATION_BULKHEAD_QUEUE_CAPACITY` (по умолчанию `0`)
+- `LAB_RATE_LIMIT_MAX_REQUESTS_PER_MINUTE` (по умолчанию `5`)
+- `LAB_RATE_LIMIT_WINDOW_MS` (по умолчанию `60000`)
+
 ## Postman
 Коллекция: `postman/wargame-club.postman_collection.json`
 
