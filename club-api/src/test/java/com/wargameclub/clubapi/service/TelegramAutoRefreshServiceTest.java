@@ -52,8 +52,6 @@ class TelegramAutoRefreshServiceTest {
 
     @Test
     void refreshTwoweeksIfWithinRangeSkipsWhenOutOfRange() {
-        when(settingsService.getAny()).thenReturn(Optional.of(new ClubTelegramSettings(1L)));
-
         service.refreshTwoweeksIfWithinRange(OffsetDateTime.now().plusWeeks(3));
 
         verifyNoInteractions(outboxService);

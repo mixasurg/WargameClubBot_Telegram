@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,9 +41,9 @@ class OutboxEventPublisherTest {
 
         ArgumentCaptor<ChatRouting> routingCaptor = ArgumentCaptor.forClass(ChatRouting.class);
         verify(outboxService).enqueue(
-                NotificationTarget.TELEGRAM,
+                eq(NotificationTarget.TELEGRAM),
                 routingCaptor.capture(),
-                "Hello"
+                eq("Hello")
         );
         assertThat(routingCaptor.getValue().chatId()).isEqualTo(123L);
         assertThat(routingCaptor.getValue().threadId()).isEqualTo(5);

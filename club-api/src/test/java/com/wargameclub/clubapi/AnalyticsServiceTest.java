@@ -27,7 +27,7 @@ public class AnalyticsServiceTest {
      */
     @Test
     void writesSnapshotToFile() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
         Path file = Files.createTempFile("analytics", ".json");
         AnalyticsService service = new AnalyticsService(mapper, file.toString());
 

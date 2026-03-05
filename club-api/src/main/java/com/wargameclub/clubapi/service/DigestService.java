@@ -41,13 +41,14 @@ public class DigestService {
     /**
      * Шаблон поиска имени соперника в заметках.
      */
-    private static final Pattern OPPONENT_PATTERN = Pattern.compile("(?i)соперник\\s*:\\s*([^;\\n]+)");
+    private static final Pattern OPPONENT_PATTERN =
+            Pattern.compile("(?iu)(?:соперник|opponent)\\s*:\\s*([^;\\n]+)");
     private static final Pattern OPPONENT_FACTION_PATTERN =
-            Pattern.compile("(?i)соперник\\s+фракция\\s*:\\s*([^;\\n]+)");
+            Pattern.compile("(?iu)(?:соперник\\s+фракция|opponent\\s+faction)\\s*:\\s*([^;\\n]+)");
     private static final Pattern OPPONENT_FACTION_ALT_PATTERN =
-            Pattern.compile("(?i)фракция\\s+соперника\\s*:\\s*([^;\\n]+)");
+            Pattern.compile("(?iu)(?:фракция\\s+соперника|opponent\\s+faction)\\s*:\\s*([^;\\n]+)");
     private static final Pattern OPPONENT_WITH_FACTION_PATTERN =
-            Pattern.compile("(?i)соперник\\s*:\\s*[^;\\n()]*\\(([^)\\n]+)\\)");
+            Pattern.compile("(?iu)(?:соперник|opponent)\\s*:\\s*[^;\\n()]*\\(([^)\\n]+)\\)");
 
     /**
      * Репозиторий бронирований.
@@ -242,7 +243,11 @@ public class DigestService {
             return null;
         }
         String opponent = matcher.group(1);
-        return opponent != null && !opponent.isBlank() ? opponent.trim() : null;
+        if (opponent == null || opponent.isBlank()) {
+            return null;
+        }
+        String normalized = opponent.replaceAll("\\([^)]*\\)", "").trim();
+        return normalized.isBlank() ? null : normalized;
     }
 
     /**
@@ -270,18 +275,25 @@ public class DigestService {
         if (notes == null || notes.isBlank()) {
             return null;
         }
-        Matcher matcher = OPPONENT_FACTION_PATTERN.matcher(notes);
-        if (!matcher.find()) {
-            matcher = OPPONENT_FACTION_ALT_PATTERN.matcher(notes);
+        String faction = extractFirstGroup(notes, OPPONENT_FACTION_PATTERN);
+        if (faction == null) {
+            faction = extractFirstGroup(notes, OPPONENT_FACTION_ALT_PATTERN);
         }
-        if (!matcher.find()) {
-            matcher = OPPONENT_WITH_FACTION_PATTERN.matcher(notes);
+        if (faction == null) {
+            faction = extractFirstGroup(notes, OPPONENT_WITH_FACTION_PATTERN);
         }
+        if (faction == null) {
+            return null;
+        }
+        return faction != null && !faction.isBlank() ? faction.trim() : null;
+    }
+
+    private String extractFirstGroup(String source, Pattern pattern) {
+        Matcher matcher = pattern.matcher(source);
         if (!matcher.find()) {
             return null;
         }
-        String faction = matcher.group(1);
-        return faction != null && !faction.isBlank() ? faction.trim() : null;
+        return matcher.group(1);
     }
 
     /**

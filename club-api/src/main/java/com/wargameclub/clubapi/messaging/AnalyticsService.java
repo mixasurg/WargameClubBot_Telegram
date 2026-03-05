@@ -64,7 +64,7 @@ public class AnalyticsService {
      * @param analyticsFile путь к файлу аналитики из настроек приложения
      */
     public AnalyticsService(ObjectMapper objectMapper, @Value("${app.analytics.file:}") String analyticsFile) {
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper.copy().findAndRegisterModules();
         this.analyticsFile = analyticsFile == null || analyticsFile.isBlank() ? null : Path.of(analyticsFile);
     }
 

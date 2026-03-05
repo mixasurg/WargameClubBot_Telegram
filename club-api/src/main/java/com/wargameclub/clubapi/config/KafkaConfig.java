@@ -13,6 +13,7 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
@@ -32,13 +33,15 @@ public class KafkaConfig {
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
             ConsumerFactory<String, Object> consumerFactory,
-            CommonErrorHandler kafkaErrorHandler
+            CommonErrorHandler kafkaErrorHandler,
+            @Value("${spring.kafka.listener.auto-startup:true}") boolean listenerAutoStartup
     ) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         factory.setCommonErrorHandler(kafkaErrorHandler);
+        factory.setAutoStartup(listenerAutoStartup);
         return factory;
     }
 

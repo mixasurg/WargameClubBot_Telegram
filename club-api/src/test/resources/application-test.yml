@@ -13,10 +13,11 @@ spring:
     enabled: false
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
+    listener:
       auto-startup: false
     admin:
-      enabled: false
+      auto-create: false
+      fail-fast: false
 
 app:
   timezone: Europe/Moscow
