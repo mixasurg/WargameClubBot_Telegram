@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wargameclub.clubapi.config.AppProperties;
 import com.wargameclub.clubapi.dto.DigestBookingDto;
 import com.wargameclub.clubapi.dto.DigestDayDto;
@@ -70,10 +68,7 @@ public class DigestService {
      */
     private final AppProperties appProperties;
 
-    /**
-     * Сериализатор JSON.
-     */
-    private final ObjectMapper objectMapper;
+    private final TableAllocationService tableAllocationService;
 
     /**
      * Создает сервис дайджестов.
@@ -82,20 +77,20 @@ public class DigestService {
      * @param eventRepository репозиторий мероприятий
      * @param tableRepository репозиторий столов
      * @param appProperties настройки приложения
-     * @param objectMapper сериализатор JSON
+     * @param tableAllocationService сервис распределения столов
      */
     public DigestService(
             BookingRepository bookingRepository,
             ClubEventRepository eventRepository,
             ClubTableRepository tableRepository,
             AppProperties appProperties,
-            ObjectMapper objectMapper
+            TableAllocationService tableAllocationService
     ) {
         this.bookingRepository = bookingRepository;
         this.eventRepository = eventRepository;
         this.tableRepository = tableRepository;
         this.appProperties = appProperties;
-        this.objectMapper = objectMapper;
+        this.tableAllocationService = tableAllocationService;
     }
 
     /**
@@ -125,7 +120,7 @@ public class DigestService {
         Map<LocalDate, Map<Long, List<Booking>>> byDay = new HashMap<>();
         for (Booking booking : bookings) {
             LocalDate date = booking.getStartAt().atZoneSameInstant(zoneId).toLocalDate();
-            for (TableAllocation allocation : parseAllocations(booking)) {
+            for (TableAllocationService.TableAllocation allocation : tableAllocationService.parseAllocations(booking)) {
                 byDay.computeIfAbsent(date, key -> new HashMap<>())
                         .computeIfAbsent(allocation.tableId(), key -> new ArrayList<>())
                         .add(booking);
@@ -196,32 +191,6 @@ public class DigestService {
                 event.getOrganizer().getName(),
                 event.getStatus()
         );
-    }
-
-    /**
-     * Разбирает назначения столов из JSON.
-     *
-     * @param booking бронирование
-     * @return список назначений столов
-     */
-    private List<TableAllocation> parseAllocations(Booking booking) {
-        if (booking.getTableAssignments() == null || booking.getTableAssignments().isBlank()) {
-            if (booking.getTable() == null) {
-                return List.of();
-            }
-            int units = booking.getTableUnits() >= 2 ? 2 : 1;
-            return List.of(new TableAllocation(booking.getTable().getId(), units));
-        }
-        try {
-            return objectMapper.readValue(booking.getTableAssignments(), new TypeReference<List<TableAllocation>>() {
-            });
-        } catch (Exception ex) {
-            if (booking.getTable() == null) {
-                return List.of();
-            }
-            int units = booking.getTableUnits() >= 2 ? 2 : 1;
-            return List.of(new TableAllocation(booking.getTable().getId(), units));
-        }
     }
 
     /**
@@ -296,12 +265,4 @@ public class DigestService {
         return matcher.group(1);
     }
 
-    /**
-     * Назначение части бронирования на конкретный стол.
-     *
-     * @param tableId идентификатор стола
-     * @param units количество единиц стола
-     */
-    private record TableAllocation(Long tableId, int units) {
-    }
 }

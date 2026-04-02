@@ -63,7 +63,7 @@ class GameResultServiceTest {
         UserGameStats reporterStats = new UserGameStats(user);
         UserGameStats opponentStats = new UserGameStats(opponent);
 
-        when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(booking));
         when(resultRepository.existsById(10L)).thenReturn(false);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(statsRepository.findById(1L)).thenReturn(Optional.of(reporterStats));
@@ -93,7 +93,7 @@ class GameResultServiceTest {
         User outsider = new User("Outsider");
         ReflectionTestUtils.setField(outsider, "id", 3L);
 
-        when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(booking));
         when(resultRepository.existsById(10L)).thenReturn(false);
         when(userRepository.findById(3L)).thenReturn(Optional.of(outsider));
 
@@ -111,7 +111,7 @@ class GameResultServiceTest {
         booking.setOpponent(opponent);
         booking.setStatus(BookingStatus.CREATED);
         when(resultRepository.existsById(10L)).thenReturn(true);
-        when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(booking));
 
         assertThatThrownBy(() -> service.recordResult(10L, 1L, GameOutcome.WIN))
                 .isInstanceOf(ConflictException.class);

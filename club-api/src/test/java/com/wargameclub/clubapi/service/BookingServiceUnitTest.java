@@ -64,12 +64,17 @@ class BookingServiceUnitTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        TableAllocationService tableAllocationService = new TableAllocationService(
+                bookingRepository,
+                tableRepository,
+                objectMapper
+        );
         bookingService = new BookingService(
                 bookingRepository,
                 tableRepository,
                 userRepository,
                 armyRepository,
-                objectMapper,
+                tableAllocationService,
                 autoRefreshService,
                 kafkaEventPublisher,
                 outboxService,
@@ -87,7 +92,7 @@ class BookingServiceUnitTest {
         ReflectionTestUtils.setField(user, "id", 10L);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(tableRepository.findAll()).thenReturn(List.of(table1, table2));
+        when(tableRepository.findActiveForUpdate()).thenReturn(List.of(table1, table2));
         when(tableRepository.findById(1L)).thenReturn(Optional.of(table1));
         when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
                 .thenReturn(List.of());
@@ -139,7 +144,7 @@ class BookingServiceUnitTest {
         ReflectionTestUtils.setField(user, "id", 10L);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(tableRepository.findAll()).thenReturn(List.of(table1));
+        when(tableRepository.findActiveForUpdate()).thenReturn(List.of(table1));
         when(tableRepository.findById(1L)).thenReturn(Optional.of(table1));
         when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
                 .thenReturn(List.of());
@@ -171,6 +176,8 @@ class BookingServiceUnitTest {
     void createRejectsClubArmyConflict() {
         ClubTable table1 = new ClubTable("T1", true, null);
         ReflectionTestUtils.setField(table1, "id", 1L);
+        ClubTable table2 = new ClubTable("T2", true, null);
+        ReflectionTestUtils.setField(table2, "id", 2L);
         User user = new User("Alice");
         ReflectionTestUtils.setField(user, "id", 10L);
         Army army = new Army(user, "Game", "Faction", true);
@@ -181,6 +188,7 @@ class BookingServiceUnitTest {
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
         when(armyRepository.findById(9L)).thenReturn(Optional.of(army));
+        when(tableRepository.findActiveForUpdate()).thenReturn(List.of(table1, table2));
         when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
                 .thenReturn(List.of(overlapping));
 
@@ -210,9 +218,7 @@ class BookingServiceUnitTest {
         ReflectionTestUtils.setField(user, "id", 10L);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(tableRepository.findAll()).thenReturn(List.of(table1));
-        when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
-                .thenReturn(List.of());
+        when(tableRepository.findActiveForUpdate()).thenReturn(List.of(table1));
 
         BookingCreateRequest request = new BookingCreateRequest(
                 99L,
@@ -244,7 +250,7 @@ class BookingServiceUnitTest {
         overlapping.setTableAssignments(assignments);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(tableRepository.findAll()).thenReturn(List.of(table1));
+        when(tableRepository.findActiveForUpdate()).thenReturn(List.of(table1));
         when(bookingRepository.findOverlappingWithDetails(eq(BookingStatus.CREATED), any(), any()))
                 .thenReturn(List.of(overlapping));
 

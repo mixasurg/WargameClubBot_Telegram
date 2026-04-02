@@ -196,7 +196,7 @@ public class EventService {
      */
     @Transactional
     public void register(Long eventId, Long userId, Integer count, BigDecimal amount) {
-        ClubEvent event = eventRepository.findById(eventId)
+        ClubEvent event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new NotFoundException("Мероприятие не найдено: " + eventId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден: " + userId));

@@ -3,6 +3,7 @@ package com.wargameclub.clubapi.service;
 import com.wargameclub.clubapi.config.AppProperties;
 import com.wargameclub.clubapi.entity.LoyaltyAccount;
 import com.wargameclub.clubapi.repository.LoyaltyAccountRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,10 +66,16 @@ public class LoyaltyService {
      * @return новый баланс
      */
     private int addPoints(Long userId, int pointsToAdd) {
-        LoyaltyAccount account = repository.findById(userId)
-                .orElseGet(() -> new LoyaltyAccount(userId, 0));
+        LoyaltyAccount account = repository.findByIdForUpdate(userId).orElse(null);
+        if (account == null) {
+            try {
+                LoyaltyAccount created = repository.saveAndFlush(new LoyaltyAccount(userId, pointsToAdd));
+                return created.getPoints();
+            } catch (DataIntegrityViolationException ex) {
+                account = repository.findByIdForUpdate(userId).orElseThrow(() -> ex);
+            }
+        }
         account.setPoints(account.getPoints() + pointsToAdd);
-        repository.save(account);
         return account.getPoints();
     }
 

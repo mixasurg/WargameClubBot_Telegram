@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,26 +36,27 @@ class LoyaltyServiceUnitTest {
 
     @Test
     void addPointsCreatesAccountWhenMissing() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
-        when(repository.save(any(LoyaltyAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
+        when(repository.saveAndFlush(any(LoyaltyAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         int points = service.addPoints(1L);
 
         assertThat(points).isEqualTo(10);
         ArgumentCaptor<LoyaltyAccount> captor = ArgumentCaptor.forClass(LoyaltyAccount.class);
-        verify(repository).save(captor.capture());
+        verify(repository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getPoints()).isEqualTo(10);
     }
 
     @Test
     void addPointsForSharedArmyUsesConfiguredValue() {
         LoyaltyAccount account = new LoyaltyAccount(1L, 20);
-        when(repository.findById(1L)).thenReturn(Optional.of(account));
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(account));
 
         int points = service.addPointsForSharedArmy(1L);
 
         assertThat(points).isEqualTo(25);
-        verify(repository).save(account);
+        verify(repository).findByIdForUpdate(1L);
+        verifyNoMoreInteractions(repository);
     }
 
     @Test

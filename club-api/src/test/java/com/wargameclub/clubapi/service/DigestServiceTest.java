@@ -129,7 +129,12 @@ class DigestServiceTest {
         when(eventRepository.findOverlappingWithOrganizer(any(OffsetDateTime.class), any(OffsetDateTime.class), isNull()))
                 .thenReturn(List.of());
         when(tableRepository.findAll()).thenReturn(tables);
-        return new DigestService(bookingRepository, eventRepository, tableRepository, appProperties, new ObjectMapper());
+        TableAllocationService tableAllocationService = new TableAllocationService(
+                bookingRepository,
+                tableRepository,
+                new ObjectMapper()
+        );
+        return new DigestService(bookingRepository, eventRepository, tableRepository, appProperties, tableAllocationService);
     }
 
     /**

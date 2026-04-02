@@ -15,11 +15,18 @@ import com.wargameclub.clubapi.entity.ClubEvent;
 import com.wargameclub.clubapi.entity.ClubTable;
 import com.wargameclub.clubapi.entity.UserGameStats;
 import com.wargameclub.clubapi.entity.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Утилита для преобразования сущностей в DTO.
  */
 public final class DtoMapper {
+    /**
+     * Логгер.
+     */
+    private static final Logger log = LoggerFactory.getLogger(DtoMapper.class);
+
     /**
      * Сериализатор JSON для разбора назначений столов.
      */
@@ -159,6 +166,7 @@ public final class DtoMapper {
                     .map(item -> new BookingTableAllocationDto(item.tableId(), item.units()))
                     .toList();
         } catch (Exception ex) {
+            log.warn("Не удалось разобрать tableAssignments для DTO-мэппинга. JSON={}", json, ex);
             return java.util.List.of();
         }
     }

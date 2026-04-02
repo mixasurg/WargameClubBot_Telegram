@@ -137,7 +137,7 @@ class EventServiceTest {
         event.setStatus(EventStatus.SCHEDULED);
         event.setCapacity(1);
 
-        when(eventRepository.findById(5L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(event));
         when(userRepository.findById(10L)).thenReturn(Optional.of(new User("Bob")));
         when(registrationRepository.countByEventIdAndStatus(5L, RegistrationStatus.REGISTERED)).thenReturn(1L);
 
@@ -158,7 +158,7 @@ class EventServiceTest {
         EventRegistration registration = new EventRegistration(event, user);
         registration.setStatus(RegistrationStatus.CANCELLED);
 
-        when(eventRepository.findById(7L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(event));
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
         when(registrationRepository.findByEventIdAndUserId(7L, 10L)).thenReturn(Optional.of(registration));
 

@@ -79,7 +79,7 @@ public class GameResultService {
         if (outcome == null) {
             throw new BadRequestException("Не задан результат игры");
         }
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено: " + bookingId));
         if (booking.getStatus() != BookingStatus.CREATED) {
             throw new BadRequestException("Нельзя указать результат для отмененного бронирования");
