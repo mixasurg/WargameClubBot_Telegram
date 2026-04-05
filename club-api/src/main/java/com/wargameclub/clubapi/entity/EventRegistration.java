@@ -50,6 +50,18 @@ public class EventRegistration {
     private RegistrationStatus status = RegistrationStatus.REGISTERED;
 
     /**
+     * Дата и время, когда пользователю был отправлен запрос на подтверждение участия.
+     */
+    @Column(name = "confirmation_requested_at")
+    private OffsetDateTime confirmationRequestedAt;
+
+    /**
+     * Дата и время подтверждения участия пользователем.
+     */
+    @Column(name = "confirmed_at")
+    private OffsetDateTime confirmedAt;
+
+    /**
      * Дата и время создания записи.
      */
     @Column(nullable = false)
@@ -71,6 +83,7 @@ public class EventRegistration {
         this.event = event;
         this.user = user;
         this.status = RegistrationStatus.REGISTERED;
+        this.confirmationRequestedAt = OffsetDateTime.now();
         this.createdAt = OffsetDateTime.now();
     }
 
@@ -135,6 +148,42 @@ public class EventRegistration {
      */
     public void setStatus(RegistrationStatus status) {
         this.status = status;
+    }
+
+    /**
+     * Возвращает дату и время запроса подтверждения участия.
+     *
+     * @return дата и время запроса подтверждения
+     */
+    public OffsetDateTime getConfirmationRequestedAt() {
+        return confirmationRequestedAt;
+    }
+
+    /**
+     * Устанавливает дату и время запроса подтверждения участия.
+     *
+     * @param confirmationRequestedAt дата и время запроса подтверждения
+     */
+    public void setConfirmationRequestedAt(OffsetDateTime confirmationRequestedAt) {
+        this.confirmationRequestedAt = confirmationRequestedAt;
+    }
+
+    /**
+     * Возвращает дату и время подтверждения участия.
+     *
+     * @return дата и время подтверждения участия
+     */
+    public OffsetDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    /**
+     * Устанавливает дату и время подтверждения участия.
+     *
+     * @param confirmedAt дата и время подтверждения участия
+     */
+    public void setConfirmedAt(OffsetDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
     }
 
     /**

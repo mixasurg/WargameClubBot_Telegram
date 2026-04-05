@@ -19,6 +19,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByTelegramId(Long telegramId);
 
     /**
+     * Ищет пользователя по логину без учета регистра.
+     *
+     * @param login логин пользователя
+     * @return пользователь, если найден
+     */
+    Optional<User> findByLoginIgnoreCase(String login);
+
+    /**
      * Ищет пользователей по части имени без учета регистра.
      *
      * @param name часть имени

@@ -76,6 +76,22 @@ class ApiKeyFilterTest {
     }
 
     @Test
+    void allowsWhenBearerTokenIsProvided() throws Exception {
+        AppProperties props = new AppProperties();
+        props.getSecurity().setApiKey("secret");
+        ApiKeyFilter filter = new ApiKeyFilter(props);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
+        request.addHeader("Authorization", "Bearer token-value");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean invoked = new AtomicBoolean(false);
+        FilterChain chain = (req, res) -> invoked.set(true);
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(invoked).isTrue();
+    }
+
+    @Test
     void skipsActuatorEndpoints() throws Exception {
         AppProperties props = new AppProperties();
         props.getSecurity().setApiKey("secret");

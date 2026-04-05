@@ -9,6 +9,10 @@ public enum RegistrationStatus {
      */
     REGISTERED,
     /**
+     * Пользователь подтвердил, что придет.
+     */
+    CONFIRMED,
+    /**
      * Регистрация отменена.
      */
     CANCELLED

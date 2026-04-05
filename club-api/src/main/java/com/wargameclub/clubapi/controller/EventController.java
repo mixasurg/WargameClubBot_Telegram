@@ -2,6 +2,7 @@ package com.wargameclub.clubapi.controller;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.wargameclub.clubapi.dto.EventAttendanceConfirmRequest;
 import com.wargameclub.clubapi.dto.EventCreateRequest;
 import com.wargameclub.clubapi.dto.EventDto;
 import com.wargameclub.clubapi.dto.EventRegistrationRequest;
@@ -133,5 +134,33 @@ public class EventController {
     @PostMapping("/{id}/unregister")
     public void unregister(@PathVariable("id") Long id, @Valid @RequestBody EventRegistrationRequest request) {
         eventService.unregister(id, request.userId(), request.count(), request.amount());
+    }
+
+    /**
+     * Подтверждает участие пользователя в мероприятии.
+     *
+     * @param id идентификатор мероприятия
+     * @param request данные подтверждения участия
+     */
+    @PostMapping("/{id}/confirm")
+    public void confirmAttendance(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody EventAttendanceConfirmRequest request
+    ) {
+        eventService.confirmAttendance(id, request.userId());
+    }
+
+    /**
+     * Отмечает, что пользователь не придет на мероприятие.
+     *
+     * @param id идентификатор мероприятия
+     * @param request данные отклонения участия
+     */
+    @PostMapping("/{id}/decline")
+    public void declineAttendance(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody EventAttendanceConfirmRequest request
+    ) {
+        eventService.declineAttendance(id, request.userId());
     }
 }

@@ -64,13 +64,14 @@ mvn -pl club-bot -am -DskipTests package
    ```
 
 Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+Index page (JWT login): `http://localhost:8080/`
 
 ## Раздельный запуск на двух серверах
 Подходит для серверов с небольшой памятью. Используются файлы `docker-compose.api.yml` и `docker-compose.kafka.yml`.
 
 Сервер API + Postgres:
 1. Скопируйте `club-api/target/club-api-1.0.0-SNAPSHOT.jar` на сервер.
-2. Заполните `.env`, обязательно `KAFKA_SERVER_IP` и при необходимости `API_KEY`.
+2. Заполните `.env`, обязательно `KAFKA_SERVER_IP` и `JWT_SECRET` (минимум 32 символа). `API_KEY` можно оставить пустым.
 3. Запустите:
    ```bash
    docker-compose -f docker-compose.api.yml up -d --build
@@ -78,7 +79,7 @@ Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
 Сервер Kafka + club-bot:
 1. Скопируйте `club-bot/target/club-bot-1.0.0-SNAPSHOT.jar` на сервер.
-2. Заполните `.env`, обязательно `API_SERVER_IP`, `KAFKA_SERVER_IP`, `TELEGRAM_BOT_TOKEN` и при необходимости `API_KEY`.
+2. Заполните `.env`, обязательно `API_SERVER_IP`, `KAFKA_SERVER_IP`, `TELEGRAM_BOT_TOKEN`, `API_LOGIN`, `API_PASSWORD`.
 3. Запустите:
    ```bash
    docker-compose -f docker-compose.kafka.yml up -d --build
@@ -89,7 +90,7 @@ Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - `POSTGRES_DB` (по умолчанию `clubdb`)
 - `POSTGRES_USER` (по умолчанию `club`)
 - `POSTGRES_PASSWORD` (по умолчанию `club`)
-- `API_KEY` (опционально, ключ для защищенных эндпоинтов; передается в заголовке `X-API-KEY`)
+- `API_KEY` (опционально, legacy ключ в заголовке `X-API-KEY`, можно не использовать при JWT)
 - `API_SERVER_IP` (нужен для `docker-compose.kafka.yml`, адрес сервера с API)
 - `KAFKA_SERVER_IP` (нужен для `docker-compose.api.yml` и `docker-compose.kafka.yml`, адрес сервера с Kafka)
 
@@ -105,14 +106,33 @@ club-api:
 - `NOTIFICATIONS_BACKOFF_SECONDS` (по умолчанию `30`)
 - `BOOKING_OPEN_CLEANUP_CRON` (по умолчанию `0 */5 * * * *`, расписание автоотмены открытых броней)
 - `ANALYTICS_FILE` (опционально, путь для сохранения статистики)
-- `API_KEY` (опционально, включает проверку ключа на API)
+- `SECURITY_ENABLED` (по умолчанию `true`, включает JWT + RBAC)
+- `JWT_SECRET` (обязательно для production, минимум 32 символа)
+- `JWT_TTL_SECONDS` (по умолчанию `3600`)
+- `RATE_LIMIT_ENABLED` (по умолчанию `true`)
+- `RATE_LIMIT_PER_MINUTE` (по умолчанию `120`)
+- `LOGIN_RATE_LIMIT_PER_MINUTE` (по умолчанию `20`)
+- `API_KEY` (опционально, legacy-режим)
 
 club-bot:
 - `TELEGRAM_BOT_TOKEN` (обязательно)
 - `TELEGRAM_BOT_USERNAME` (по умолчанию `wargameclub_bot`)
 - `API_BASE_URL` (по умолчанию `http://club-api:8080` внутри compose, для локального запуска можно `http://localhost:8080`)
-- `API_KEY` (опционально, отправляется в `X-API-KEY` при обращении к API)
+- `API_LOGIN` (по умолчанию `club_bot`)
+- `API_PASSWORD` (по умолчанию `club_bot_pass`)
+- `API_AUTH_REFRESH_SKEW_SECONDS` (по умолчанию `30`, раннее обновление JWT)
+- `API_KEY` (опционально, fallback для legacy-режима)
 - `BOT_POLL_INTERVAL_SECONDS` (по умолчанию `10`)
+
+## Безопасность (ЛР4)
+- Аутентификация: JWT (`/api/auth/login`, `/api/auth/register`).
+- Авторизация: роли `ADMIN`, `ORGANIZER`, `MEMBER`, `BOT_SERVICE`.
+- Ограничение частоты запросов: отдельный лимит для `/api/auth/login` и общий лимит для API.
+- Аудит: таблица `audit_log` фиксирует актор, endpoint, статус и IP.
+- Межсервисное взаимодействие: `club-bot` получает JWT сервисного пользователя и использует `Authorization: Bearer ...`.
+- Тестовые учетные записи из миграции `V10__security_auth_rbac.sql`:
+  - `admin / admin123` (роль `ADMIN`)
+  - `club_bot / club_bot_pass` (роль `BOT_SERVICE`)
 
 ## Настройка Telegram
 1. Создайте бота через BotFather и установите `TELEGRAM_BOT_TOKEN`.
@@ -153,6 +173,11 @@ club-bot:
 ## API (кратко)
 Base URL: `http://localhost:8080`
 
+Аутентификация:
+- `POST /api/auth/register` (регистрация + JWT)
+- `POST /api/auth/login` (вход + JWT)
+- `GET /api/auth/me` (текущий пользователь по bearer token)
+
 Пользователи:
 - `POST /api/users/register`
 - `POST /api/users/telegram`
@@ -183,6 +208,8 @@ Base URL: `http://localhost:8080`
 - `GET /api/events/titles?limit=20`
 - `POST /api/events/{id}/register`
 - `POST /api/events/{id}/unregister`
+- `POST /api/events/{id}/confirm`
+- `POST /api/events/{id}/decline`
 
 Армии:
 - `POST /api/armies`

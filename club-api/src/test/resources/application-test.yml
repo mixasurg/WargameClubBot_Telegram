@@ -21,6 +21,9 @@ spring:
 
 app:
   timezone: Europe/Moscow
+  security:
+    enabled: false
+    rate-limit-enabled: false
   loyalty:
     points-army-used: 10
     points-army-shared: 5

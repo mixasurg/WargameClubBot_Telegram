@@ -59,7 +59,9 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             return;
         }
         String provided = request.getHeader(API_KEY_HEADER);
-        if (provided == null || !provided.equals(expected)) {
+        String authorization = request.getHeader("Authorization");
+        boolean hasBearerToken = authorization != null && authorization.startsWith("Bearer ");
+        if (!hasBearerToken && (provided == null || !provided.equals(expected))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("text/plain;charset=UTF-8");
             response.getOutputStream().write("Unauthorized".getBytes(StandardCharsets.UTF_8));
@@ -80,6 +82,14 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             return true;
         }
         String path = request.getRequestURI();
-        return path != null && (path.startsWith("/actuator") || path.startsWith("/error"));
+        return path != null && (
+                path.startsWith("/actuator")
+                        || path.startsWith("/error")
+                        || path.startsWith("/swagger-ui")
+                        || path.startsWith("/v3/api-docs")
+                        || path.startsWith("/api/auth")
+                        || "/".equals(path)
+                        || "/index.html".equals(path)
+        );
     }
 }

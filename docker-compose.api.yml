@@ -31,6 +31,7 @@ services:
       LOYALTY_POINTS_ARMY_SHARED: ${LOYALTY_POINTS_ARMY_SHARED:-5}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       API_KEY: ${API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:change-me-please-change-me-please-12345}
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "8080:8080"

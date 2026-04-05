@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Глобальный обработчик исключений REST API, формирующий ответ {@link ApiError}.
@@ -59,6 +60,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+    }
+
+    /**
+     * Обрабатывает исключения с явным HTTP-статусом.
+     *
+     * @param ex исключение с HTTP-статусом
+     * @param request HTTP-запрос
+     * @return ответ с указанным статусом
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        String message = ex.getReason() == null ? status.getReasonPhrase() : ex.getReason();
+        return buildError(status, message, request, null);
     }
 
     /**

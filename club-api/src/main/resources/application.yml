@@ -36,7 +36,13 @@ management:
 app:
   timezone: ${APP_TIMEZONE:Europe/Moscow}
   security:
+    enabled: ${SECURITY_ENABLED:true}
     api-key: ${API_KEY:}
+    jwt-secret: ${JWT_SECRET:change-me-please-change-me-please-12345}
+    jwt-ttl-seconds: ${JWT_TTL_SECONDS:3600}
+    rate-limit-enabled: ${RATE_LIMIT_ENABLED:true}
+    rate-limit-per-minute: ${RATE_LIMIT_PER_MINUTE:120}
+    login-rate-limit-per-minute: ${LOGIN_RATE_LIMIT_PER_MINUTE:20}
   loyalty:
     points-army-used: ${LOYALTY_POINTS_ARMY_USED:10}
     points-army-shared: ${LOYALTY_POINTS_ARMY_SHARED:5}

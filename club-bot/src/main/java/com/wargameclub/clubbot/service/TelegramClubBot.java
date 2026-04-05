@@ -133,6 +133,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     private static final String BTN_OPEN = "Открытые игры";
 
     /**
+     * Текст кнопки "Мероприятия".
+     */
+    private static final String BTN_EVENTS = "Мероприятия";
+
+    /**
      * Текст кнопки "Отменить".
      */
     private static final String BTN_CANCEL = "Отменить";
@@ -163,9 +168,34 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     private static final String CMD_REFRESH_EVENTS = "__cmd:refresh_events__";
 
     /**
+     * Префикс команды запроса подтверждения участия в мероприятии.
+     */
+    private static final String CMD_EVENT_ATTENDANCE_PROMPT = "__cmd:event_attendance_prompt__";
+
+    /**
      * Префикс команды запроса результата игры.
      */
     private static final String CMD_RESULT_PROMPT_PREFIX = "__cmd:result_prompt__";
+
+    /**
+     * Префикс callback для записи на мероприятие.
+     */
+    private static final String CALLBACK_EVENT_REGISTER_PREFIX = "evr:";
+
+    /**
+     * Префикс callback для отмены записи на мероприятие.
+     */
+    private static final String CALLBACK_EVENT_UNREGISTER_PREFIX = "evu:";
+
+    /**
+     * Префикс callback для подтверждения участия в мероприятии.
+     */
+    private static final String CALLBACK_EVENT_CONFIRM_PREFIX = "eac:";
+
+    /**
+     * Префикс callback для отклонения участия в мероприятии.
+     */
+    private static final String CALLBACK_EVENT_DECLINE_PREFIX = "ead:";
 
     /**
      * Максимальное число кнопок соперников в клавиатуре.
@@ -176,6 +206,11 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
      * Максимальное число кнопок join в списке открытых игр.
      */
     private static final int MAX_OPEN_JOIN_BUTTONS = 20;
+
+    /**
+     * Максимальное число кнопок мероприятий в списке личной записи.
+     */
+    private static final int MAX_EVENT_ACTION_BUTTONS = 20;
 
     /**
      * Параметры конфигурации бота.
@@ -305,6 +340,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             refreshEventsFromOutbox(message);
             return;
         }
+        if (message.text().startsWith(CMD_EVENT_ATTENDANCE_PROMPT)) {
+            sendEventAttendancePrompt(message);
+            return;
+        }
         if (message.text().startsWith(CMD_RESULT_PROMPT_PREFIX)) {
 
             /**
@@ -405,7 +444,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             case "/start", "/help" -> sendPrivateHelp(message);
             case "/book" -> startBooking(message);
             case "/open" -> sendOpenBookings(message);
+            case "/events" -> sendPrivateEvents(message);
             case "/join" -> handleManualJoinCommand(message, text);
+            case "/event_register" -> handleManualEventRegisterCommand(message, text);
+            case "/event_unregister" -> handleManualEventUnregisterCommand(message, text);
             case "/event" -> startEvent(message);
             case "/stats" -> sendPrivateStats(message);
             case "/armies" -> sendOwnArmies(message);
@@ -1728,6 +1770,28 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Отправляет запрос подтверждения участия в мероприятии.
+     *
+     * @param message сообщение из outbox
+     */
+    private void sendEventAttendancePrompt(NotificationMessage message) {
+        if (message == null || message.text() == null || message.chatId() == null) {
+            return;
+        }
+        EventAttendancePrompt prompt = parseEventAttendancePrompt(message.text());
+        if (prompt == null || prompt.eventId() == null) {
+            return;
+        }
+        String title = prompt.eventTitle() != null && !prompt.eventTitle().isBlank()
+                ? prompt.eventTitle()
+                : "Мероприятие #" + prompt.eventId();
+        String text = "Подтвердите участие:\n"
+                + title
+                + "\nВы придете?";
+        sendText(message.chatId(), message.threadId(), text, buildEventAttendanceDecisionKeyboard(prompt.eventId()));
+    }
+
+    /**
      * Отправляет ResultPrompt.
      */
     private void sendResultPrompt(NotificationMessage message) throws TelegramApiException {
@@ -1740,6 +1804,37 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         send.setText("Игра завершена. Кто победил?");
         send.setReplyMarkup(buildResultKeyboard(bookingId));
         execute(send);
+    }
+
+    /**
+     * Разбирает payload запроса подтверждения участия из outbox-команды.
+     *
+     * Формат:
+     * __cmd:event_attendance_prompt__:<eventId>[:<eventTitle>]
+     *
+     * @param text текст outbox-команды
+     * @return распарсенные данные или null
+     */
+    private EventAttendancePrompt parseEventAttendancePrompt(String text) {
+        if (text == null || !text.startsWith(CMD_EVENT_ATTENDANCE_PROMPT)) {
+            return null;
+        }
+        String payload = text.substring(CMD_EVENT_ATTENDANCE_PROMPT.length()).trim();
+        if (payload.startsWith(":")) {
+            payload = payload.substring(1).trim();
+        }
+        if (payload.isEmpty()) {
+            return null;
+        }
+        int separator = payload.indexOf(':');
+        String idPart = separator >= 0 ? payload.substring(0, separator).trim() : payload;
+        String title = separator >= 0 ? payload.substring(separator + 1).trim() : null;
+        try {
+            Long eventId = Long.parseLong(idPart);
+            return new EventAttendancePrompt(eventId, title);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     /**
@@ -1858,10 +1953,14 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         return "Личные действия:\n"
                 + BTN_BOOK + " - записаться на игру\n"
                 + BTN_OPEN + " - список открытых игр\n"
+                + BTN_EVENTS + " - записаться на мероприятие\n"
                 + BTN_EVENT + " - создать мероприятие\n"
                 + BTN_STATS + " - показать вашу статистику\n"
                 + BTN_ARMIES + " - управление своими армиями\n"
                 + "/open - показать список открытых игр\n"
+                + "/events - показать ближайшие мероприятия\n"
+                + "/event_register <id> - записаться на мероприятие\n"
+                + "/event_unregister <id> - отменить запись на мероприятие\n"
                 + "/join <id> - присоединиться к открытой игре\n"
                 + "/result <id> - вручную открыть выбор результата для игры\n"
                 + BTN_CANCEL + " - отменить диалог\n"
@@ -1956,6 +2055,10 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
                 sendOpenBookings(message);
                 yield true;
             }
+            case BTN_EVENTS -> {
+                sendPrivateEvents(message);
+                yield true;
+            }
             case BTN_STATS -> {
                 sendPrivateStats(message);
                 yield true;
@@ -1997,6 +2100,7 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         KeyboardRow row1 = new KeyboardRow();
         row1.add(BTN_BOOK);
         row1.add(BTN_OPEN);
+        row1.add(BTN_EVENTS);
         row1.add(BTN_EVENT);
 
         KeyboardRow row2 = new KeyboardRow();
@@ -2766,6 +2870,104 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Отправляет список ближайших мероприятий для записи в личный чат.
+     *
+     * @param message входящее сообщение пользователя
+     */
+    private void sendPrivateEvents(Message message) {
+        ZoneId zoneId;
+        try {
+            zoneId = resolveTimezone();
+        } catch (RestClientException ex) {
+            zoneId = ZoneId.of("Europe/Moscow");
+        }
+        OffsetDateTime from = OffsetDateTime.now(zoneId);
+        OffsetDateTime to = from.plusDays(14);
+        try {
+            List<EventDto> events = apiClient.getEvents(from, to);
+            if (events == null || events.isEmpty()) {
+                sendText(message.getChatId(), null, "Ближайших мероприятий нет.");
+                return;
+            }
+            List<EventDto> scheduled = events.stream()
+                    .filter(event -> event != null
+                            && event.id() != null
+                            && event.startAt() != null
+                            && "SCHEDULED".equals(event.status()))
+                    .sorted(Comparator.comparing(EventDto::startAt))
+                    .toList();
+            if (scheduled.isEmpty()) {
+                sendText(message.getChatId(), null, "Нет запланированных мероприятий для записи.");
+                return;
+            }
+            sendText(
+                    message.getChatId(),
+                    null,
+                    eventsFormatter.formatUpcoming(scheduled, zoneId.getId()),
+                    buildEventActionsKeyboard(scheduled)
+            );
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось получить мероприятия: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось получить мероприятия: API недоступен.");
+        }
+    }
+
+    /**
+     * Обрабатывает ручную команду записи на мероприятие.
+     *
+     * Поддержка:
+     * /event_register <eventId>
+     *
+     * @param message сообщение пользователя
+     * @param text полный текст команды
+     */
+    private void handleManualEventRegisterCommand(Message message, String text) {
+        Long eventId = parseEventIdFromCommand(text, "/event_register");
+        if (eventId == null) {
+            sendText(message.getChatId(), null, "Использование: /event_register <id>");
+            return;
+        }
+        try {
+            UserDto user = upsertPrivateUser(message);
+            apiClient.registerForEvent(eventId, user.id());
+            sendText(message.getChatId(), null,
+                    "Вы записаны на мероприятие #" + eventId + ". "
+                            + "Перед началом бот запросит подтверждение: Приду / Не приду.");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось записаться: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось записаться: API недоступен.");
+        }
+    }
+
+    /**
+     * Обрабатывает ручную команду отмены записи на мероприятие.
+     *
+     * Поддержка:
+     * /event_unregister <eventId>
+     *
+     * @param message сообщение пользователя
+     * @param text полный текст команды
+     */
+    private void handleManualEventUnregisterCommand(Message message, String text) {
+        Long eventId = parseEventIdFromCommand(text, "/event_unregister");
+        if (eventId == null) {
+            sendText(message.getChatId(), null, "Использование: /event_unregister <id>");
+            return;
+        }
+        try {
+            UserDto user = upsertPrivateUser(message);
+            apiClient.unregisterFromEvent(eventId, user.id());
+            sendText(message.getChatId(), null, "Запись на мероприятие #" + eventId + " отменена.");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось отменить запись: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось отменить запись: API недоступен.");
+        }
+    }
+
+    /**
      * Обрабатывает ручную команду присоединения к открытой игре.
      *
      * Поддержка:
@@ -2818,6 +3020,25 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         String raw = data.substring(3).trim();
         try {
             return Long.parseLong(raw);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Разбирает идентификатор мероприятия из текстовой команды.
+     *
+     * @param text полный текст команды
+     * @param command имя команды
+     * @return идентификатор мероприятия или null
+     */
+    private Long parseEventIdFromCommand(String text, String command) {
+        String[] parts = text == null ? new String[0] : text.trim().split("\\s+");
+        if (parts.length < 2 || !command.equals(normalizeCommand(parts[0]))) {
+            return null;
+        }
+        try {
+            return Long.parseLong(parts[1]);
         } catch (NumberFormatException ex) {
             return null;
         }
@@ -3236,6 +3457,26 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
         }
         if (data.startsWith("jb:")) {
             handleJoinBookingCallback(query, data);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith(CALLBACK_EVENT_REGISTER_PREFIX)) {
+            handleEventRegisterCallback(query, data);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith(CALLBACK_EVENT_UNREGISTER_PREFIX)) {
+            handleEventUnregisterCallback(query, data);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith(CALLBACK_EVENT_CONFIRM_PREFIX)) {
+            handleEventAttendanceDecisionCallback(query, data, true);
+            answerCallback(query.getId());
+            return;
+        }
+        if (data.startsWith(CALLBACK_EVENT_DECLINE_PREFIX)) {
+            handleEventAttendanceDecisionCallback(query, data, false);
             answerCallback(query.getId());
             return;
         }
@@ -4037,6 +4278,144 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Обрабатывает callback записи на мероприятие.
+     *
+     * @param query callback-запрос Telegram
+     * @param data payload callback
+     */
+    private void handleEventRegisterCallback(CallbackQuery query, String data) {
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        Long eventId = parseEventCallbackId(data, CALLBACK_EVENT_REGISTER_PREFIX);
+        if (eventId == null) {
+            return;
+        }
+        User from = query.getFrom();
+        if (from == null) {
+            return;
+        }
+        try {
+            UserDto user = apiClient.upsertTelegramUser(from.getId(), resolveUserName(from));
+            apiClient.registerForEvent(eventId, user.id());
+            sendText(message.getChatId(), null,
+                    "Вы записаны на мероприятие #" + eventId + ". "
+                            + "Перед началом бот запросит подтверждение: Приду / Не приду.");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось записаться: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось записаться: API недоступен.");
+        }
+    }
+
+    /**
+     * Обрабатывает callback отмены записи на мероприятие.
+     *
+     * @param query callback-запрос Telegram
+     * @param data payload callback
+     */
+    private void handleEventUnregisterCallback(CallbackQuery query, String data) {
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        Long eventId = parseEventCallbackId(data, CALLBACK_EVENT_UNREGISTER_PREFIX);
+        if (eventId == null) {
+            return;
+        }
+        User from = query.getFrom();
+        if (from == null) {
+            return;
+        }
+        try {
+            UserDto user = apiClient.upsertTelegramUser(from.getId(), resolveUserName(from));
+            apiClient.unregisterFromEvent(eventId, user.id());
+            sendText(message.getChatId(), null, "Запись на мероприятие #" + eventId + " отменена.");
+        } catch (RestClientResponseException ex) {
+            sendText(message.getChatId(), null, "Не удалось отменить запись: " + ex.getRawStatusCode());
+        } catch (RestClientException ex) {
+            sendText(message.getChatId(), null, "Не удалось отменить запись: API недоступен.");
+        }
+    }
+
+    /**
+     * Обрабатывает callback подтверждения/отклонения участия в мероприятии.
+     *
+     * @param query callback-запрос Telegram
+     * @param data payload callback
+     * @param confirm true — подтвердить участие, false — отклонить
+     */
+    private void handleEventAttendanceDecisionCallback(CallbackQuery query, String data, boolean confirm) {
+        var maybeMessage = query.getMessage();
+        if (!(maybeMessage instanceof Message message)) {
+            return;
+        }
+        String prefix = confirm ? CALLBACK_EVENT_CONFIRM_PREFIX : CALLBACK_EVENT_DECLINE_PREFIX;
+        Long eventId = parseEventCallbackId(data, prefix);
+        if (eventId == null) {
+            return;
+        }
+        User from = query.getFrom();
+        if (from == null) {
+            return;
+        }
+        try {
+            UserDto user = apiClient.upsertTelegramUser(from.getId(), resolveUserName(from));
+            if (confirm) {
+                apiClient.confirmAttendance(eventId, user.id());
+                editMessage(
+                        message.getChatId(),
+                        message.getMessageId(),
+                        "Участие подтверждено. Ждем вас на мероприятии #" + eventId + ".",
+                        null
+                );
+                return;
+            }
+            apiClient.declineAttendance(eventId, user.id());
+            editMessage(
+                    message.getChatId(),
+                    message.getMessageId(),
+                    "Отметили, что вы не придете на мероприятие #" + eventId + ".",
+                    null
+            );
+        } catch (RestClientResponseException ex) {
+            editMessage(
+                    message.getChatId(),
+                    message.getMessageId(),
+                    "Не удалось обработать ответ по мероприятию #" + eventId + ": " + ex.getRawStatusCode(),
+                    null
+            );
+        } catch (RestClientException ex) {
+            editMessage(
+                    message.getChatId(),
+                    message.getMessageId(),
+                    "Не удалось обработать ответ: API недоступен.",
+                    null
+            );
+        }
+    }
+
+    /**
+     * Разбирает идентификатор мероприятия из callback payload.
+     *
+     * @param data payload callback
+     * @param prefix ожидаемый префикс callback
+     * @return идентификатор мероприятия или null
+     */
+    private Long parseEventCallbackId(String data, String prefix) {
+        if (data == null || prefix == null || !data.startsWith(prefix)) {
+            return null;
+        }
+        String raw = data.substring(prefix.length()).trim();
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    /**
      * Формирует CalendarKeyboard.
      */
     private InlineKeyboardMarkup buildCalendarKeyboard(YearMonth month, String target) {
@@ -4483,6 +4862,67 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
     }
 
     /**
+     * Формирует клавиатуру действий с мероприятиями: запись и отмена записи.
+     *
+     * @param events список мероприятий
+     * @return inline-клавиатура действий
+     */
+    private InlineKeyboardMarkup buildEventActionsKeyboard(List<EventDto> events) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        if (events == null) {
+            InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+            markup.setKeyboard(rows);
+            return markup;
+        }
+        int added = 0;
+        for (EventDto event : events) {
+            if (event == null || event.id() == null) {
+                continue;
+            }
+            if (added >= MAX_EVENT_ACTION_BUTTONS) {
+                break;
+            }
+            InlineKeyboardButton register = new InlineKeyboardButton();
+            register.setText("Записаться #" + event.id());
+            register.setCallbackData(CALLBACK_EVENT_REGISTER_PREFIX + event.id());
+            InlineKeyboardButton unregister = new InlineKeyboardButton();
+            unregister.setText("Отменить #" + event.id());
+            unregister.setCallbackData(CALLBACK_EVENT_UNREGISTER_PREFIX + event.id());
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            row.add(register);
+            row.add(unregister);
+            rows.add(row);
+            added++;
+        }
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    /**
+     * Формирует клавиатуру подтверждения участия в мероприятии.
+     *
+     * @param eventId идентификатор мероприятия
+     * @return inline-клавиатура подтверждения участия
+     */
+    private InlineKeyboardMarkup buildEventAttendanceDecisionKeyboard(Long eventId) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        InlineKeyboardButton confirm = new InlineKeyboardButton();
+        confirm.setText("Приду");
+        confirm.setCallbackData(CALLBACK_EVENT_CONFIRM_PREFIX + eventId);
+        InlineKeyboardButton decline = new InlineKeyboardButton();
+        decline.setText("Не приду");
+        decline.setCallbackData(CALLBACK_EVENT_DECLINE_PREFIX + eventId);
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        row.add(confirm);
+        row.add(decline);
+        rows.add(row);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    /**
      * Формирует клавиатуру присоединения к открытым играм.
      *
      * @param bookings список открытых игр
@@ -4582,5 +5022,14 @@ public class TelegramClubBot extends TelegramLongPollingBot implements Notificat
             return "@" + trimmed;
         }
         return trimmed;
+    }
+
+    /**
+     * Данные команды запроса подтверждения участия в мероприятии.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param eventTitle название мероприятия (опционально)
+     */
+    private record EventAttendancePrompt(Long eventId, String eventTitle) {
     }
 }

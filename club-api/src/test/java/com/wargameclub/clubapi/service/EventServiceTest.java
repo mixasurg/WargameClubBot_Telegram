@@ -139,7 +139,10 @@ class EventServiceTest {
 
         when(eventRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(event));
         when(userRepository.findById(10L)).thenReturn(Optional.of(new User("Bob")));
-        when(registrationRepository.countByEventIdAndStatus(5L, RegistrationStatus.REGISTERED)).thenReturn(1L);
+        when(registrationRepository.countByEventIdAndStatusIn(
+                5L,
+                List.of(RegistrationStatus.REGISTERED, RegistrationStatus.CONFIRMED)
+        )).thenReturn(1L);
 
         assertThatThrownBy(() -> eventService.register(5L, 10L, null, null))
                 .isInstanceOf(ConflictException.class);
@@ -165,6 +168,8 @@ class EventServiceTest {
         eventService.register(7L, 10L, null, null);
 
         assertThat(registration.getStatus()).isEqualTo(RegistrationStatus.REGISTERED);
+        assertThat(registration.getConfirmedAt()).isNull();
+        assertThat(registration.getConfirmationRequestedAt()).isNotNull();
         ArgumentCaptor<TicketPurchasedEvent> eventCaptor = ArgumentCaptor.forClass(TicketPurchasedEvent.class);
         verify(kafkaEventPublisher).publishTicketPurchased(eventCaptor.capture());
         assertThat(eventCaptor.getValue().count()).isEqualTo(1);
@@ -181,15 +186,72 @@ class EventServiceTest {
         ReflectionTestUtils.setField(user, "id", 10L);
         EventRegistration registration = new EventRegistration(event, user);
 
-        when(registrationRepository.findByEventIdAndUserId(7L, 10L)).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByEventIdAndUserIdForUpdate(7L, 10L)).thenReturn(Optional.of(registration));
 
         eventService.unregister(7L, 10L, 2, new BigDecimal("100"));
 
         assertThat(registration.getStatus()).isEqualTo(RegistrationStatus.CANCELLED);
+        assertThat(registration.getConfirmedAt()).isNull();
         ArgumentCaptor<TicketCancelledEvent> eventCaptor = ArgumentCaptor.forClass(TicketCancelledEvent.class);
         verify(kafkaEventPublisher).publishTicketCancelled(eventCaptor.capture());
         assertThat(eventCaptor.getValue().count()).isEqualTo(2);
         assertThat(eventCaptor.getValue().amount()).isEqualTo(new BigDecimal("100"));
+    }
+
+    @Test
+    void confirmAttendanceMarksRegistrationAsConfirmed() {
+        ClubEvent event = new ClubEvent();
+        event.setStatus(EventStatus.SCHEDULED);
+        User user = new User("Bob");
+        ReflectionTestUtils.setField(user, "id", 10L);
+        EventRegistration registration = new EventRegistration(event, user);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+
+        when(registrationRepository.findByEventIdAndUserIdForUpdate(7L, 10L)).thenReturn(Optional.of(registration));
+
+        eventService.confirmAttendance(7L, 10L);
+
+        assertThat(registration.getStatus()).isEqualTo(RegistrationStatus.CONFIRMED);
+        assertThat(registration.getConfirmedAt()).isNotNull();
+    }
+
+    @Test
+    void confirmAttendanceRejectsCancelledRegistration() {
+        ClubEvent event = new ClubEvent();
+        event.setStatus(EventStatus.SCHEDULED);
+        User user = new User("Bob");
+        EventRegistration registration = new EventRegistration(event, user);
+        registration.setStatus(RegistrationStatus.CANCELLED);
+
+        when(registrationRepository.findByEventIdAndUserIdForUpdate(7L, 10L)).thenReturn(Optional.of(registration));
+
+        assertThatThrownBy(() -> eventService.confirmAttendance(7L, 10L))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void declineAttendanceMarksCancelledAndPublishesTicket() {
+        ClubEvent event = new ClubEvent();
+        ReflectionTestUtils.setField(event, "id", 7L);
+        event.setTitle("Event");
+        event.setType(EventType.OTHER);
+        event.setStatus(EventStatus.SCHEDULED);
+        User user = new User("Bob");
+        ReflectionTestUtils.setField(user, "id", 10L);
+        EventRegistration registration = new EventRegistration(event, user);
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setConfirmedAt(OffsetDateTime.now());
+
+        when(registrationRepository.findByEventIdAndUserIdForUpdate(7L, 10L)).thenReturn(Optional.of(registration));
+
+        eventService.declineAttendance(7L, 10L);
+
+        assertThat(registration.getStatus()).isEqualTo(RegistrationStatus.CANCELLED);
+        assertThat(registration.getConfirmedAt()).isNull();
+        ArgumentCaptor<TicketCancelledEvent> eventCaptor = ArgumentCaptor.forClass(TicketCancelledEvent.class);
+        verify(kafkaEventPublisher).publishTicketCancelled(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().count()).isEqualTo(1);
+        assertThat(eventCaptor.getValue().amount()).isEqualTo(BigDecimal.ZERO);
     }
 
     @Test

@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import com.wargameclub.clubapi.dto.EventUpdateRequest;
 import com.wargameclub.clubapi.entity.ClubEvent;
+import com.wargameclub.clubapi.entity.EventRegistration;
 import com.wargameclub.clubapi.entity.User;
 import com.wargameclub.clubapi.enums.EventStatus;
 import com.wargameclub.clubapi.enums.EventType;
@@ -204,15 +205,36 @@ public class EventService {
             throw new BadRequestException("Мероприятие не запланировано");
         }
         if (event.getCapacity() != null) {
-            long registered = registrationRepository.countByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED);
+            long registered = registrationRepository.countByEventIdAndStatusIn(
+                    eventId,
+                    List.of(RegistrationStatus.REGISTERED, RegistrationStatus.CONFIRMED)
+            );
             if (registered >= event.getCapacity()) {
                 throw new ConflictException("Превышена вместимость мероприятия");
             }
         }
-        registrationRepository.findByEventIdAndUserId(eventId, userId)
-                .ifPresentOrElse(existing -> {
-                    existing.setStatus(RegistrationStatus.REGISTERED);
-                }, () -> registrationRepository.save(new com.wargameclub.clubapi.entity.EventRegistration(event, user)));
+        OffsetDateTime now = OffsetDateTime.now();
+        EventRegistration registration = registrationRepository.findByEventIdAndUserId(eventId, userId)
+                .orElse(null);
+        boolean publishPurchase = false;
+        if (registration == null) {
+            registration = new EventRegistration(event, user);
+            registration.setConfirmationRequestedAt(now);
+            registrationRepository.save(registration);
+            publishPurchase = true;
+        } else if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            registration.setStatus(RegistrationStatus.REGISTERED);
+            registration.setConfirmationRequestedAt(now);
+            registration.setConfirmedAt(null);
+            publishPurchase = true;
+        } else if (registration.getStatus() == RegistrationStatus.REGISTERED) {
+            registration.setConfirmationRequestedAt(now);
+        } else if (registration.getStatus() == RegistrationStatus.CONFIRMED) {
+            return;
+        }
+        if (!publishPurchase) {
+            return;
+        }
         kafkaEventPublisher.publishTicketPurchased(new TicketPurchasedEvent(
                 event.getId(),
                 event.getTitle(),
@@ -221,7 +243,7 @@ public class EventService {
                 user.getName(),
                 count == null ? 1 : count,
                 amount == null ? BigDecimal.ZERO : amount,
-                OffsetDateTime.now()
+                now
         ));
     }
 
@@ -235,10 +257,16 @@ public class EventService {
      */
     @Transactional
     public void unregister(Long eventId, Long userId, Integer count, BigDecimal amount) {
-        com.wargameclub.clubapi.entity.EventRegistration registration = registrationRepository
-                .findByEventIdAndUserId(eventId, userId)
+        EventRegistration registration = registrationRepository
+                .findByEventIdAndUserIdForUpdate(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Регистрация не найдена"));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            return;
+        }
         registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setConfirmedAt(null);
+        registration.setConfirmationRequestedAt(null);
+        OffsetDateTime now = OffsetDateTime.now();
         kafkaEventPublisher.publishTicketCancelled(new TicketCancelledEvent(
                 registration.getEvent().getId(),
                 registration.getEvent().getTitle(),
@@ -247,7 +275,61 @@ public class EventService {
                 registration.getUser().getName(),
                 count == null ? 1 : count,
                 amount == null ? BigDecimal.ZERO : amount,
-                OffsetDateTime.now()
+                now
+        ));
+    }
+
+    /**
+     * Подтверждает участие пользователя в мероприятии.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    @Transactional
+    public void confirmAttendance(Long eventId, Long userId) {
+        EventRegistration registration = registrationRepository
+                .findByEventIdAndUserIdForUpdate(eventId, userId)
+                .orElseThrow(() -> new NotFoundException("Регистрация не найдена"));
+        if (registration.getEvent().getStatus() != EventStatus.SCHEDULED) {
+            throw new BadRequestException("Подтверждение доступно только для запланированного мероприятия");
+        }
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new BadRequestException("Нельзя подтвердить отмененную регистрацию");
+        }
+        if (registration.getStatus() == RegistrationStatus.CONFIRMED) {
+            return;
+        }
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setConfirmedAt(OffsetDateTime.now());
+    }
+
+    /**
+     * Отмечает, что пользователь не придет на мероприятие.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    @Transactional
+    public void declineAttendance(Long eventId, Long userId) {
+        EventRegistration registration = registrationRepository
+                .findByEventIdAndUserIdForUpdate(eventId, userId)
+                .orElseThrow(() -> new NotFoundException("Регистрация не найдена"));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            return;
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setConfirmedAt(null);
+        registration.setConfirmationRequestedAt(null);
+        OffsetDateTime now = OffsetDateTime.now();
+        kafkaEventPublisher.publishTicketCancelled(new TicketCancelledEvent(
+                registration.getEvent().getId(),
+                registration.getEvent().getTitle(),
+                registration.getEvent().getType(),
+                registration.getUser().getId(),
+                registration.getUser().getName(),
+                1,
+                BigDecimal.ZERO,
+                now
         ));
     }
 

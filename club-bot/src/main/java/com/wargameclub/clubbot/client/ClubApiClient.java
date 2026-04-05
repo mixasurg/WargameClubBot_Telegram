@@ -11,8 +11,10 @@ import com.wargameclub.clubbot.dto.BookingCreateRequest;
 import com.wargameclub.clubbot.dto.BookingDto;
 import com.wargameclub.clubbot.dto.BookingJoinRequest;
 import com.wargameclub.clubbot.dto.BookingResultRequest;
+import com.wargameclub.clubbot.dto.EventAttendanceConfirmRequest;
 import com.wargameclub.clubbot.dto.EventCreateRequest;
 import com.wargameclub.clubbot.dto.EventDto;
+import com.wargameclub.clubbot.dto.EventRegistrationRequest;
 import com.wargameclub.clubbot.dto.GameCreateRequest;
 import com.wargameclub.clubbot.dto.GameDto;
 import com.wargameclub.clubbot.dto.NotificationFailRequest;
@@ -411,6 +413,50 @@ public class ClubApiClient {
      */
     public EventDto createEvent(EventCreateRequest request) {
         return restTemplate.postForObject(baseUrl() + "/api/events", request, EventDto.class);
+    }
+
+    /**
+     * Регистрирует пользователя на мероприятие.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    public void registerForEvent(Long eventId, Long userId) {
+        EventRegistrationRequest request = new EventRegistrationRequest(userId, null, null);
+        restTemplate.postForLocation(baseUrl() + "/api/events/" + eventId + "/register", request);
+    }
+
+    /**
+     * Отменяет регистрацию пользователя на мероприятие.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    public void unregisterFromEvent(Long eventId, Long userId) {
+        EventRegistrationRequest request = new EventRegistrationRequest(userId, null, null);
+        restTemplate.postForLocation(baseUrl() + "/api/events/" + eventId + "/unregister", request);
+    }
+
+    /**
+     * Подтверждает участие пользователя в мероприятии.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    public void confirmAttendance(Long eventId, Long userId) {
+        EventAttendanceConfirmRequest request = new EventAttendanceConfirmRequest(userId);
+        restTemplate.postForLocation(baseUrl() + "/api/events/" + eventId + "/confirm", request);
+    }
+
+    /**
+     * Отмечает, что пользователь не придет на мероприятие.
+     *
+     * @param eventId идентификатор мероприятия
+     * @param userId идентификатор пользователя
+     */
+    public void declineAttendance(Long eventId, Long userId) {
+        EventAttendanceConfirmRequest request = new EventAttendanceConfirmRequest(userId);
+        restTemplate.postForLocation(baseUrl() + "/api/events/" + eventId + "/decline", request);
     }
 
     /**

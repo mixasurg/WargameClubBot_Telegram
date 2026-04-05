@@ -76,9 +76,57 @@ public class AppProperties {
     public static class Security {
 
         /**
+         * Флаг включения security-цепочки (JWT + RBAC).
+         */
+        private boolean enabled = true;
+
+        /**
          * API-ключ для защищенных эндпоинтов.
          */
         private String apiKey;
+
+        /**
+         * Секрет для подписи JWT-токенов.
+         */
+        private String jwtSecret = "change-me-please-change-me-please-12345";
+
+        /**
+         * Время жизни JWT-токена в секундах.
+         */
+        private long jwtTtlSeconds = 3600;
+
+        /**
+         * Включение ограничения частоты запросов.
+         */
+        private boolean rateLimitEnabled = true;
+
+        /**
+         * Максимум запросов в минуту для обычных API-эндпоинтов.
+         */
+        private int rateLimitPerMinute = 120;
+
+        /**
+         * Максимум запросов в минуту для эндпоинта login.
+         */
+        private int loginRateLimitPerMinute = 20;
+
+        /**
+         * Возвращает флаг включения security-цепочки.
+         *
+         * @return true, если security включена
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * Устанавливает флаг включения security-цепочки.
+         *
+         * @param enabled признак включения security
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         /**
          * Возвращает API-ключ для доступа к защищенным эндпоинтам.
@@ -96,6 +144,96 @@ public class AppProperties {
          */
         public void setApiKey(String apiKey) {
             this.apiKey = apiKey;
+        }
+
+        /**
+         * Возвращает JWT-секрет.
+         *
+         * @return JWT-секрет
+         */
+        public String getJwtSecret() {
+            return jwtSecret;
+        }
+
+        /**
+         * Устанавливает JWT-секрет.
+         *
+         * @param jwtSecret JWT-секрет
+         */
+        public void setJwtSecret(String jwtSecret) {
+            this.jwtSecret = jwtSecret;
+        }
+
+        /**
+         * Возвращает время жизни JWT-токена в секундах.
+         *
+         * @return TTL токена в секундах
+         */
+        public long getJwtTtlSeconds() {
+            return jwtTtlSeconds;
+        }
+
+        /**
+         * Устанавливает время жизни JWT-токена в секундах.
+         *
+         * @param jwtTtlSeconds TTL токена в секундах
+         */
+        public void setJwtTtlSeconds(long jwtTtlSeconds) {
+            this.jwtTtlSeconds = jwtTtlSeconds;
+        }
+
+        /**
+         * Возвращает флаг включения rate limiting.
+         *
+         * @return true, если ограничение частоты включено
+         */
+        public boolean isRateLimitEnabled() {
+            return rateLimitEnabled;
+        }
+
+        /**
+         * Устанавливает флаг включения rate limiting.
+         *
+         * @param rateLimitEnabled признак включения ограничения
+         */
+        public void setRateLimitEnabled(boolean rateLimitEnabled) {
+            this.rateLimitEnabled = rateLimitEnabled;
+        }
+
+        /**
+         * Возвращает лимит запросов в минуту для обычных API-эндпоинтов.
+         *
+         * @return лимит запросов
+         */
+        public int getRateLimitPerMinute() {
+            return rateLimitPerMinute;
+        }
+
+        /**
+         * Устанавливает лимит запросов в минуту для обычных API-эндпоинтов.
+         *
+         * @param rateLimitPerMinute лимит запросов
+         */
+        public void setRateLimitPerMinute(int rateLimitPerMinute) {
+            this.rateLimitPerMinute = rateLimitPerMinute;
+        }
+
+        /**
+         * Возвращает лимит запросов в минуту для login-эндпоинта.
+         *
+         * @return лимит login-запросов
+         */
+        public int getLoginRateLimitPerMinute() {
+            return loginRateLimitPerMinute;
+        }
+
+        /**
+         * Устанавливает лимит запросов в минуту для login-эндпоинта.
+         *
+         * @param loginRateLimitPerMinute лимит login-запросов
+         */
+        public void setLoginRateLimitPerMinute(int loginRateLimitPerMinute) {
+            this.loginRateLimitPerMinute = loginRateLimitPerMinute;
         }
     }
 

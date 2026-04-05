@@ -3,6 +3,7 @@ package com.wargameclub.clubapi.controller;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.wargameclub.clubapi.dto.EventAttendanceConfirmRequest;
 import com.wargameclub.clubapi.dto.EventCreateRequest;
 import com.wargameclub.clubapi.dto.EventDto;
 import com.wargameclub.clubapi.dto.EventRegistrationRequest;
@@ -129,5 +130,23 @@ class EventControllerTest {
         controller.unregister(5L, request);
 
         verify(eventService).unregister(5L, 10L, 1, BigDecimal.ZERO);
+    }
+
+    @Test
+    void confirmAttendanceDelegatesToService() {
+        EventAttendanceConfirmRequest request = new EventAttendanceConfirmRequest(10L);
+
+        controller.confirmAttendance(5L, request);
+
+        verify(eventService).confirmAttendance(5L, 10L);
+    }
+
+    @Test
+    void declineAttendanceDelegatesToService() {
+        EventAttendanceConfirmRequest request = new EventAttendanceConfirmRequest(10L);
+
+        controller.declineAttendance(5L, request);
+
+        verify(eventService).declineAttendance(5L, 10L);
     }
 }

@@ -51,6 +51,7 @@ services:
       LOYALTY_POINTS_ARMY_SHARED: ${LOYALTY_POINTS_ARMY_SHARED:-5}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       API_KEY: ${API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:change-me-please-change-me-please-12345}
     ports:
       - "8080:8080"
     depends_on:
@@ -71,6 +72,9 @@ services:
     environment:
       API_BASE_URL: ${API_BASE_URL:-http://club-api:8080}
       API_KEY: ${API_KEY:-}
+      API_LOGIN: ${API_LOGIN:club_bot}
+      API_PASSWORD: ${API_PASSWORD:club_bot_pass}
+      API_AUTH_REFRESH_SKEW_SECONDS: ${API_AUTH_REFRESH_SKEW_SECONDS:30}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-wargameclub_bot}
       BOT_POLL_INTERVAL_SECONDS: ${BOT_POLL_INTERVAL_SECONDS:-10}
